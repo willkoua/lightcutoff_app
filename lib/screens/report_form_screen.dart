@@ -7,6 +7,7 @@ import '../providers/report_provider.dart';
 import '../services/location_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/formatting.dart';
+import '../widgets/location_permission_sheet.dart';
 
 enum _DupChoice { confirm, anyway, cancel }
 
@@ -58,30 +59,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
     await _proceed(provider);
   }
 
-  Future<bool> _showLocationPriming() async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        icon: const Icon(Icons.my_location, color: AppColors.primary, size: 40),
-        title: const Text('Activer la localisation'),
-        content: const Text(
-          'NJUKA utilise votre position uniquement pour localiser la coupure '
-          'que vous signalez. Elle n\'est pas partagée à d\'autres fins.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Plus tard'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Autoriser'),
-          ),
-        ],
-      ),
-    );
-    return ok ?? false;
-  }
+  Future<bool> _showLocationPriming() => showLocationPermissionSheet(context);
 
   Future<void> _showSettingsDialog(ReportProvider provider) async {
     await showDialog<void>(
