@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 
@@ -17,12 +18,26 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-  // Centre par défaut : Yaoundé.
-  static const _fallbackCenter = LatLng(3.848, 11.502);
+  static const _fallbackCenter = LatLng(3.848, 11.502); // Yaoundé
   static const _minZoom = 3.0;
   static const _maxZoom = 18.0;
 
   final MapController _controller = MapController();
+  LatLng? _myPos;
+  bool _mapReady = false;
+  bool _didFit = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMyPosition();
+  }
+
+  Future<void> _loadMyPosition() async {
+    final pos = await context.read<ReportProvider>().myPosition();
+    if (!mounted || pos == null) return;
+    setState(() => _myPos = LatLng(pos.lat, pos.lng));
+  }
 
   void _snack(String message) {
     ScaffoldMessenger.of(context)
@@ -32,8 +47,39 @@ class _MapScreenState extends State<MapScreen> {
 
   void _zoom(double delta) {
     final cam = _controller.camera;
-    final target = (cam.zoom + delta).clamp(_minZoom, _maxZoom);
-    _controller.move(cam.center, target);
+    _controller.move(cam.center, (cam.zoom + delta).clamp(_minZoom, _maxZoom));
+  }
+
+  /// Recadre une fois la carte prête et les coupures chargées.
+  void _maybeFit(List<LatLng> points) {
+    if (!_mapReady || _didFit || points.isEmpty) return;
+    _didFit = true;
+    if (points.length == 1) {
+      _controller.move(points.first, 13);
+      return;
+    }
+    _controller.fitCamera(
+      CameraFit.coordinates(
+        coordinates: points,
+        padding: const EdgeInsets.all(60),
+        maxZoom: 15,
+      ),
+    );
+  }
+
+  Future<void> _recenterOnMe() async {
+    if (_myPos != null) {
+      _controller.move(_myPos!, 15);
+      return;
+    }
+    final pos = await context.read<ReportProvider>().myPosition();
+    if (!mounted) return;
+    if (pos == null) {
+      _snack('Position indisponible.');
+      return;
+    }
+    setState(() => _myPos = LatLng(pos.lat, pos.lng));
+    _controller.move(_myPos!, 15);
   }
 
   void _openDetails(Report report) {
@@ -68,10 +114,11 @@ class _MapScreenState extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
     final reports = context.watch<ReportProvider>().reports;
-    final center =
-        reports.isNotEmpty
-            ? LatLng(reports.first.position.lat, reports.first.position.lng)
-            : _fallbackCenter;
+    final points =
+        reports.map((r) => LatLng(r.position.lat, r.position.lng)).toList();
+
+    // Recadrage automatique dès que tout est prêt.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeFit(points));
 
     return Scaffold(
       appBar: AppBar(title: const Text('Carte des coupures')),
@@ -80,10 +127,14 @@ class _MapScreenState extends State<MapScreen> {
           FlutterMap(
             mapController: _controller,
             options: MapOptions(
-              initialCenter: center,
-              initialZoom: reports.isNotEmpty ? 12 : 6,
+              initialCenter: _myPos ?? _fallbackCenter,
+              initialZoom: 6,
               minZoom: _minZoom,
               maxZoom: _maxZoom,
+              onMapReady: () {
+                _mapReady = true;
+                _maybeFit(points);
+              },
               interactionOptions: const InteractionOptions(
                 flags: InteractiveFlag.all,
               ),
@@ -94,27 +145,70 @@ class _MapScreenState extends State<MapScreen> {
                 userAgentPackageName: 'com.example.lightcutoff_app',
                 maxZoom: 19,
               ),
-              MarkerLayer(
-                markers: [
-                  for (final report in reports)
+              MarkerClusterLayerWidget(
+                options: MarkerClusterLayerOptions(
+                  maxClusterRadius: 48,
+                  size: const Size(44, 44),
+                  padding: const EdgeInsets.all(50),
+                  markers: [
+                    for (final report in reports)
+                      Marker(
+                        point: LatLng(report.position.lat, report.position.lng),
+                        width: 44,
+                        height: 44,
+                        child: GestureDetector(
+                          onTap: () => _openDetails(report),
+                          child: Icon(
+                            Icons.location_on,
+                            size: 44,
+                            color:
+                                report.status == OutageStatus.ongoing
+                                    ? AppColors.ongoing
+                                    : AppColors.resolved,
+                          ),
+                        ),
+                      ),
+                  ],
+                  builder:
+                      (context, markers) => Container(
+                        decoration: const BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          '${markers.length}',
+                          style: const TextStyle(
+                            color: AppColors.dark,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                ),
+              ),
+              if (_myPos != null)
+                MarkerLayer(
+                  markers: [
                     Marker(
-                      point: LatLng(report.position.lat, report.position.lng),
-                      width: 44,
-                      height: 44,
-                      child: GestureDetector(
-                        onTap: () => _openDetails(report),
-                        child: Icon(
-                          Icons.location_on,
-                          size: 44,
-                          color:
-                              report.status == OutageStatus.ongoing
-                                  ? AppColors.ongoing
-                                  : AppColors.resolved,
+                      point: _myPos!,
+                      width: 24,
+                      height: 24,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.blue,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 3),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.3),
+                              blurRadius: 4,
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                ],
-              ),
+                  ],
+                ),
             ],
           ),
           Positioned(
@@ -122,6 +216,12 @@ class _MapScreenState extends State<MapScreen> {
             bottom: 24,
             child: Column(
               children: [
+                FloatingActionButton.small(
+                  heroTag: 'recenter',
+                  onPressed: _recenterOnMe,
+                  child: const Icon(Icons.my_location),
+                ),
+                const SizedBox(height: 12),
                 FloatingActionButton.small(
                   heroTag: 'zoom_in',
                   onPressed: () => _zoom(1),

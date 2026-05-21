@@ -273,6 +273,16 @@ class ReportProvider extends ChangeNotifier {
     return best;
   }
 
+  /// Position GPS courante (ou null en cas d'échec/refus). Pour la carte.
+  Future<GeoPosition?> myPosition() async {
+    try {
+      final loc = await _location.getCurrentLocation();
+      return loc.position;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// État d'accès à la localisation (sans déclencher la demande système).
   Future<LocationAccess> checkLocationAccess() => _location.checkAccess();
 
