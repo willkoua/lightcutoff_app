@@ -59,7 +59,10 @@ service cloud.firestore {
         allow read: if isOwner(userId)
                     || isAdmin()
                     || request.auth.uid == reportAuthor(reportId);
-        allow create, delete: if isOwner(userId);
+        // On ne peut pas confirmer sa propre coupure.
+        allow create: if isOwner(userId)
+                      && request.auth.uid != reportAuthor(reportId);
+        allow delete: if isOwner(userId);
       }
     }
   }

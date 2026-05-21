@@ -206,6 +206,8 @@ class ReportProvider extends ChangeNotifier {
   Future<bool> confirm(String reportId) async {
     final uid = _uid;
     if (uid == null) return false;
+    // Garde : on ne confirme pas sa propre coupure.
+    if (reportById(reportId)?.userId == uid) return false;
     try {
       await _service.confirmReport(reportId, uid);
       return true;

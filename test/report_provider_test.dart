@@ -103,6 +103,19 @@ void main() {
     expect(provider.isAuthor(_report(userId: 'autre')), isFalse);
   });
 
+  test('confirm refuse sa propre coupure', () async {
+    when(() => service.watchReports()).thenAnswer(
+      (_) => Stream<List<Report>>.value([_report(id: 'mine', userId: 'u1')]),
+    );
+    final provider = build();
+    await Future<void>.delayed(Duration.zero);
+
+    final ok = await provider.confirm('mine');
+
+    expect(ok, isFalse);
+    verifyNever(() => service.confirmReport(any(), any()));
+  });
+
   group('findNearbyOngoing', () {
     // Yaoundé : 3.848, 11.502
     Future<ReportProvider> buildWith(List<Report> reports) async {
