@@ -21,8 +21,9 @@ Application mobile de **signalement de coupures de courant** (Android & iOS), co
 | Phase 1 — Authentification (login, inscription, vérif. email, indicatif tél.) | ✅ Terminé |
 | Phase 2 — Signalement (géoloc, liste temps réel, confirmation, résolution) | ✅ Terminé |
 | Phase 3 — Finitions (tests automatisés, états UI) | ✅ Terminé |
+| Post-MVP livré | 🗺️ carte · 👤 profil · 🔁 anti-doublon · 🔒 anonymat confirmations · 👋 onboarding · 🏛️ repository pattern |
 
-Pistes post-MVP : notifications push FCM, vue carte, profil éditable, job CI iOS.
+Pistes restantes : notifications push FCM, photo de profil, filtres/recherche, job CI iOS.
 
 ---
 
@@ -268,12 +269,18 @@ Types de tests :
   ├── firebase_options.dart
   ├── config/              # config d'environnement (USE_EMULATOR, hôte, ports)
   ├── models/              # modèles de données + enums (voir SCHEMA.md)
-  ├── services/            # accès Firebase / logique métier (AuthService…)
+  ├── repositories/        # contrats abstraits (AuthRepository, ReportRepository…)
+  ├── services/            # implémentations concrètes (Firebase/geolocator)
   ├── providers/           # gestion d'état (ChangeNotifier : AuthProvider…)
   ├── screens/             # écrans / pages
+  ├── widgets/             # composants réutilisables
   ├── theme/               # couleurs + ThemeData (charte graphique)
-  └── utils/               # helpers (validators…)
+  └── utils/               # helpers (validators, formatting…)
   ```
+- **Architecture en couches** : `Provider → Repository (interface) → Service (impl) → Firebase`.
+  Les providers dépendent des **interfaces** (`repositories/`), pas des implémentations
+  concrètes (`services/`). Cela facilite les tests (on mocke l'interface) et un
+  éventuel changement de backend (on fournit une nouvelle implémentation).
 - **Imports** : préférer les imports relatifs au sein de `lib/`, et grouper Dart / Flutter / packages / projet.
 
 ---
@@ -327,11 +334,13 @@ lightcutoff_app/
 │   ├── firebase_options.dart  # Config Firebase (généré)
 │   ├── config/                # AppConfig (USE_EMULATOR, hôte, ports)
 │   ├── models/                # AppUser, Report, Confirmation, enums, geo
-│   ├── services/              # AuthService
-│   ├── providers/             # AuthProvider
-│   ├── screens/               # splash, login, register, vérification, home
+│   ├── repositories/          # interfaces Auth/Report/Location
+│   ├── services/              # implémentations Firebase/geolocator
+│   ├── providers/             # AuthProvider, ReportProvider
+│   ├── screens/               # onboarding, login, register, home, carte, profil, détail
+│   ├── widgets/               # report_card, location_permission_sheet
 │   ├── theme/                 # AppColors, AppTheme (charte graphique)
-│   └── utils/                 # validators
+│   └── utils/                 # validators, formatting
 ├── android/                   # Projet Android (minSdk 23, Kotlin 2.1.0)
 │   └── app/src/debug/         # config réseau debug (cleartext émulateurs)
 ├── ios/                       # Projet iOS (platform 13.0)
