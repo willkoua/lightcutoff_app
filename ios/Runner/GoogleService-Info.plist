@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>708077956449-c1gr9hfl2eaka51kkfbmf9uclna03vc7.apps.googleusercontent.com</string>
+	<string>708077956449-27cueb3t4dphkp3p8gsuqfc653vbgbg9.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.708077956449-c1gr9hfl2eaka51kkfbmf9uclna03vc7</string>
+	<string>com.googleusercontent.apps.708077956449-27cueb3t4dphkp3p8gsuqfc653vbgbg9</string>
 	<key>API_KEY</key>
 	<string>AIzaSyAng1bLMh3gMCjmsB8ccbI3YuBDeAQVoUk</string>
 	<key>GCM_SENDER_ID</key>
@@ -13,7 +13,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.example.lightcutoffApp</string>
+	<string>com.njuka.app</string>
 	<key>PROJECT_ID</key>
 	<string>lightcutoff-dev</string>
 	<key>STORAGE_BUCKET</key>
@@ -29,7 +29,7 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:708077956449:ios:b27c0d697e02daab726920</string>
+	<string>1:708077956449:ios:cf24083083a70353726920</string>
 	<key>DATABASE_URL</key>
 	<string>https://lightcutoff-dev.firebaseio.com</string>
 </dict>

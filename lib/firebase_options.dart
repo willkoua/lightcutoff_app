@@ -51,7 +51,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyAG9_lixqdx1aFi3o2YrSJLwuAURRBW2vU',
-    appId: '1:708077956449:android:6573e9ff5da273fa726920',
+    appId: '1:708077956449:android:56c2be385806c348726920',
     messagingSenderId: '708077956449',
     projectId: 'lightcutoff-dev',
     databaseURL: 'https://lightcutoff-dev.firebaseio.com',
@@ -60,13 +60,13 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyAng1bLMh3gMCjmsB8ccbI3YuBDeAQVoUk',
-    appId: '1:708077956449:ios:b27c0d697e02daab726920',
+    appId: '1:708077956449:ios:cf24083083a70353726920',
     messagingSenderId: '708077956449',
     projectId: 'lightcutoff-dev',
     databaseURL: 'https://lightcutoff-dev.firebaseio.com',
     storageBucket: 'lightcutoff-dev.appspot.com',
-    iosClientId:
-        '708077956449-c1gr9hfl2eaka51kkfbmf9uclna03vc7.apps.googleusercontent.com',
-    iosBundleId: 'com.example.lightcutoffApp',
+    iosClientId: '708077956449-27cueb3t4dphkp3p8gsuqfc653vbgbg9.apps.googleusercontent.com',
+    iosBundleId: 'com.njuka.app',
   );
+
 }

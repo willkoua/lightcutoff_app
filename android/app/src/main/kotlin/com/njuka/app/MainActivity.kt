@@ -1,4 +1,4 @@
-package com.example.lightcutoff_app
+package com.njuka.app
 
 import io.flutter.embedding.android.FlutterActivity
 
