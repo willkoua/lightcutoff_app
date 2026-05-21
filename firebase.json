@@ -1,1 +1,49 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"lightcutoff-dev","appId":"1:708077956449:android:6573e9ff5da273fa726920","fileOutput":"android/app/google-services.json"}},"ios":{"default":{"projectId":"lightcutoff-dev","appId":"1:708077956449:ios:b27c0d697e02daab726920","uploadDebugSymbols":false,"fileOutput":"ios/Runner/GoogleService-Info.plist"}},"dart":{"lib/firebase_options.dart":{"projectId":"lightcutoff-dev","configurations":{"android":"1:708077956449:android:6573e9ff5da273fa726920","ios":"1:708077956449:ios:b27c0d697e02daab726920"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "lightcutoff-dev",
+          "appId": "1:708077956449:android:6573e9ff5da273fa726920",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "lightcutoff-dev",
+          "appId": "1:708077956449:ios:b27c0d697e02daab726920",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "lightcutoff-dev",
+          "configurations": {
+            "android": "1:708077956449:android:6573e9ff5da273fa726920",
+            "ios": "1:708077956449:ios:b27c0d697e02daab726920"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "emulators": {
+    "auth": {
+      "port": 9099
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "database": {
+      "port": 9000
+    },
+    "ui": {
+      "enabled": true,
+      "port": 4000
+    },
+    "singleProjectMode": true
+  }
+}

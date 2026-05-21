@@ -1,0 +1,44 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Profils utilisateurs : chacun gère le sien.
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create, update: if isOwner(userId);
+      allow delete: if false;
+    }
+
+    // Coupures : lecture pour tout utilisateur connecté.
+    match /reports/{reportId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+                    && request.resource.data.userId == request.auth.uid;
+
+      // L'auteur modifie/supprime son signalement ;
+      // les autres peuvent uniquement faire varier le compteur de confirmations.
+      allow update: if isSignedIn() && (
+                      resource.data.userId == request.auth.uid ||
+                      request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['confirmationCount', 'updatedAt'])
+                    );
+      allow delete: if isSignedIn()
+                    && resource.data.userId == request.auth.uid;
+
+      // Confirmations : un document par utilisateur (id = uid).
+      match /confirmations/{userId} {
+        allow read: if isSignedIn();
+        allow create, delete: if isOwner(userId);
+      }
+    }
+  }
+}
