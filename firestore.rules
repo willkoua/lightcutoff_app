@@ -11,9 +11,22 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // Profils utilisateurs : chacun gère le sien.
+    function isAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid))
+             .data.role == 'admin';
+    }
+
+    function reportAuthor(reportId) {
+      return get(/databases/$(database)/documents/reports/$(reportId))
+        .data.userId;
+    }
+
+    // Profils utilisateurs : lecture limitée au propriétaire (ou admin).
+    // Empêche la ré-identification d'un confirmant via son uid.
     match /users/{userId} {
-      allow read: if isSignedIn();
+      allow read: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId);
       // Mise à jour limitée aux champs de profil (pas de role/status par l'utilisateur).
       allow update: if isOwner(userId)
@@ -40,8 +53,12 @@ service cloud.firestore {
                     && resource.data.userId == request.auth.uid;
 
       // Confirmations : un document par utilisateur (id = uid).
+      // Lecture réservée à l'auteur du report, aux admins, ou à sa propre
+      // confirmation → les autres ne voient que le compteur (anonymat).
       match /confirmations/{userId} {
-        allow read: if isSignedIn();
+        allow read: if isOwner(userId)
+                    || isAdmin()
+                    || request.auth.uid == reportAuthor(reportId);
         allow create, delete: if isOwner(userId);
       }
     }

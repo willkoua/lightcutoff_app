@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../models/confirmation.dart';
 import '../models/enums.dart';
+import '../providers/auth_provider.dart';
 import '../providers/report_provider.dart';
 import '../theme/app_colors.dart';
 import '../utils/formatting.dart';
@@ -32,6 +33,10 @@ class ReportDetailScreen extends StatelessWidget {
 
     final ongoing = report.status == OutageStatus.ongoing;
     final isAuthor = provider.isAuthor(report);
+    final isAdmin =
+        context.watch<AuthProvider>().profile?.role == UserRole.admin;
+    // Le détail des confirmations n'est lisible que par l'auteur ou un admin.
+    final canViewTimeline = isAuthor || isAdmin;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Détail de la coupure')),
@@ -103,17 +108,50 @@ class ReportDetailScreen extends StatelessWidget {
           const Divider(),
           const SizedBox(height: 8),
           const Text(
-            'Historique des confirmations',
+            'Confirmations',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
-          _ConfirmationTimeline(
-            reportId: reportId,
-            currentUid: provider.currentUid,
-            stream: provider.watchConfirmations(reportId),
-          ),
+          if (canViewTimeline)
+            _ConfirmationTimeline(
+              reportId: reportId,
+              currentUid: provider.currentUid,
+              stream: provider.watchConfirmations(reportId),
+            )
+          else
+            _CountOnly(count: report.confirmationCount),
         ],
       ),
+    );
+  }
+}
+
+/// Vue anonyme : seul le compteur, sans détail des confirmants.
+class _CountOnly extends StatelessWidget {
+  const _CountOnly({required this.count});
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.how_to_reg, size: 22, color: AppColors.primary),
+            const SizedBox(width: 8),
+            Text(
+              '$count confirmation${count > 1 ? 's' : ''}',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          'Le détail des confirmations est privé.',
+          style: TextStyle(color: AppColors.gray, fontSize: 13),
+        ),
+      ],
     );
   }
 }
