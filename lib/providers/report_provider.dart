@@ -147,6 +147,12 @@ class ReportProvider extends ChangeNotifier {
     return best;
   }
 
+  /// État d'accès à la localisation (sans déclencher la demande système).
+  Future<LocationAccess> checkLocationAccess() => _location.checkAccess();
+
+  /// Ouvre les réglages système de l'app.
+  Future<void> openLocationSettings() => _location.openSettings();
+
   /// Récupère la position et cherche un éventuel doublon proche.
   Future<PrepareOutcome> prepareReport() async {
     if (_uid == null) {

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/enums.dart';
 import '../models/report.dart';
 import '../providers/report_provider.dart';
+import '../services/location_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/formatting.dart';
 
@@ -39,6 +40,76 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
 
   Future<void> _submit() async {
     final provider = context.read<ReportProvider>();
+    final access = await provider.checkLocationAccess();
+    if (!mounted) return;
+    switch (access) {
+      case LocationAccess.serviceDisabled:
+        _snack('Activez la localisation de l\'appareil pour signaler.');
+        return;
+      case LocationAccess.deniedForever:
+        await _showSettingsDialog(provider);
+        return;
+      case LocationAccess.denied:
+        final accept = await _showLocationPriming();
+        if (!mounted || !accept) return;
+      case LocationAccess.granted:
+        break;
+    }
+    await _proceed(provider);
+  }
+
+  Future<bool> _showLocationPriming() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.my_location, color: AppColors.primary, size: 40),
+        title: const Text('Activer la localisation'),
+        content: const Text(
+          'NJUKA utilise votre position uniquement pour localiser la coupure '
+          'que vous signalez. Elle n\'est pas partagée à d\'autres fins.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Plus tard'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Autoriser'),
+          ),
+        ],
+      ),
+    );
+    return ok ?? false;
+  }
+
+  Future<void> _showSettingsDialog(ReportProvider provider) async {
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Localisation désactivée'),
+        content: const Text(
+          'La permission de localisation a été refusée. Activez-la dans les '
+          'réglages de l\'application pour pouvoir signaler une coupure.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              provider.openLocationSettings();
+            },
+            child: const Text('Ouvrir les réglages'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _proceed(ReportProvider provider) async {
     final outcome = await provider.prepareReport();
     if (!mounted) return;
     if (outcome.error != null) {

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'providers/auth_provider.dart';
-import 'screens/auth_gate.dart';
+import 'screens/onboarding_gate.dart';
 import 'theme/app_theme.dart';
 
 class NjukaApp extends StatelessWidget {
@@ -18,7 +18,7 @@ class NjukaApp extends StatelessWidget {
         title: 'NJUKA',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
-        home: const AuthGate(),
+        home: const OnboardingGate(),
       ),
     );
   }

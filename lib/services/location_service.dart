@@ -10,6 +10,14 @@ class LocationException implements Exception {
   const LocationException(this.message);
 }
 
+/// État d'accès à la localisation, indépendant de geolocator.
+enum LocationAccess {
+  granted,
+  denied, // refusé mais on peut re-demander
+  deniedForever, // refus définitif → réglages système requis
+  serviceDisabled, // localisation désactivée sur l'appareil
+}
+
 class LocationResult {
   final GeoPosition position;
   final GeoArea area;
@@ -17,6 +25,27 @@ class LocationResult {
 }
 
 class LocationService {
+  /// État d'accès actuel, sans déclencher la demande système.
+  Future<LocationAccess> checkAccess() async {
+    if (!await Geolocator.isLocationServiceEnabled()) {
+      return LocationAccess.serviceDisabled;
+    }
+    final permission = await Geolocator.checkPermission();
+    switch (permission) {
+      case LocationPermission.always:
+      case LocationPermission.whileInUse:
+        return LocationAccess.granted;
+      case LocationPermission.deniedForever:
+        return LocationAccess.deniedForever;
+      case LocationPermission.denied:
+      case LocationPermission.unableToDetermine:
+        return LocationAccess.denied;
+    }
+  }
+
+  /// Ouvre les réglages de l'app (pour réactiver une permission refusée).
+  Future<void> openSettings() => Geolocator.openAppSettings();
+
   /// Récupère la position courante et la zone (reverse-géocodage).
   Future<LocationResult> getCurrentLocation() async {
     if (!await Geolocator.isLocationServiceEnabled()) {
