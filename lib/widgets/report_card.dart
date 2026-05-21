@@ -12,12 +12,14 @@ class ReportCard extends StatelessWidget {
     required this.isAuthor,
     required this.onConfirm,
     required this.onResolve,
+    this.onTap,
   });
 
   final Report report;
   final bool isAuthor;
   final VoidCallback onConfirm;
   final VoidCallback onResolve;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +30,10 @@ class ReportCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -92,6 +97,7 @@ class ReportCard extends StatelessWidget {
               ],
             ),
           ],
+        ),
         ),
       ),
     );

@@ -6,6 +6,7 @@ import '../theme/app_colors.dart';
 import '../widgets/report_card.dart';
 import 'map_screen.dart';
 import 'profile_screen.dart';
+import 'report_detail_screen.dart';
 import 'report_form_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -88,6 +89,14 @@ class HomeScreen extends StatelessWidget {
               return ReportCard(
                 report: report,
                 isAuthor: reports.isAuthor(report),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ChangeNotifierProvider.value(
+                      value: reports,
+                      child: ReportDetailScreen(reportId: report.id),
+                    ),
+                  ),
+                ),
                 onConfirm: () async {
                   final ok = await reports.confirm(report.id);
                   if (context.mounted) {

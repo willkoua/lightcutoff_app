@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../models/confirmation.dart';
 import '../models/enums.dart';
 import '../models/report.dart';
 
@@ -32,6 +33,16 @@ class ReportService {
       'resolvedAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
+  }
+
+  /// Flux des confirmations d'une coupure, les plus récentes d'abord.
+  Stream<List<Confirmation>> watchConfirmations(String reportId) {
+    return _reports
+        .doc(reportId)
+        .collection('confirmations')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snap) => snap.docs.map(Confirmation.fromDoc).toList());
   }
 
   Future<bool> hasConfirmed(String reportId, String uid) async {

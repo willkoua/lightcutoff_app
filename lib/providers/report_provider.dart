@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../models/confirmation.dart';
 import '../models/enums.dart';
 import '../models/geo.dart';
 import '../models/report.dart';
@@ -67,8 +68,20 @@ class ReportProvider extends ChangeNotifier {
   bool get submitting => _submitting;
 
   String? get _uid => _auth.currentUser?.uid;
+  String? get currentUid => _uid;
 
   bool isAuthor(Report report) => report.userId == _uid;
+
+  /// Retourne la coupure correspondante dans la liste courante, sinon null.
+  Report? reportById(String id) {
+    for (final r in _reports) {
+      if (r.id == id) return r;
+    }
+    return null;
+  }
+
+  Stream<List<Confirmation>> watchConfirmations(String reportId) =>
+      _service.watchConfirmations(reportId);
 
   /// Crée un signalement à la position courante. Retourne null si OK,
   /// sinon un message d'erreur.
