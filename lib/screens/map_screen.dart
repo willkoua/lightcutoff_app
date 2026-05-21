@@ -8,6 +8,7 @@ import '../models/enums.dart';
 import '../models/report.dart';
 import '../providers/report_provider.dart';
 import '../theme/app_colors.dart';
+import '../widgets/filter_sheet.dart';
 import '../widgets/report_card.dart';
 
 class MapScreen extends StatefulWidget {
@@ -113,7 +114,8 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final reports = context.watch<ReportProvider>().reports;
+    final provider = context.watch<ReportProvider>();
+    final reports = provider.filteredReports;
     final points =
         reports.map((r) => LatLng(r.position.lat, r.position.lng)).toList();
 
@@ -121,7 +123,21 @@ class _MapScreenState extends State<MapScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybeFit(points));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Carte des coupures')),
+      appBar: AppBar(
+        title: const Text('Carte des coupures'),
+        actions: [
+          IconButton(
+            tooltip: 'Filtrer / rechercher',
+            icon: Badge(
+              isLabelVisible: provider.hasActiveFilters,
+              smallSize: 9,
+              child: const Icon(Icons.tune),
+            ),
+            onPressed:
+                () => showFilterSheet(context, context.read<ReportProvider>()),
+          ),
+        ],
+      ),
       body: Stack(
         children: [
           FlutterMap(
