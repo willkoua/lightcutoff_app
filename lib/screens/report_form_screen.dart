@@ -8,6 +8,7 @@ import '../repositories/location_repository.dart';
 import '../theme/app_colors.dart';
 import '../utils/formatting.dart';
 import '../widgets/location_permission_sheet.dart';
+import '../widgets/njuka_app_bar.dart';
 
 enum _DupChoice { confirm, anyway, cancel }
 
@@ -160,7 +161,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
   Widget build(BuildContext context) {
     final submitting = context.watch<ReportProvider>().submitting;
     return Scaffold(
-      appBar: AppBar(title: const Text('Signaler une coupure')),
+      appBar: const NjukaAppBar(title: 'Signaler une coupure'),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),

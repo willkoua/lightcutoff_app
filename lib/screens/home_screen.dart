@@ -3,10 +3,9 @@ import 'package:provider/provider.dart';
 
 import '../providers/report_provider.dart';
 import '../theme/app_colors.dart';
-import '../widgets/filter_sheet.dart';
+import '../widgets/njuka_app_bar.dart';
 import '../widgets/report_card.dart';
 import 'map_screen.dart';
-import 'profile_screen.dart';
 import 'report_detail_screen.dart';
 import 'report_form_screen.dart';
 
@@ -32,30 +31,14 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final reports = context.watch<ReportProvider>();
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Coupures signalées'),
-        actions: [
-          IconButton(
-            tooltip: 'Filtrer / rechercher',
-            icon: Badge(
-              isLabelVisible: reports.hasActiveFilters,
-              smallSize: 9,
-              child: const Icon(Icons.tune),
-            ),
-            onPressed: () => showFilterSheet(context, reports),
-          ),
+      appBar: NjukaAppBar(
+        title: 'Coupures signalées',
+        filterProvider: reports,
+        extraActions: [
           IconButton(
             tooltip: 'Voir sur la carte',
             icon: const Icon(Icons.map_outlined),
             onPressed: () => _open(context, const MapScreen(), reports),
-          ),
-          IconButton(
-            tooltip: 'Mon profil',
-            icon: const Icon(Icons.account_circle_outlined),
-            onPressed:
-                () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
-                ),
           ),
         ],
       ),

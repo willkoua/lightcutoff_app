@@ -8,7 +8,7 @@ import '../models/enums.dart';
 import '../models/report.dart';
 import '../providers/report_provider.dart';
 import '../theme/app_colors.dart';
-import '../widgets/filter_sheet.dart';
+import '../widgets/njuka_app_bar.dart';
 import '../widgets/report_card.dart';
 
 class MapScreen extends StatefulWidget {
@@ -123,20 +123,9 @@ class _MapScreenState extends State<MapScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybeFit(points));
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Carte des coupures'),
-        actions: [
-          IconButton(
-            tooltip: 'Filtrer / rechercher',
-            icon: Badge(
-              isLabelVisible: provider.hasActiveFilters,
-              smallSize: 9,
-              child: const Icon(Icons.tune),
-            ),
-            onPressed:
-                () => showFilterSheet(context, context.read<ReportProvider>()),
-          ),
-        ],
+      appBar: NjukaAppBar(
+        title: 'Carte des coupures',
+        filterProvider: provider,
       ),
       body: Stack(
         children: [

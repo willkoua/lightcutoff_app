@@ -7,6 +7,7 @@ import '../providers/auth_provider.dart';
 import '../providers/report_provider.dart';
 import '../theme/app_colors.dart';
 import '../utils/formatting.dart';
+import '../widgets/njuka_app_bar.dart';
 
 class ReportDetailScreen extends StatelessWidget {
   const ReportDetailScreen({super.key, required this.reportId});
@@ -25,9 +26,9 @@ class ReportDetailScreen extends StatelessWidget {
     final report = provider.reportById(reportId);
 
     if (report == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Coupure')),
-        body: const Center(child: Text('Coupure introuvable.')),
+      return const Scaffold(
+        appBar: NjukaAppBar(title: 'Coupure'),
+        body: Center(child: Text('Coupure introuvable.')),
       );
     }
 
@@ -39,7 +40,7 @@ class ReportDetailScreen extends StatelessWidget {
     final canViewTimeline = isAuthor || isAdmin;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Détail de la coupure')),
+      appBar: const NjukaAppBar(title: 'Détail de la coupure'),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
