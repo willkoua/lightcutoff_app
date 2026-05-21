@@ -12,12 +12,17 @@ Application mobile de **signalement de coupures de courant** (Android & iOS), co
 
 ### État d'avancement
 
+**MVP terminé ✅** — authentification + signalement de coupures, testé et livrable.
+
 | Phase | Statut |
 |-------|--------|
 | Setup (projet, Firebase, CI, émulateurs) | ✅ Terminé |
 | Phase 0 — Fondations (modèles, thème, squelette, règles) | ✅ Terminé |
 | Phase 1 — Authentification (login, inscription, vérif. email, indicatif tél.) | ✅ Terminé |
-| Phase 2 — Signalement de coupures | ⬜ À venir |
+| Phase 2 — Signalement (géoloc, liste temps réel, confirmation, résolution) | ✅ Terminé |
+| Phase 3 — Finitions (tests automatisés, états UI) | ✅ Terminé |
+
+Pistes post-MVP : notifications push FCM, vue carte, profil éditable, job CI iOS.
 
 ---
 
