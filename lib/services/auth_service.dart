@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/app_user.dart';
 import '../models/enums.dart';
+import '../models/geo.dart';
 
 /// Levée lorsqu'un compte désactivé tente de se connecter.
 class AccountDisabledException implements Exception {
@@ -65,6 +66,23 @@ class AuthService {
     await _users.doc(uid).set(user.toCreateMap());
 
     await cred.user!.sendEmailVerification();
+  }
+
+  /// Met à jour les champs de profil modifiables par l'utilisateur.
+  Future<void> updateProfile({
+    required String displayName,
+    String? phoneNumber,
+    GeoArea? homeLocation,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    await user.updateDisplayName(displayName.trim());
+    await _users.doc(user.uid).update({
+      'displayName': displayName.trim(),
+      'phoneNumber': phoneNumber?.trim(),
+      'homeLocation': (homeLocation ?? const GeoArea()).toMap(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 
   Future<void> sendEmailVerification() =>

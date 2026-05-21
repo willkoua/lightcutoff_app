@@ -14,7 +14,12 @@ service cloud.firestore {
     // Profils utilisateurs : chacun gère le sien.
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow create, update: if isOwner(userId);
+      allow create: if isOwner(userId);
+      // Mise à jour limitée aux champs de profil (pas de role/status par l'utilisateur).
+      allow update: if isOwner(userId)
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                       .hasOnly(['displayName', 'phoneNumber', 'photoURL',
+                                 'homeLocation', 'updatedAt']);
       allow delete: if false;
     }
 

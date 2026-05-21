@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../providers/auth_provider.dart';
 import '../providers/report_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/report_card.dart';
 import 'map_screen.dart';
+import 'profile_screen.dart';
 import 'report_form_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -40,9 +40,11 @@ class HomeScreen extends StatelessWidget {
             },
           ),
           IconButton(
-            tooltip: 'Se déconnecter',
-            icon: const Icon(Icons.logout),
-            onPressed: () => context.read<AuthProvider>().logout(),
+            tooltip: 'Mon profil',
+            icon: const Icon(Icons.account_circle_outlined),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+            ),
           ),
         ],
       ),

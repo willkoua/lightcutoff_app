@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
 import '../models/app_user.dart';
+import '../models/geo.dart';
 import '../services/auth_service.dart';
 
 enum AuthStatus {
@@ -82,6 +83,33 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() => _service.signOut();
+
+  /// Met à jour le profil puis rafraîchit l'utilisateur courant.
+  Future<bool> updateProfile({
+    required String displayName,
+    String? phoneNumber,
+    GeoArea? homeLocation,
+  }) async {
+    _busy = true;
+    _error = null;
+    notifyListeners();
+    try {
+      await _service.updateProfile(
+        displayName: displayName,
+        phoneNumber: phoneNumber,
+        homeLocation: homeLocation,
+      );
+      final user = _service.currentUser;
+      if (user != null) _profile = await _service.fetchProfile(user.uid);
+      return true;
+    } catch (_) {
+      _error = 'Échec de la mise à jour du profil.';
+      return false;
+    } finally {
+      _busy = false;
+      notifyListeners();
+    }
+  }
 
   void clearError() {
     if (_error != null) {

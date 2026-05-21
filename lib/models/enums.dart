@@ -46,6 +46,14 @@ enum OutageCause {
       );
 }
 
+extension UserRoleLabel on UserRole {
+  String get label => switch (this) {
+        UserRole.citizen => 'Citoyen',
+        UserRole.operator => 'Opérateur',
+        UserRole.admin => 'Administrateur',
+      };
+}
+
 extension OutageStatusLabel on OutageStatus {
   String get label =>
       this == OutageStatus.ongoing ? 'En cours' : 'Rétabli';
