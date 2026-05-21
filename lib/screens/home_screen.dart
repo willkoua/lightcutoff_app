@@ -5,6 +5,7 @@ import '../providers/auth_provider.dart';
 import '../providers/report_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/report_card.dart';
+import 'map_screen.dart';
 import 'report_form_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -23,6 +24,21 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Coupures signalées'),
         actions: [
+          IconButton(
+            tooltip: 'Voir sur la carte',
+            icon: const Icon(Icons.map_outlined),
+            onPressed: () {
+              final provider = context.read<ReportProvider>();
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ChangeNotifierProvider.value(
+                    value: provider,
+                    child: const MapScreen(),
+                  ),
+                ),
+              );
+            },
+          ),
           IconButton(
             tooltip: 'Se déconnecter',
             icon: const Icon(Icons.logout),
