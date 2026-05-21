@@ -24,8 +24,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
 
   Future<void> _check() async {
     setState(() => _checking = true);
-    final verified =
-        await context.read<AuthProvider>().refreshVerification();
+    final verified = await context.read<AuthProvider>().refreshVerification();
     if (!mounted) return;
     setState(() => _checking = false);
     if (!verified) {
@@ -64,14 +63,16 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Icon(Icons.mark_email_unread_outlined,
-                    size: 72, color: AppColors.primary),
+                const Icon(
+                  Icons.mark_email_unread_outlined,
+                  size: 72,
+                  color: AppColors.primary,
+                ),
                 const SizedBox(height: 20),
                 const Text(
                   'Vérifiez votre email',
                   textAlign: TextAlign.center,
-                  style:
-                      TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 12),
                 Text(
@@ -83,16 +84,17 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                 const SizedBox(height: 32),
                 ElevatedButton(
                   onPressed: _checking ? null : _check,
-                  child: _checking
-                      ? const SizedBox(
-                          height: 22,
-                          width: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.dark,
-                          ),
-                        )
-                      : const Text('J\'ai vérifié mon email'),
+                  child:
+                      _checking
+                          ? const SizedBox(
+                            height: 22,
+                            width: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.dark,
+                            ),
+                          )
+                          : const Text('J\'ai vérifié mon email'),
                 ),
                 const SizedBox(height: 8),
                 TextButton(

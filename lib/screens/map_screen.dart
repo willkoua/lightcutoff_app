@@ -41,33 +41,37 @@ class _MapScreenState extends State<MapScreen> {
     showModalBottomSheet(
       context: context,
       showDragHandle: true,
-      builder: (sheetContext) => ReportCard(
-        report: report,
-        isAuthor: provider.isAuthor(report),
-        onConfirm: () async {
-          Navigator.of(sheetContext).pop();
-          final ok = await provider.confirm(report.id);
-          if (mounted) {
-            _snack(ok ? 'Coupure confirmée.' : 'Échec de la confirmation.');
-          }
-        },
-        onResolve: () async {
-          Navigator.of(sheetContext).pop();
-          final ok = await provider.resolve(report.id);
-          if (mounted) {
-            _snack(ok ? 'Coupure marquée rétablie.' : 'Échec de la mise à jour.');
-          }
-        },
-      ),
+      builder:
+          (sheetContext) => ReportCard(
+            report: report,
+            isAuthor: provider.isAuthor(report),
+            onConfirm: () async {
+              Navigator.of(sheetContext).pop();
+              final ok = await provider.confirm(report.id);
+              if (mounted) {
+                _snack(ok ? 'Coupure confirmée.' : 'Échec de la confirmation.');
+              }
+            },
+            onResolve: () async {
+              Navigator.of(sheetContext).pop();
+              final ok = await provider.resolve(report.id);
+              if (mounted) {
+                _snack(
+                  ok ? 'Coupure marquée rétablie.' : 'Échec de la mise à jour.',
+                );
+              }
+            },
+          ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final reports = context.watch<ReportProvider>().reports;
-    final center = reports.isNotEmpty
-        ? LatLng(reports.first.position.lat, reports.first.position.lng)
-        : _fallbackCenter;
+    final center =
+        reports.isNotEmpty
+            ? LatLng(reports.first.position.lat, reports.first.position.lng)
+            : _fallbackCenter;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Carte des coupures')),
@@ -94,8 +98,7 @@ class _MapScreenState extends State<MapScreen> {
                 markers: [
                   for (final report in reports)
                     Marker(
-                      point:
-                          LatLng(report.position.lat, report.position.lng),
+                      point: LatLng(report.position.lat, report.position.lng),
                       width: 44,
                       height: 44,
                       child: GestureDetector(
@@ -103,9 +106,10 @@ class _MapScreenState extends State<MapScreen> {
                         child: Icon(
                           Icons.location_on,
                           size: 44,
-                          color: report.status == OutageStatus.ongoing
-                              ? AppColors.ongoing
-                              : AppColors.resolved,
+                          color:
+                              report.status == OutageStatus.ongoing
+                                  ? AppColors.ongoing
+                                  : AppColors.resolved,
                         ),
                       ),
                     ),

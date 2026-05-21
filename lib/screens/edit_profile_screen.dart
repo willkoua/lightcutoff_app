@@ -65,9 +65,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     } else {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(
-          content: Text(auth.error ?? 'Échec de la mise à jour.'),
-        ));
+        ..showSnackBar(
+          SnackBar(content: Text(auth.error ?? 'Échec de la mise à jour.')),
+        );
     }
   }
 
@@ -103,8 +103,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   validator: Validators.phone,
                 ),
                 const SizedBox(height: 24),
-                const Text('Résidence',
-                    style: TextStyle(fontWeight: FontWeight.w600)),
+                const Text(
+                  'Résidence',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _city,
@@ -132,16 +134,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 const SizedBox(height: 32),
                 ElevatedButton(
                   onPressed: busy ? null : _save,
-                  child: busy
-                      ? const SizedBox(
-                          height: 22,
-                          width: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.dark,
-                          ),
-                        )
-                      : const Text('Enregistrer'),
+                  child:
+                      busy
+                          ? const SizedBox(
+                            height: 22,
+                            width: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.dark,
+                            ),
+                          )
+                          : const Text('Enregistrer'),
                 ),
               ],
             ),

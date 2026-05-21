@@ -10,9 +10,7 @@ import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   if (AppConfig.useEmulator) {
     await _connectToEmulators();
@@ -24,7 +22,10 @@ Future<void> main() async {
 Future<void> _connectToEmulators() async {
   final host = AppConfig.emulatorHost;
   await FirebaseAuth.instance.useAuthEmulator(host, AppConfig.authPort);
-  FirebaseFirestore.instance.useFirestoreEmulator(host, AppConfig.firestorePort);
+  FirebaseFirestore.instance.useFirestoreEmulator(
+    host,
+    AppConfig.firestorePort,
+  );
   FirebaseDatabase.instance.useDatabaseEmulator(host, AppConfig.databasePort);
   debugPrint('NJUKA → émulateurs Firebase ($host)');
 }

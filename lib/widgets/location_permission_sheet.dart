@@ -56,8 +56,11 @@ class _LocationPermissionSheet extends StatelessWidget {
                 color: AppColors.primary.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.my_location,
-                  size: 42, color: AppColors.primary),
+              child: const Icon(
+                Icons.my_location,
+                size: 42,
+                color: AppColors.primary,
+              ),
             ),
           ),
           const SizedBox(height: 20),
@@ -128,9 +131,7 @@ class _Bullet extends StatelessWidget {
           child: Icon(icon, size: 20, color: AppColors.primary),
         ),
         const SizedBox(width: 14),
-        Expanded(
-          child: Text(text, style: const TextStyle(fontSize: 15)),
-        ),
+        Expanded(child: Text(text, style: const TextStyle(fontSize: 15))),
       ],
     );
   }

@@ -8,6 +8,8 @@ import '../models/confirmation.dart';
 import '../models/enums.dart';
 import '../models/geo.dart';
 import '../models/report.dart';
+import '../repositories/location_repository.dart';
+import '../repositories/report_repository.dart';
 import '../services/location_service.dart';
 import '../services/report_service.dart';
 
@@ -31,12 +33,12 @@ class PrepareOutcome {
 
 class ReportProvider extends ChangeNotifier {
   ReportProvider({
-    ReportService? service,
-    LocationService? location,
+    ReportRepository? repository,
+    LocationRepository? location,
     FirebaseAuth? auth,
-  })  : _service = service ?? ReportService(),
-        _location = location ?? LocationService(),
-        _auth = auth ?? FirebaseAuth.instance {
+  }) : _service = repository ?? ReportService(),
+       _location = location ?? LocationService(),
+       _auth = auth ?? FirebaseAuth.instance {
     _sub = _service.watchReports().listen(
       (data) {
         _reports = data;
@@ -52,8 +54,8 @@ class ReportProvider extends ChangeNotifier {
     );
   }
 
-  final ReportService _service;
-  final LocationService _location;
+  final ReportRepository _service;
+  final LocationRepository _location;
   final FirebaseAuth _auth;
   late final StreamSubscription<List<Report>> _sub;
 
@@ -103,9 +105,8 @@ class ReportProvider extends ChangeNotifier {
         cause: cause,
         position: loc.position,
         location: loc.area,
-        description: (description?.trim().isEmpty ?? true)
-            ? null
-            : description!.trim(),
+        description:
+            (description?.trim().isEmpty ?? true) ? null : description!.trim(),
       );
       await _service.createReport(report);
       return null;
@@ -195,9 +196,8 @@ class ReportProvider extends ChangeNotifier {
         cause: cause,
         position: draft.position,
         location: draft.area,
-        description: (description?.trim().isEmpty ?? true)
-            ? null
-            : description!.trim(),
+        description:
+            (description?.trim().isEmpty ?? true) ? null : description!.trim(),
       );
       await _service.createReport(report);
       return null;

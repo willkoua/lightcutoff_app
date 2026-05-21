@@ -39,7 +39,9 @@ class AppUser {
       displayName: map['displayName'] as String? ?? '',
       phoneNumber: map['phoneNumber'] as String?,
       photoURL: map['photoURL'] as String?,
-      homeLocation: GeoArea.fromMap(map['homeLocation'] as Map<String, dynamic>?),
+      homeLocation: GeoArea.fromMap(
+        map['homeLocation'] as Map<String, dynamic>?,
+      ),
       role: UserRole.fromName(map['role'] as String?),
       status: AccountStatus.fromName(map['status'] as String?),
       disabledAt: (map['disabledAt'] as Timestamp?)?.toDate(),
@@ -50,15 +52,15 @@ class AppUser {
 
   /// Données pour la création initiale du profil.
   Map<String, dynamic> toCreateMap() => {
-        'email': email,
-        'displayName': displayName,
-        'phoneNumber': phoneNumber,
-        'photoURL': photoURL,
-        'homeLocation': homeLocation.toMap(),
-        'role': role.name,
-        'status': status.name,
-        'disabledAt': null,
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      };
+    'email': email,
+    'displayName': displayName,
+    'phoneNumber': phoneNumber,
+    'photoURL': photoURL,
+    'homeLocation': homeLocation.toMap(),
+    'role': role.name,
+    'status': status.name,
+    'disabledAt': null,
+    'createdAt': FieldValue.serverTimestamp(),
+    'updatedAt': FieldValue.serverTimestamp(),
+  };
 }

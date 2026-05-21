@@ -11,12 +11,16 @@ class AppConfig {
   AppConfig._();
 
   /// Active les émulateurs Firebase locaux quand `true`.
-  static const bool useEmulator =
-      bool.fromEnvironment('USE_EMULATOR', defaultValue: false);
+  static const bool useEmulator = bool.fromEnvironment(
+    'USE_EMULATOR',
+    defaultValue: false,
+  );
 
   /// Hôte des émulateurs (override possible via --dart-define=EMULATOR_HOST=...).
-  static const String _hostOverride =
-      String.fromEnvironment('EMULATOR_HOST', defaultValue: '');
+  static const String _hostOverride = String.fromEnvironment(
+    'EMULATOR_HOST',
+    defaultValue: '',
+  );
 
   /// Sur l'émulateur Android, `localhost` de la machine hôte = `10.0.2.2`.
   static String get emulatorHost {

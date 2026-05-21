@@ -65,7 +65,8 @@ class DefaultFirebaseOptions {
     projectId: 'lightcutoff-dev',
     databaseURL: 'https://lightcutoff-dev.firebaseio.com',
     storageBucket: 'lightcutoff-dev.appspot.com',
-    iosClientId: '708077956449-c1gr9hfl2eaka51kkfbmf9uclna03vc7.apps.googleusercontent.com',
+    iosClientId:
+        '708077956449-c1gr9hfl2eaka51kkfbmf9uclna03vc7.apps.googleusercontent.com',
     iosBundleId: 'com.example.lightcutoffApp',
   );
 }

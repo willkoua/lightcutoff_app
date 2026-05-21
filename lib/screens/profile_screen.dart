@@ -22,79 +22,84 @@ class ProfileScreen extends StatelessWidget {
             IconButton(
               tooltip: 'Modifier',
               icon: const Icon(Icons.edit_outlined),
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const EditProfileScreen(),
-                ),
-              ),
+              onPressed:
+                  () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const EditProfileScreen(),
+                    ),
+                  ),
             ),
         ],
       ),
-      body: profile == null
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(20),
-              children: [
-                const SizedBox(height: 8),
-                _Avatar(name: profile.displayName),
-                const SizedBox(height: 12),
-                Center(
-                  child: Text(
-                    profile.displayName,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+      body:
+          profile == null
+              ? const Center(child: CircularProgressIndicator())
+              : ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  const SizedBox(height: 8),
+                  _Avatar(name: profile.displayName),
+                  const SizedBox(height: 12),
+                  Center(
+                    child: Text(
+                      profile.displayName,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
-                Center(
-                  child: Text(
-                    profile.email,
-                    style: const TextStyle(color: AppColors.gray),
+                  Center(
+                    child: Text(
+                      profile.email,
+                      style: const TextStyle(color: AppColors.gray),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 24),
-                _InfoTile(
-                  icon: Icons.phone_outlined,
-                  label: 'Téléphone',
-                  value: profile.phoneNumber?.isNotEmpty == true
-                      ? profile.phoneNumber!
-                      : 'Non renseigné',
-                ),
-                _InfoTile(
-                  icon: Icons.place_outlined,
-                  label: 'Résidence',
-                  value: profile.homeLocation.label.isEmpty
-                      ? 'Non renseignée'
-                      : profile.homeLocation.label,
-                ),
-                _InfoTile(
-                  icon: Icons.badge_outlined,
-                  label: 'Rôle',
-                  value: profile.role.label,
-                ),
-                _InfoTile(
-                  icon: Icons.event_outlined,
-                  label: 'Membre depuis',
-                  value: profile.createdAt != null
-                      ? relativeTime(profile.createdAt)
-                      : '—',
-                ),
-                const SizedBox(height: 24),
-                OutlinedButton.icon(
-                  onPressed: () => context.read<AuthProvider>().logout(),
-                  icon: const Icon(Icons.logout, color: AppColors.orange),
-                  label: const Text(
-                    'Se déconnecter',
-                    style: TextStyle(color: AppColors.orange),
+                  const SizedBox(height: 24),
+                  _InfoTile(
+                    icon: Icons.phone_outlined,
+                    label: 'Téléphone',
+                    value:
+                        profile.phoneNumber?.isNotEmpty == true
+                            ? profile.phoneNumber!
+                            : 'Non renseigné',
                   ),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(50),
-                    side: const BorderSide(color: AppColors.orange),
+                  _InfoTile(
+                    icon: Icons.place_outlined,
+                    label: 'Résidence',
+                    value:
+                        profile.homeLocation.label.isEmpty
+                            ? 'Non renseignée'
+                            : profile.homeLocation.label,
                   ),
-                ),
-              ],
-            ),
+                  _InfoTile(
+                    icon: Icons.badge_outlined,
+                    label: 'Rôle',
+                    value: profile.role.label,
+                  ),
+                  _InfoTile(
+                    icon: Icons.event_outlined,
+                    label: 'Membre depuis',
+                    value:
+                        profile.createdAt != null
+                            ? relativeTime(profile.createdAt)
+                            : '—',
+                  ),
+                  const SizedBox(height: 24),
+                  OutlinedButton.icon(
+                    onPressed: () => context.read<AuthProvider>().logout(),
+                    icon: const Icon(Icons.logout, color: AppColors.orange),
+                    label: const Text(
+                      'Se déconnecter',
+                      style: TextStyle(color: AppColors.orange),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(50),
+                      side: const BorderSide(color: AppColors.orange),
+                    ),
+                  ),
+                ],
+              ),
     );
   }
 }
@@ -105,14 +110,15 @@ class _Avatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initials = name.trim().isEmpty
-        ? '?'
-        : name
-            .trim()
-            .split(RegExp(r'\s+'))
-            .take(2)
-            .map((w) => w[0].toUpperCase())
-            .join();
+    final initials =
+        name.trim().isEmpty
+            ? '?'
+            : name
+                .trim()
+                .split(RegExp(r'\s+'))
+                .take(2)
+                .map((w) => w[0].toUpperCase())
+                .join();
     return Center(
       child: CircleAvatar(
         radius: 44,
@@ -146,7 +152,10 @@ class _InfoTile extends StatelessWidget {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: Icon(icon, color: AppColors.gray),
-      title: Text(label, style: const TextStyle(color: AppColors.gray, fontSize: 13)),
+      title: Text(
+        label,
+        style: const TextStyle(color: AppColors.gray, fontSize: 13),
+      ),
       subtitle: Text(
         value,
         style: const TextStyle(

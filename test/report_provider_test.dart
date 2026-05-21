@@ -4,13 +4,13 @@ import 'package:lightcutoff_app/models/enums.dart';
 import 'package:lightcutoff_app/models/geo.dart';
 import 'package:lightcutoff_app/models/report.dart';
 import 'package:lightcutoff_app/providers/report_provider.dart';
-import 'package:lightcutoff_app/services/location_service.dart';
-import 'package:lightcutoff_app/services/report_service.dart';
+import 'package:lightcutoff_app/repositories/location_repository.dart';
+import 'package:lightcutoff_app/repositories/report_repository.dart';
 import 'package:mocktail/mocktail.dart';
 
-class MockReportService extends Mock implements ReportService {}
+class MockReportRepository extends Mock implements ReportRepository {}
 
-class MockLocationService extends Mock implements LocationService {}
+class MockLocationRepository extends Mock implements LocationRepository {}
 
 class MockFirebaseAuth extends Mock implements FirebaseAuth {}
 
@@ -22,17 +22,16 @@ Report _report({
   OutageStatus status = OutageStatus.ongoing,
   double lat = 0,
   double lng = 0,
-}) =>
-    Report(
-      id: id,
-      userId: userId,
-      status: status,
-      position: GeoPosition(lat: lat, lng: lng),
-    );
+}) => Report(
+  id: id,
+  userId: userId,
+  status: status,
+  position: GeoPosition(lat: lat, lng: lng),
+);
 
 void main() {
-  late MockReportService service;
-  late MockLocationService location;
+  late MockReportRepository service;
+  late MockLocationRepository location;
   late MockFirebaseAuth auth;
   late MockUser user;
 
@@ -41,19 +40,20 @@ void main() {
   });
 
   setUp(() {
-    service = MockReportService();
-    location = MockLocationService();
+    service = MockReportRepository();
+    location = MockLocationRepository();
     auth = MockFirebaseAuth();
     user = MockUser();
 
-    when(() => service.watchReports())
-        .thenAnswer((_) => Stream<List<Report>>.value(const []));
+    when(
+      () => service.watchReports(),
+    ).thenAnswer((_) => Stream<List<Report>>.value(const []));
     when(() => auth.currentUser).thenReturn(user);
     when(() => user.uid).thenReturn('u1');
   });
 
   ReportProvider build() =>
-      ReportProvider(service: service, location: location, auth: auth);
+      ReportProvider(repository: service, location: location, auth: auth);
 
   test('submitReport réussit et appelle createReport', () async {
     when(() => location.getCurrentLocation()).thenAnswer(
@@ -71,17 +71,20 @@ void main() {
     verify(() => service.createReport(any())).called(1);
   });
 
-  test('submitReport renvoie le message en cas d\'erreur de localisation',
-      () async {
-    when(() => location.getCurrentLocation())
-        .thenThrow(const LocationException('Position introuvable.'));
+  test(
+    'submitReport renvoie le message en cas d\'erreur de localisation',
+    () async {
+      when(
+        () => location.getCurrentLocation(),
+      ).thenThrow(const LocationException('Position introuvable.'));
 
-    final provider = build();
-    final error = await provider.submitReport(cause: OutageCause.unplanned);
+      final provider = build();
+      final error = await provider.submitReport(cause: OutageCause.unplanned);
 
-    expect(error, 'Position introuvable.');
-    verifyNever(() => service.createReport(any()));
-  });
+      expect(error, 'Position introuvable.');
+      verifyNever(() => service.createReport(any()));
+    },
+  );
 
   test('confirm délègue au service', () async {
     when(() => service.confirmReport('r1', 'u1')).thenAnswer((_) async {});
@@ -119,8 +122,9 @@ void main() {
   group('findNearbyOngoing', () {
     // Yaoundé : 3.848, 11.502
     Future<ReportProvider> buildWith(List<Report> reports) async {
-      when(() => service.watchReports())
-          .thenAnswer((_) => Stream<List<Report>>.value(reports));
+      when(
+        () => service.watchReports(),
+      ).thenAnswer((_) => Stream<List<Report>>.value(reports));
       final provider = build();
       await Future<void>.delayed(Duration.zero); // laisse le stream émettre
       return provider;
@@ -148,7 +152,12 @@ void main() {
 
     test('ignore les coupures rétablies', () async {
       final provider = await buildWith([
-        _report(id: 'resolved', status: OutageStatus.resolved, lat: 3.848, lng: 11.502),
+        _report(
+          id: 'resolved',
+          status: OutageStatus.resolved,
+          lat: 3.848,
+          lng: 11.502,
+        ),
       ]);
       final found = provider.findNearbyOngoing(
         const GeoPosition(lat: 3.848, lng: 11.502),

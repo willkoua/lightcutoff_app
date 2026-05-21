@@ -3,10 +3,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/confirmation.dart';
 import '../models/enums.dart';
 import '../models/report.dart';
+import '../repositories/report_repository.dart';
 
-class ReportService {
+/// Implémentation Firestore de [ReportRepository].
+class ReportService implements ReportRepository {
   ReportService({FirebaseFirestore? firestore})
-      : _db = firestore ?? FirebaseFirestore.instance;
+    : _db = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _db;
 
@@ -14,6 +16,7 @@ class ReportService {
       _db.collection('reports');
 
   /// Flux des coupures, les plus récentes d'abord.
+  @override
   Stream<List<Report>> watchReports({int limit = 50}) {
     return _reports
         .orderBy('reportedAt', descending: true)
@@ -22,11 +25,13 @@ class ReportService {
         .map((snap) => snap.docs.map(Report.fromDoc).toList());
   }
 
+  @override
   Future<void> createReport(Report report) {
     return _reports.add(report.toCreateMap());
   }
 
   /// Marque une coupure comme rétablie (réservé à l'auteur par les règles).
+  @override
   Future<void> resolveReport(String reportId) {
     return _reports.doc(reportId).update({
       'status': OutageStatus.resolved.name,
@@ -36,6 +41,7 @@ class ReportService {
   }
 
   /// Flux des confirmations d'une coupure, les plus récentes d'abord.
+  @override
   Stream<List<Confirmation>> watchConfirmations(String reportId) {
     return _reports
         .doc(reportId)
@@ -45,6 +51,7 @@ class ReportService {
         .map((snap) => snap.docs.map(Confirmation.fromDoc).toList());
   }
 
+  @override
   Future<bool> hasConfirmed(String reportId, String uid) async {
     final doc =
         await _reports.doc(reportId).collection('confirmations').doc(uid).get();
@@ -53,6 +60,7 @@ class ReportService {
 
   /// Confirme une coupure : un vote unique par utilisateur, compteur incrémenté
   /// de façon atomique. Sans effet si l'utilisateur a déjà confirmé.
+  @override
   Future<void> confirmReport(String reportId, String uid) {
     final reportRef = _reports.doc(reportId);
     final confRef = reportRef.collection('confirmations').doc(uid);

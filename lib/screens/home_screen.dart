@@ -32,10 +32,11 @@ class HomeScreen extends StatelessWidget {
               final provider = context.read<ReportProvider>();
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => ChangeNotifierProvider.value(
-                    value: provider,
-                    child: const MapScreen(),
-                  ),
+                  builder:
+                      (_) => ChangeNotifierProvider.value(
+                        value: provider,
+                        child: const MapScreen(),
+                      ),
                 ),
               );
             },
@@ -43,9 +44,10 @@ class HomeScreen extends StatelessWidget {
           IconButton(
             tooltip: 'Mon profil',
             icon: const Icon(Icons.account_circle_outlined),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ProfileScreen()),
-            ),
+            onPressed:
+                () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                ),
           ),
         ],
       ),
@@ -54,10 +56,11 @@ class HomeScreen extends StatelessWidget {
           final provider = context.read<ReportProvider>();
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => ChangeNotifierProvider.value(
-                value: provider,
-                child: const ReportFormScreen(),
-              ),
+              builder:
+                  (_) => ChangeNotifierProvider.value(
+                    value: provider,
+                    child: const ReportFormScreen(),
+                  ),
             ),
           );
         },
@@ -70,10 +73,7 @@ class HomeScreen extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
           if (reports.error != null) {
-            return _Message(
-              icon: Icons.error_outline,
-              text: reports.error!,
-            );
+            return _Message(icon: Icons.error_outline, text: reports.error!);
           }
           if (reports.reports.isEmpty) {
             return const _Message(
@@ -89,26 +89,34 @@ class HomeScreen extends StatelessWidget {
               return ReportCard(
                 report: report,
                 isAuthor: reports.isAuthor(report),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => ChangeNotifierProvider.value(
-                      value: reports,
-                      child: ReportDetailScreen(reportId: report.id),
+                onTap:
+                    () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder:
+                            (_) => ChangeNotifierProvider.value(
+                              value: reports,
+                              child: ReportDetailScreen(reportId: report.id),
+                            ),
+                      ),
                     ),
-                  ),
-                ),
                 onConfirm: () async {
                   final ok = await reports.confirm(report.id);
                   if (context.mounted) {
-                    _snack(context,
-                        ok ? 'Coupure confirmée.' : 'Échec de la confirmation.');
+                    _snack(
+                      context,
+                      ok ? 'Coupure confirmée.' : 'Échec de la confirmation.',
+                    );
                   }
                 },
                 onResolve: () async {
                   final ok = await reports.resolve(report.id);
                   if (context.mounted) {
-                    _snack(context,
-                        ok ? 'Coupure marquée rétablie.' : 'Échec de la mise à jour.');
+                    _snack(
+                      context,
+                      ok
+                          ? 'Coupure marquée rétablie.'
+                          : 'Échec de la mise à jour.',
+                    );
                   }
                 },
               );

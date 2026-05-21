@@ -1,30 +1,33 @@
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lightcutoff_app/providers/auth_provider.dart';
-import 'package:lightcutoff_app/services/auth_service.dart';
+import 'package:lightcutoff_app/repositories/auth_repository.dart';
 import 'package:mocktail/mocktail.dart';
 
-class MockAuthService extends Mock implements AuthService {}
+class MockAuthRepository extends Mock implements AuthRepository {}
 
 void main() {
-  late MockAuthService service;
+  late MockAuthRepository service;
 
   setUp(() {
-    service = MockAuthService();
-    when(() => service.authStateChanges)
-        .thenAnswer((_) => Stream<User?>.value(null));
+    service = MockAuthRepository();
+    when(
+      () => service.authStateChanges,
+    ).thenAnswer((_) => Stream<User?>.value(null));
   });
 
-  AuthProvider build() => AuthProvider(service: service);
+  AuthProvider build() => AuthProvider(repository: service);
 
   Future<void> settle() => Future<void>.delayed(Duration.zero);
 
   group('login - mapping des erreurs', () {
     test('mauvais identifiants', () async {
-      when(() => service.signIn(
-            email: any(named: 'email'),
-            password: any(named: 'password'),
-          )).thenThrow(FirebaseAuthException(code: 'wrong-password'));
+      when(
+        () => service.signIn(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      ).thenThrow(FirebaseAuthException(code: 'wrong-password'));
 
       final provider = build();
       final ok = await provider.login(email: 'a@b.com', password: 'x');
@@ -34,10 +37,12 @@ void main() {
     });
 
     test('compte désactivé', () async {
-      when(() => service.signIn(
-            email: any(named: 'email'),
-            password: any(named: 'password'),
-          )).thenThrow(const AccountDisabledException());
+      when(
+        () => service.signIn(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      ).thenThrow(const AccountDisabledException());
 
       final provider = build();
       final ok = await provider.login(email: 'a@b.com', password: 'x');
@@ -47,12 +52,14 @@ void main() {
     });
 
     test('email déjà utilisé (register)', () async {
-      when(() => service.register(
-            email: any(named: 'email'),
-            password: any(named: 'password'),
-            displayName: any(named: 'displayName'),
-            phoneNumber: any(named: 'phoneNumber'),
-          )).thenThrow(FirebaseAuthException(code: 'email-already-in-use'));
+      when(
+        () => service.register(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+          displayName: any(named: 'displayName'),
+          phoneNumber: any(named: 'phoneNumber'),
+        ),
+      ).thenThrow(FirebaseAuthException(code: 'email-already-in-use'));
 
       final provider = build();
       final ok = await provider.register(
@@ -68,10 +75,12 @@ void main() {
   });
 
   test('login réussi -> pas d\'erreur', () async {
-    when(() => service.signIn(
-          email: any(named: 'email'),
-          password: any(named: 'password'),
-        )).thenAnswer((_) async {});
+    when(
+      () => service.signIn(
+        email: any(named: 'email'),
+        password: any(named: 'password'),
+      ),
+    ).thenAnswer((_) async {});
 
     final provider = build();
     final ok = await provider.login(email: 'a@b.com', password: 'secret');

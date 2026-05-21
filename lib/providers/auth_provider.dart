@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 
 import '../models/app_user.dart';
 import '../models/geo.dart';
+import '../repositories/auth_repository.dart';
 import '../services/auth_service.dart';
 
 enum AuthStatus {
@@ -15,12 +16,12 @@ enum AuthStatus {
 }
 
 class AuthProvider extends ChangeNotifier {
-  AuthProvider({AuthService? service})
-      : _service = service ?? AuthService() {
+  AuthProvider({AuthRepository? repository})
+    : _service = repository ?? AuthService() {
     _sub = _service.authStateChanges.listen(_onAuthStateChanged);
   }
 
-  final AuthService _service;
+  final AuthRepository _service;
   late final StreamSubscription<User?> _sub;
 
   AuthStatus _status = AuthStatus.unknown;
@@ -74,12 +75,14 @@ class AuthProvider extends ChangeNotifier {
     required String displayName,
     String? phoneNumber,
   }) {
-    return _run(() => _service.register(
-          email: email,
-          password: password,
-          displayName: displayName,
-          phoneNumber: phoneNumber,
-        ));
+    return _run(
+      () => _service.register(
+        email: email,
+        password: password,
+        displayName: displayName,
+        phoneNumber: phoneNumber,
+      ),
+    );
   }
 
   Future<void> logout() => _service.signOut();

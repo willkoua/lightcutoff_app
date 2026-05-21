@@ -9,9 +9,7 @@ class AppTheme {
       seedColor: AppColors.primary,
       primary: AppColors.primary,
       brightness: Brightness.light,
-    ).copyWith(
-      onPrimary: AppColors.dark,
-    );
+    ).copyWith(onPrimary: AppColors.dark);
 
     return ThemeData(
       useMaterial3: true,
@@ -31,10 +29,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(

@@ -47,9 +47,10 @@ class ReportDetailScreen extends StatelessWidget {
           const SizedBox(height: 16),
           _InfoRow(
             icon: Icons.place_outlined,
-            text: report.location.label.isEmpty
-                ? 'Zone inconnue'
-                : report.location.label,
+            text:
+                report.location.label.isEmpty
+                    ? 'Zone inconnue'
+                    : report.location.label,
             bold: true,
           ),
           const SizedBox(height: 8),
@@ -85,8 +86,10 @@ class ReportDetailScreen extends StatelessWidget {
               onPressed: () async {
                 final ok = await provider.confirm(report.id);
                 if (context.mounted) {
-                  _snack(context,
-                      ok ? 'Coupure confirmée.' : 'Échec de la confirmation.');
+                  _snack(
+                    context,
+                    ok ? 'Coupure confirmée.' : 'Échec de la confirmation.',
+                  );
                 }
               },
               icon: const Icon(Icons.thumb_up_outlined),
@@ -97,8 +100,12 @@ class ReportDetailScreen extends StatelessWidget {
               onPressed: () async {
                 final ok = await provider.resolve(report.id);
                 if (context.mounted) {
-                  _snack(context,
-                      ok ? 'Coupure marquée rétablie.' : 'Échec de la mise à jour.');
+                  _snack(
+                    context,
+                    ok
+                        ? 'Coupure marquée rétablie.'
+                        : 'Échec de la mise à jour.',
+                  );
                 }
               },
               icon: const Icon(Icons.check),
@@ -187,21 +194,21 @@ class _ConfirmationTimeline extends StatelessWidget {
         }
 
         final now = DateTime.now();
-        final recent = confirmations
-            .where((c) =>
-                c.createdAt != null &&
-                now.difference(c.createdAt!) < const Duration(hours: 1))
-            .length;
+        final recent =
+            confirmations
+                .where(
+                  (c) =>
+                      c.createdAt != null &&
+                      now.difference(c.createdAt!) < const Duration(hours: 1),
+                )
+                .length;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                _StatPill(
-                  value: '${confirmations.length}',
-                  label: 'au total',
-                ),
+                _StatPill(value: '${confirmations.length}', label: 'au total'),
                 const SizedBox(width: 12),
                 _StatPill(
                   value: '$recent',
@@ -216,8 +223,11 @@ class _ConfirmationTimeline extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Row(
                   children: [
-                    const Icon(Icons.how_to_reg,
-                        size: 20, color: AppColors.primary),
+                    const Icon(
+                      Icons.how_to_reg,
+                      size: 20,
+                      color: AppColors.primary,
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
@@ -228,7 +238,9 @@ class _ConfirmationTimeline extends StatelessWidget {
                     Text(
                       relativeTime(c.createdAt),
                       style: const TextStyle(
-                          color: AppColors.gray, fontSize: 12),
+                        color: AppColors.gray,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
@@ -265,7 +277,10 @@ class _StatPill extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-                fontSize: 18, fontWeight: FontWeight.bold, color: color),
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
           const SizedBox(width: 6),
           Text(label, style: const TextStyle(color: AppColors.gray)),
@@ -323,13 +338,15 @@ class _StatusChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(ongoing ? Icons.flash_off : Icons.flash_on,
-                size: 16, color: color),
+            Icon(
+              ongoing ? Icons.flash_off : Icons.flash_on,
+              size: 16,
+              color: color,
+            ),
             const SizedBox(width: 6),
             Text(
               label,
-              style: TextStyle(
-                  color: color, fontWeight: FontWeight.w600),
+              style: TextStyle(color: color, fontWeight: FontWeight.w600),
             ),
           ],
         ),

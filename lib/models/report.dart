@@ -53,18 +53,19 @@ class Report {
 
   /// Données pour la création d'un signalement.
   Map<String, dynamic> toCreateMap() => {
-        'userId': userId,
-        'status': status.name,
-        'cause': cause.name,
-        'position': position.toMap(),
-        'location': location.toMap(),
-        'description': description,
-        'confirmationCount': 0,
-        'reportedAt': reportedAt != null
+    'userId': userId,
+    'status': status.name,
+    'cause': cause.name,
+    'position': position.toMap(),
+    'location': location.toMap(),
+    'description': description,
+    'confirmationCount': 0,
+    'reportedAt':
+        reportedAt != null
             ? Timestamp.fromDate(reportedAt!)
             : FieldValue.serverTimestamp(),
-        'resolvedAt': null,
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      };
+    'resolvedAt': null,
+    'createdAt': FieldValue.serverTimestamp(),
+    'updatedAt': FieldValue.serverTimestamp(),
+  };
 }

@@ -4,28 +4,12 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../models/geo.dart';
+import '../repositories/location_repository.dart';
 
-class LocationException implements Exception {
-  final String message;
-  const LocationException(this.message);
-}
-
-/// État d'accès à la localisation, indépendant de geolocator.
-enum LocationAccess {
-  granted,
-  denied, // refusé mais on peut re-demander
-  deniedForever, // refus définitif → réglages système requis
-  serviceDisabled, // localisation désactivée sur l'appareil
-}
-
-class LocationResult {
-  final GeoPosition position;
-  final GeoArea area;
-  const LocationResult({required this.position, required this.area});
-}
-
-class LocationService {
+/// Implémentation geolocator/geocoding de [LocationRepository].
+class LocationService implements LocationRepository {
   /// État d'accès actuel, sans déclencher la demande système.
+  @override
   Future<LocationAccess> checkAccess() async {
     if (!await Geolocator.isLocationServiceEnabled()) {
       return LocationAccess.serviceDisabled;
@@ -44,9 +28,11 @@ class LocationService {
   }
 
   /// Ouvre les réglages de l'app (pour réactiver une permission refusée).
+  @override
   Future<void> openSettings() => Geolocator.openAppSettings();
 
   /// Récupère la position courante et la zone (reverse-géocodage).
+  @override
   Future<LocationResult> getCurrentLocation() async {
     if (!await Geolocator.isLocationServiceEnabled()) {
       throw const LocationException(
@@ -60,9 +46,7 @@ class LocationService {
     }
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
-      throw const LocationException(
-        'Permission de localisation refusée.',
-      );
+      throw const LocationException('Permission de localisation refusée.');
     }
 
     final pos = await _resolvePosition();

@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/enums.dart';
 import '../models/report.dart';
 import '../providers/report_provider.dart';
-import '../services/location_service.dart';
+import '../repositories/location_repository.dart';
 import '../theme/app_colors.dart';
 import '../utils/formatting.dart';
 import '../widgets/location_permission_sheet.dart';
@@ -64,26 +64,27 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
   Future<void> _showSettingsDialog(ReportProvider provider) async {
     await showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Localisation désactivée'),
-        content: const Text(
-          'La permission de localisation a été refusée. Activez-la dans les '
-          'réglages de l\'application pour pouvoir signaler une coupure.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Annuler'),
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Localisation désactivée'),
+            content: const Text(
+              'La permission de localisation a été refusée. Activez-la dans les '
+              'réglages de l\'application pour pouvoir signaler une coupure.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Annuler'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  provider.openLocationSettings();
+                },
+                child: const Text('Ouvrir les réglages'),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              provider.openLocationSettings();
-            },
-            child: const Text('Ouvrir les réglages'),
-          ),
-        ],
-      ),
     );
   }
 
@@ -126,31 +127,32 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
         nearby.location.label.isEmpty ? 'à proximité' : nearby.location.label;
     return showDialog<_DupChoice>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Coupure déjà signalée'),
-        content: Text(
-          'Une coupure est déjà signalée près d\'ici :\n\n'
-          '$zone\n'
-          '${relativeTime(nearby.reportedAt)} · '
-          '${nearby.confirmationCount} confirmation'
-          '${nearby.confirmationCount > 1 ? 's' : ''}\n\n'
-          'Voulez-vous la confirmer plutôt que d\'en créer une nouvelle ?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(_DupChoice.cancel),
-            child: const Text('Annuler'),
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Coupure déjà signalée'),
+            content: Text(
+              'Une coupure est déjà signalée près d\'ici :\n\n'
+              '$zone\n'
+              '${relativeTime(nearby.reportedAt)} · '
+              '${nearby.confirmationCount} confirmation'
+              '${nearby.confirmationCount > 1 ? 's' : ''}\n\n'
+              'Voulez-vous la confirmer plutôt que d\'en créer une nouvelle ?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(_DupChoice.cancel),
+                child: const Text('Annuler'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(_DupChoice.anyway),
+                child: const Text('Signaler quand même'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(ctx).pop(_DupChoice.confirm),
+                child: const Text('Confirmer'),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(_DupChoice.anyway),
-            child: const Text('Signaler quand même'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop(_DupChoice.confirm),
-            child: const Text('Confirmer'),
-          ),
-        ],
-      ),
     );
   }
 
@@ -179,21 +181,27 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
                 ],
               ),
               const SizedBox(height: 24),
-              const Text('Cause', style: TextStyle(fontWeight: FontWeight.w600)),
+              const Text(
+                'Cause',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
               const SizedBox(height: 8),
               DropdownButtonFormField<OutageCause>(
                 value: _cause,
-                items: OutageCause.values
-                    .map((c) => DropdownMenuItem(
-                          value: c,
-                          child: Text(c.label),
-                        ))
-                    .toList(),
+                items:
+                    OutageCause.values
+                        .map(
+                          (c) =>
+                              DropdownMenuItem(value: c, child: Text(c.label)),
+                        )
+                        .toList(),
                 onChanged: (v) => setState(() => _cause = v ?? _cause),
               ),
               const SizedBox(height: 20),
-              const Text('Description (facultatif)',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
+              const Text(
+                'Description (facultatif)',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
               const SizedBox(height: 8),
               TextField(
                 controller: _description,
@@ -205,16 +213,17 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
               const SizedBox(height: 32),
               ElevatedButton.icon(
                 onPressed: submitting ? null : _submit,
-                icon: submitting
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppColors.dark,
-                        ),
-                      )
-                    : const Icon(Icons.send),
+                icon:
+                    submitting
+                        ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.dark,
+                          ),
+                        )
+                        : const Icon(Icons.send),
                 label: Text(submitting ? 'Envoi...' : 'Signaler'),
               ),
             ],

@@ -18,6 +18,6 @@ class Confirmation {
   }
 
   Map<String, dynamic> toCreateMap() => {
-        'createdAt': FieldValue.serverTimestamp(),
-      };
+    'createdAt': FieldValue.serverTimestamp(),
+  };
 }

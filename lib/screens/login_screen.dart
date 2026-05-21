@@ -30,10 +30,7 @@ class _LoginScreenState extends State<LoginScreen> {
     FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
     final auth = context.read<AuthProvider>();
-    final ok = await auth.login(
-      email: _email.text,
-      password: _password.text,
-    );
+    final ok = await auth.login(email: _email.text, password: _password.text);
     if (!ok && mounted && auth.error != null) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
@@ -55,8 +52,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(Icons.lightbulb,
-                      size: 64, color: AppColors.primary),
+                  const Icon(
+                    Icons.lightbulb,
+                    size: 64,
+                    color: AppColors.primary,
+                  ),
                   const SizedBox(height: 12),
                   const Text(
                     'NJUKA',
@@ -94,9 +94,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       labelText: 'Mot de passe',
                       prefixIcon: const Icon(Icons.lock_outline),
                       suffixIcon: IconButton(
-                        icon: Icon(_obscure
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined),
+                        icon: Icon(
+                          _obscure
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                        ),
                         onPressed: () => setState(() => _obscure = !_obscure),
                       ),
                     ),
@@ -105,16 +107,17 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 24),
                   ElevatedButton(
                     onPressed: busy ? null : _submit,
-                    child: busy
-                        ? const SizedBox(
-                            height: 22,
-                            width: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppColors.dark,
-                            ),
-                          )
-                        : const Text('Se connecter'),
+                    child:
+                        busy
+                            ? const SizedBox(
+                              height: 22,
+                              width: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.dark,
+                              ),
+                            )
+                            : const Text('Se connecter'),
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -122,9 +125,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       const Text('Pas encore de compte ?'),
                       TextButton(
-                        onPressed: busy
-                            ? null
-                            : () => Navigator.of(context).push(
+                        onPressed:
+                            busy
+                                ? null
+                                : () => Navigator.of(context).push(
                                   MaterialPageRoute(
                                     builder: (_) => const RegisterScreen(),
                                   ),

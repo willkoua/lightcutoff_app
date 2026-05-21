@@ -69,8 +69,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     labelText: 'Nom complet',
                     prefixIcon: Icon(Icons.person_outline),
                   ),
-                  validator: (v) =>
-                      Validators.required(v, label: 'Le nom'),
+                  validator: (v) => Validators.required(v, label: 'Le nom'),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -85,9 +84,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 16),
                 IntlPhoneField(
-                  decoration: const InputDecoration(
-                    labelText: 'Téléphone',
-                  ),
+                  decoration: const InputDecoration(labelText: 'Téléphone'),
                   initialCountryCode: 'CM',
                   languageCode: 'fr',
                   invalidNumberMessage: 'Numéro invalide',
@@ -103,9 +100,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     labelText: 'Mot de passe',
                     prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
-                      icon: Icon(_obscure
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined),
+                      icon: Icon(
+                        _obscure
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                      ),
                       onPressed: () => setState(() => _obscure = !_obscure),
                     ),
                   ),
@@ -114,16 +113,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: busy ? null : _submit,
-                  child: busy
-                      ? const SizedBox(
-                          height: 22,
-                          width: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.dark,
-                          ),
-                        )
-                      : const Text('Créer mon compte'),
+                  child:
+                      busy
+                          ? const SizedBox(
+                            height: 22,
+                            width: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.dark,
+                            ),
+                          )
+                          : const Text('Créer mon compte'),
                 ),
               ],
             ),
