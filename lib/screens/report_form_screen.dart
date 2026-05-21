@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/enums.dart';
+import '../models/report.dart';
 import '../providers/report_provider.dart';
 import '../theme/app_colors.dart';
+import '../utils/formatting.dart';
+
+enum _DupChoice { confirm, anyway, cancel }
 
 class ReportFormScreen extends StatefulWidget {
   const ReportFormScreen({super.key});
@@ -22,25 +26,83 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
     super.dispose();
   }
 
+  void _snack(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _finish(String message, {required bool success}) {
+    if (success) Navigator.of(context).pop();
+    _snack(message);
+  }
+
   Future<void> _submit() async {
     final provider = context.read<ReportProvider>();
-    final error = await provider.submitReport(
+    final outcome = await provider.prepareReport();
+    if (!mounted) return;
+    if (outcome.error != null) {
+      _snack(outcome.error!);
+      return;
+    }
+    final draft = outcome.draft!;
+    final nearby = outcome.nearby;
+
+    if (nearby != null) {
+      final choice = await _askDuplicate(nearby);
+      if (!mounted || choice == _DupChoice.cancel) return;
+      if (choice == _DupChoice.confirm) {
+        final ok = await provider.confirm(nearby.id);
+        if (!mounted) return;
+        _finish(
+          ok ? 'Coupure confirmée. Merci !' : 'Échec de la confirmation.',
+          success: ok,
+        );
+        return;
+      }
+      // _DupChoice.anyway : on crée un nouveau signalement.
+    }
+
+    final error = await provider.createFromDraft(
+      draft,
       cause: _cause,
       description: _description.text,
     );
     if (!mounted) return;
-    if (error == null) {
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(content: Text('Coupure signalée. Merci !')),
-        );
-    } else {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(error)));
-    }
+    _finish(error ?? 'Coupure signalée. Merci !', success: error == null);
+  }
+
+  Future<_DupChoice?> _askDuplicate(Report nearby) {
+    final zone =
+        nearby.location.label.isEmpty ? 'à proximité' : nearby.location.label;
+    return showDialog<_DupChoice>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Coupure déjà signalée'),
+        content: Text(
+          'Une coupure est déjà signalée près d\'ici :\n\n'
+          '$zone\n'
+          '${relativeTime(nearby.reportedAt)} · '
+          '${nearby.confirmationCount} confirmation'
+          '${nearby.confirmationCount > 1 ? 's' : ''}\n\n'
+          'Voulez-vous la confirmer plutôt que d\'en créer une nouvelle ?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(_DupChoice.cancel),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(_DupChoice.anyway),
+            child: const Text('Signaler quand même'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(_DupChoice.confirm),
+            child: const Text('Confirmer'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

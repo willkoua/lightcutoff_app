@@ -16,11 +16,18 @@ class MockFirebaseAuth extends Mock implements FirebaseAuth {}
 
 class MockUser extends Mock implements User {}
 
-Report _report({String userId = 'u1'}) => Report(
-      id: 'r1',
+Report _report({
+  String id = 'r1',
+  String userId = 'u1',
+  OutageStatus status = OutageStatus.ongoing,
+  double lat = 0,
+  double lng = 0,
+}) =>
+    Report(
+      id: id,
       userId: userId,
-      status: OutageStatus.ongoing,
-      position: const GeoPosition(lat: 0, lng: 0),
+      status: status,
+      position: GeoPosition(lat: lat, lng: lng),
     );
 
 void main() {
@@ -94,5 +101,46 @@ void main() {
     final provider = build();
     expect(provider.isAuthor(_report(userId: 'u1')), isTrue);
     expect(provider.isAuthor(_report(userId: 'autre')), isFalse);
+  });
+
+  group('findNearbyOngoing', () {
+    // Yaoundé : 3.848, 11.502
+    Future<ReportProvider> buildWith(List<Report> reports) async {
+      when(() => service.watchReports())
+          .thenAnswer((_) => Stream<List<Report>>.value(reports));
+      final provider = build();
+      await Future<void>.delayed(Duration.zero); // laisse le stream émettre
+      return provider;
+    }
+
+    test('détecte une coupure en cours proche (< 500 m)', () async {
+      final provider = await buildWith([
+        _report(id: 'near', lat: 3.8485, lng: 11.502), // ~55 m
+      ]);
+      final found = provider.findNearbyOngoing(
+        const GeoPosition(lat: 3.848, lng: 11.502),
+      );
+      expect(found?.id, 'near');
+    });
+
+    test('ignore une coupure trop loin (> 500 m)', () async {
+      final provider = await buildWith([
+        _report(id: 'far', lat: 3.9, lng: 11.6), // ~13 km
+      ]);
+      final found = provider.findNearbyOngoing(
+        const GeoPosition(lat: 3.848, lng: 11.502),
+      );
+      expect(found, isNull);
+    });
+
+    test('ignore les coupures rétablies', () async {
+      final provider = await buildWith([
+        _report(id: 'resolved', status: OutageStatus.resolved, lat: 3.848, lng: 11.502),
+      ]);
+      final found = provider.findNearbyOngoing(
+        const GeoPosition(lat: 3.848, lng: 11.502),
+      );
+      expect(found, isNull);
+    });
   });
 }
