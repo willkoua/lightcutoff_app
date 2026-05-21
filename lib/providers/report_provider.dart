@@ -10,8 +10,10 @@ import '../models/geo.dart';
 import '../models/report.dart';
 import '../repositories/location_repository.dart';
 import '../repositories/report_repository.dart';
+import '../repositories/storage_repository.dart';
 import '../services/location_service.dart';
 import '../services/report_service.dart';
+import '../services/storage_service.dart';
 import '../utils/crash_reporter.dart';
 
 /// Localisation résolue, prête à devenir un signalement.
@@ -39,9 +41,11 @@ class ReportProvider extends ChangeNotifier {
   ReportProvider({
     ReportRepository? repository,
     LocationRepository? location,
+    StorageRepository? storage,
     FirebaseAuth? auth,
   }) : _service = repository ?? ReportService(),
        _location = location ?? LocationService(),
+       _storage = storage ?? StorageService(),
        _auth = auth ?? FirebaseAuth.instance {
     _sub = _service.watchReports().listen(
       (data) {
@@ -61,6 +65,7 @@ class ReportProvider extends ChangeNotifier {
 
   final ReportRepository _service;
   final LocationRepository _location;
+  final StorageRepository _storage;
   final FirebaseAuth _auth;
   late final StreamSubscription<List<Report>> _sub;
 
@@ -315,11 +320,32 @@ class ReportProvider extends ChangeNotifier {
     }
   }
 
+  /// Upload un GIF (octets) pour la description courante. Renvoie l'URL,
+  /// ou null en cas d'échec.
+  Future<String?> uploadDescriptionGif(
+    Uint8List bytes, {
+    String contentType = 'image/gif',
+  }) async {
+    final uid = _uid;
+    if (uid == null) return null;
+    try {
+      return await _storage.uploadReportMedia(
+        uid: uid,
+        bytes: bytes,
+        contentType: contentType,
+      );
+    } catch (e, st) {
+      CrashReporter.recordError(e, st, reason: 'uploadDescriptionGif');
+      return null;
+    }
+  }
+
   /// Crée le signalement à partir d'une localisation déjà résolue.
   Future<String?> createFromDraft(
     ReportDraft draft, {
     required OutageCause cause,
     String? description,
+    String? gifUrl,
   }) async {
     final uid = _uid;
     if (uid == null) return 'Vous devez être connecté.';
@@ -335,6 +361,7 @@ class ReportProvider extends ChangeNotifier {
         location: draft.area,
         description:
             (description?.trim().isEmpty ?? true) ? null : description!.trim(),
+        gifUrl: gifUrl,
       );
       await _service.createReport(report);
       return null;

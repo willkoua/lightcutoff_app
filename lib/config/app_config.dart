@@ -33,4 +33,5 @@ class AppConfig {
   static const int authPort = 9099;
   static const int firestorePort = 8080;
   static const int databasePort = 9000;
+  static const int storagePort = 9199;
 }

@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -38,5 +39,9 @@ Future<void> _connectToEmulators() async {
     AppConfig.firestorePort,
   );
   FirebaseDatabase.instance.useDatabaseEmulator(host, AppConfig.databasePort);
+  await FirebaseStorage.instance.useStorageEmulator(
+    host,
+    AppConfig.storagePort,
+  );
   debugPrint('NJUKA → émulateurs Firebase ($host)');
 }

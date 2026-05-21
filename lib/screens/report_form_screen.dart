@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../models/enums.dart';
@@ -22,11 +23,35 @@ class ReportFormScreen extends StatefulWidget {
 class _ReportFormScreenState extends State<ReportFormScreen> {
   OutageCause _cause = OutageCause.unplanned;
   final _description = TextEditingController();
+  final _picker = ImagePicker();
+  String? _gifUrl;
+  bool _uploadingGif = false;
 
   @override
   void dispose() {
     _description.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickGif() async {
+    final provider = context.read<ReportProvider>();
+    final file = await _picker.pickMedia();
+    if (file == null || !mounted) return;
+    setState(() => _uploadingGif = true);
+    final bytes = await file.readAsBytes();
+    final name = file.name.toLowerCase();
+    final contentType =
+        name.endsWith('.gif') ? 'image/gif' : (file.mimeType ?? 'image/jpeg');
+    final url = await provider.uploadDescriptionGif(
+      bytes,
+      contentType: contentType,
+    );
+    if (!mounted) return;
+    setState(() {
+      _uploadingGif = false;
+      _gifUrl = url;
+    });
+    if (url == null) _snack('Échec de l\'ajout du GIF.');
   }
 
   void _snack(String message) {
@@ -118,6 +143,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
       draft,
       cause: _cause,
       description: _description.text,
+      gifUrl: _gifUrl,
     );
     if (!mounted) return;
     _finish(error ?? 'Coupure signalée. Merci !', success: error == null);
@@ -207,9 +233,17 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
               TextField(
                 controller: _description,
                 maxLines: 3,
+                maxLength: 500,
                 decoration: const InputDecoration(
                   hintText: 'Ex. tout le quartier est touché depuis ce matin.',
                 ),
+              ),
+              const SizedBox(height: 8),
+              _GifField(
+                gifUrl: _gifUrl,
+                uploading: _uploadingGif,
+                onPick: _pickGif,
+                onRemove: () => setState(() => _gifUrl = null),
               ),
               const SizedBox(height: 32),
               ElevatedButton.icon(
@@ -231,6 +265,81 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Champ d'ajout d'un GIF animé (depuis l'appareil) à la description.
+class _GifField extends StatelessWidget {
+  const _GifField({
+    required this.gifUrl,
+    required this.uploading,
+    required this.onPick,
+    required this.onRemove,
+  });
+
+  final String? gifUrl;
+  final bool uploading;
+  final VoidCallback onPick;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    if (uploading) {
+      return const Row(
+        children: [
+          SizedBox(
+            height: 18,
+            width: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          SizedBox(width: 10),
+          Text('Ajout du GIF…', style: TextStyle(color: AppColors.gray)),
+        ],
+      );
+    }
+    if (gifUrl == null) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: OutlinedButton.icon(
+          onPressed: onPick,
+          icon: const Icon(Icons.gif_box_outlined),
+          label: const Text('Ajouter un GIF'),
+        ),
+      );
+    }
+    return Stack(
+      alignment: Alignment.topRight,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.network(
+            gifUrl!,
+            width: double.infinity,
+            height: 180,
+            fit: BoxFit.cover,
+            errorBuilder:
+                (_, __, ___) => Container(
+                  height: 180,
+                  color: Colors.black12,
+                  alignment: Alignment.center,
+                  child: const Icon(Icons.broken_image_outlined),
+                ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(6),
+          child: CircleAvatar(
+            backgroundColor: Colors.black54,
+            radius: 16,
+            child: IconButton(
+              iconSize: 18,
+              icon: const Icon(Icons.close, color: Colors.white),
+              onPressed: onRemove,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

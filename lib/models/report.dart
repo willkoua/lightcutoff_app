@@ -10,6 +10,7 @@ class Report {
   final GeoPosition position;
   final GeoArea location;
   final String? description;
+  final String? gifUrl;
   final int confirmationCount;
   final DateTime? reportedAt;
   final DateTime? resolvedAt;
@@ -24,6 +25,7 @@ class Report {
     required this.position,
     this.location = const GeoArea(),
     this.description,
+    this.gifUrl,
     this.confirmationCount = 0,
     this.reportedAt,
     this.resolvedAt,
@@ -43,6 +45,7 @@ class Report {
       ),
       location: GeoArea.fromMap(map['location'] as Map<String, dynamic>?),
       description: map['description'] as String?,
+      gifUrl: map['gifUrl'] as String?,
       confirmationCount: (map['confirmationCount'] as num?)?.toInt() ?? 0,
       reportedAt: (map['reportedAt'] as Timestamp?)?.toDate(),
       resolvedAt: (map['resolvedAt'] as Timestamp?)?.toDate(),
@@ -59,6 +62,7 @@ class Report {
     'position': position.toMap(),
     'location': location.toMap(),
     'description': description,
+    'gifUrl': gifUrl,
     'confirmationCount': 0,
     'reportedAt':
         reportedAt != null

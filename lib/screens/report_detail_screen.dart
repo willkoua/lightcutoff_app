@@ -81,6 +81,18 @@ class ReportDetailScreen extends StatelessWidget {
               child: Text(report.description!),
             ),
           ],
+          if (report.gifUrl != null) ...[
+            const SizedBox(height: 16),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                report.gifUrl!,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
+            ),
+          ],
           const SizedBox(height: 24),
           if (ongoing && !isAuthor)
             ElevatedButton.icon(
