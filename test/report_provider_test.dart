@@ -22,11 +22,15 @@ Report _report({
   OutageStatus status = OutageStatus.ongoing,
   double lat = 0,
   double lng = 0,
+  String city = '',
+  int confirmations = 0,
 }) => Report(
   id: id,
   userId: userId,
   status: status,
   position: GeoPosition(lat: lat, lng: lng),
+  location: GeoArea(city: city),
+  confirmationCount: confirmations,
 );
 
 void main() {
@@ -163,6 +167,54 @@ void main() {
         const GeoPosition(lat: 3.848, lng: 11.502),
       );
       expect(found, isNull);
+    });
+  });
+
+  group('filteredReports', () {
+    Future<ReportProvider> buildWith(List<Report> reports) async {
+      when(
+        () => service.watchReports(),
+      ).thenAnswer((_) => Stream<List<Report>>.value(reports));
+      final provider = build();
+      await Future<void>.delayed(Duration.zero);
+      return provider;
+    }
+
+    test('recherche par zone', () async {
+      final provider = await buildWith([
+        _report(id: 'a', city: 'Yaoundé'),
+        _report(id: 'b', city: 'Douala'),
+      ]);
+      provider.setQuery('yaound');
+      expect(provider.filteredReports.map((r) => r.id), ['a']);
+    });
+
+    test('filtre par statut', () async {
+      final provider = await buildWith([
+        _report(id: 'a'),
+        _report(id: 'b', status: OutageStatus.resolved),
+      ]);
+      provider.toggleStatusFilter(OutageStatus.resolved);
+      expect(provider.filteredReports.map((r) => r.id), ['b']);
+    });
+
+    test('mes signalements uniquement', () async {
+      final provider = await buildWith([
+        _report(id: 'a', userId: 'u1'),
+        _report(id: 'b', userId: 'autre'),
+      ]);
+      provider.toggleOnlyMine();
+      expect(provider.filteredReports.map((r) => r.id), ['a']);
+    });
+
+    test('tri par nombre de confirmations', () async {
+      final provider = await buildWith([
+        _report(id: 'a', confirmations: 1),
+        _report(id: 'b', confirmations: 5),
+        _report(id: 'c', confirmations: 3),
+      ]);
+      provider.setSort(ReportSort.confirmed);
+      expect(provider.filteredReports.map((r) => r.id), ['b', 'c', 'a']);
     });
   });
 }

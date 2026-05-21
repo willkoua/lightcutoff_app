@@ -31,6 +31,9 @@ class PrepareOutcome {
   const PrepareOutcome({this.error, this.draft, this.nearby});
 }
 
+/// Critère de tri de la liste des coupures.
+enum ReportSort { recent, active, confirmed }
+
 class ReportProvider extends ChangeNotifier {
   ReportProvider({
     ReportRepository? repository,
@@ -64,10 +67,132 @@ class ReportProvider extends ChangeNotifier {
   String? _error;
   bool _submitting = false;
 
+  // --- État des filtres / recherche ---
+  String _query = '';
+  OutageStatus? _statusFilter;
+  OutageCause? _causeFilter;
+  bool _onlyMine = false;
+  bool _nearOnly = false;
+  GeoPosition? _nearPosition;
+  ReportSort _sort = ReportSort.recent;
+
+  /// Rayon (m) du filtre « à proximité ».
+  static const double nearFilterRadiusMeters = 5000;
+
   List<Report> get reports => _reports;
   bool get loading => _loading;
   String? get error => _error;
   bool get submitting => _submitting;
+
+  String get query => _query;
+  OutageStatus? get statusFilter => _statusFilter;
+  OutageCause? get causeFilter => _causeFilter;
+  bool get onlyMine => _onlyMine;
+  bool get nearOnly => _nearOnly;
+  ReportSort get sort => _sort;
+
+  bool get hasActiveFilters =>
+      _query.isNotEmpty ||
+      _statusFilter != null ||
+      _causeFilter != null ||
+      _onlyMine ||
+      _nearOnly;
+
+  /// Liste filtrée + triée selon l'état courant des filtres.
+  List<Report> get filteredReports {
+    final q = _query.trim().toLowerCase();
+    final list =
+        _reports.where((r) {
+          if (_statusFilter != null && r.status != _statusFilter) return false;
+          if (_causeFilter != null && r.cause != _causeFilter) return false;
+          if (_onlyMine && r.userId != _uid) return false;
+          if (q.isNotEmpty) {
+            final haystack =
+                '${r.location.label} ${r.description ?? ''}'.toLowerCase();
+            if (!haystack.contains(q)) return false;
+          }
+          if (_nearOnly && _nearPosition != null) {
+            final d = _distance.as(
+              LengthUnit.Meter,
+              LatLng(_nearPosition!.lat, _nearPosition!.lng),
+              LatLng(r.position.lat, r.position.lng),
+            );
+            if (d > nearFilterRadiusMeters) return false;
+          }
+          return true;
+        }).toList();
+
+    int byDate(DateTime? a, DateTime? b) =>
+        (b ?? DateTime(0)).compareTo(a ?? DateTime(0));
+    switch (_sort) {
+      case ReportSort.recent:
+        list.sort((a, b) => byDate(a.reportedAt, b.reportedAt));
+      case ReportSort.active:
+        list.sort((a, b) => byDate(a.updatedAt, b.updatedAt));
+      case ReportSort.confirmed:
+        list.sort((a, b) => b.confirmationCount.compareTo(a.confirmationCount));
+    }
+    return list;
+  }
+
+  void setQuery(String value) {
+    _query = value;
+    notifyListeners();
+  }
+
+  /// Bascule un statut (re-tap = désactive le filtre).
+  void toggleStatusFilter(OutageStatus status) {
+    _statusFilter = _statusFilter == status ? null : status;
+    notifyListeners();
+  }
+
+  void setCauseFilter(OutageCause? cause) {
+    _causeFilter = cause;
+    notifyListeners();
+  }
+
+  void toggleOnlyMine() {
+    _onlyMine = !_onlyMine;
+    notifyListeners();
+  }
+
+  void setSort(ReportSort value) {
+    _sort = value;
+    notifyListeners();
+  }
+
+  /// Active/désactive le filtre de proximité. Retourne un message d'erreur
+  /// si la position n'a pas pu être obtenue.
+  Future<String?> setNearOnly(bool value) async {
+    if (!value) {
+      _nearOnly = false;
+      _nearPosition = null;
+      notifyListeners();
+      return null;
+    }
+    try {
+      final loc = await _location.getCurrentLocation();
+      _nearPosition = loc.position;
+      _nearOnly = true;
+      notifyListeners();
+      return null;
+    } on LocationException catch (e) {
+      return e.message;
+    } catch (_) {
+      return 'Localisation impossible.';
+    }
+  }
+
+  void clearFilters() {
+    _query = '';
+    _statusFilter = null;
+    _causeFilter = null;
+    _onlyMine = false;
+    _nearOnly = false;
+    _nearPosition = null;
+    _sort = ReportSort.recent;
+    notifyListeners();
+  }
 
   String? get _uid => _auth.currentUser?.uid;
   String? get currentUid => _uid;
