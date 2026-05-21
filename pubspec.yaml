@@ -47,6 +47,7 @@ dependencies:
   latlong2: ^0.9.1
   shared_preferences: ^2.5.3
   flutter_map_marker_cluster: ^8.2.2
+  firebase_crashlytics: ^5.2.2
 
 dev_dependencies:
   flutter_test:

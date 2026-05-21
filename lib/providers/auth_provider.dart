@@ -7,6 +7,7 @@ import '../models/app_user.dart';
 import '../models/geo.dart';
 import '../repositories/auth_repository.dart';
 import '../services/auth_service.dart';
+import '../utils/crash_reporter.dart';
 
 enum AuthStatus {
   unknown,
@@ -35,6 +36,7 @@ class AuthProvider extends ChangeNotifier {
   String? get error => _error;
 
   Future<void> _onAuthStateChanged(User? user) async {
+    CrashReporter.setUser(user?.uid);
     if (user == null) {
       _profile = null;
       _status = AuthStatus.unauthenticated;
@@ -134,7 +136,8 @@ class AuthProvider extends ChangeNotifier {
     } on FirebaseAuthException catch (e) {
       _error = _messageFor(e);
       return false;
-    } catch (_) {
+    } catch (e, st) {
+      CrashReporter.recordError(e, st, reason: 'auth action');
       _error = 'Une erreur est survenue. Réessayez.';
       return false;
     } finally {

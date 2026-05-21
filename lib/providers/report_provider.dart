@@ -12,6 +12,7 @@ import '../repositories/location_repository.dart';
 import '../repositories/report_repository.dart';
 import '../services/location_service.dart';
 import '../services/report_service.dart';
+import '../utils/crash_reporter.dart';
 
 /// Localisation résolue, prête à devenir un signalement.
 class ReportDraft {
@@ -49,7 +50,8 @@ class ReportProvider extends ChangeNotifier {
         _error = null;
         notifyListeners();
       },
-      onError: (_) {
+      onError: (Object e, StackTrace st) {
+        CrashReporter.recordError(e, st, reason: 'watchReports');
         _error = 'Impossible de charger les coupures.';
         _loading = false;
         notifyListeners();
