@@ -51,3 +51,6 @@ firestore-debug.log
 database-debug.log
 ui-debug.log
 pubsub-debug.log
+
+# Test coverage artifacts
+/coverage/
