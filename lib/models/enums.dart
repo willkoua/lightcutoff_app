@@ -45,3 +45,17 @@ enum OutageCause {
         orElse: () => OutageCause.unknown,
       );
 }
+
+extension OutageStatusLabel on OutageStatus {
+  String get label =>
+      this == OutageStatus.ongoing ? 'En cours' : 'Rétabli';
+}
+
+extension OutageCauseLabel on OutageCause {
+  String get label => switch (this) {
+        OutageCause.unknown => 'Cause inconnue',
+        OutageCause.unplanned => 'Coupure inopinée',
+        OutageCause.scheduled => 'Coupure programmée',
+        OutageCause.incident => 'Incident',
+      };
+}
