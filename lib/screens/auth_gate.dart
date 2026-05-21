@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
+import '../providers/report_provider.dart';
 import 'email_verification_screen.dart';
 import 'home_screen.dart';
 import 'login_screen.dart';
@@ -17,7 +18,10 @@ class AuthGate extends StatelessWidget {
       case AuthStatus.unknown:
         return const SplashScreen();
       case AuthStatus.authenticated:
-        return const HomeScreen();
+        return ChangeNotifierProvider(
+          create: (_) => ReportProvider(),
+          child: const HomeScreen(),
+        );
       case AuthStatus.awaitingVerification:
         return const EmailVerificationScreen();
       case AuthStatus.unauthenticated:
