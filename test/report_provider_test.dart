@@ -366,5 +366,29 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       expect(provider.nearOnly, isFalse);
     });
+
+    test('repli sur liste complète si rien à proximité au démarrage', () async {
+      when(
+        () => location.checkAccess(),
+      ).thenAnswer((_) async => LocationAccess.granted);
+      when(() => location.getCurrentLocation()).thenAnswer(
+        (_) async => const LocationResult(
+          position: GeoPosition(lat: 3.86, lng: 11.51),
+          area: GeoArea(),
+        ),
+      );
+      when(
+        () => service.reportsWithinRadius(
+          lat: any(named: 'lat'),
+          lng: any(named: 'lng'),
+          radiusMeters: any(named: 'radiusMeters'),
+        ),
+      ).thenAnswer((_) async => <Report>[]);
+
+      final provider = build();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(provider.nearOnly, isFalse); // bascule auto sur liste complète
+    });
   });
 }

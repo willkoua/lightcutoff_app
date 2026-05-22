@@ -58,8 +58,13 @@ class ReportProvider extends ChangeNotifier {
   /// démarrage). Sinon, la liste reste non géolocalisée jusqu'à activation.
   Future<void> _applyDefaultProximity() async {
     try {
-      if (await _location.checkAccess() == LocationAccess.granted) {
-        await setNearOnly(true);
+      if (await _location.checkAccess() != LocationAccess.granted) return;
+      await setNearOnly(true);
+      // Évite l'écran vide au démarrage : si rien à proximité (ou données pas
+      // encore indexées en geohash), on revient à la liste complète. Le choix
+      // manuel de l'utilisateur, lui, reste respecté même s'il est vide.
+      if (_nearOnly && (_nearResults?.isEmpty ?? true)) {
+        await setNearOnly(false);
       }
     } catch (_) {
       // Démarrage silencieux : on ignore toute erreur de localisation.
