@@ -4,6 +4,7 @@ on:
   push:
     branches: [master, main]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   build:
@@ -29,6 +30,9 @@ jobs:
   ios:
     name: iOS (build sans signature)
     runs-on: macos-latest
+    # macOS = minutes coûteuses : on évite les push de routine.
+    # Tourne sur les pull requests et sur déclenchement manuel.
+    if: github.event_name != 'push'
     steps:
       - uses: actions/checkout@v4
 
