@@ -516,6 +516,8 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (reportById(reportId)?.userId == uid) return false;
     try {
       await _service.confirmReport(reportId, uid);
+      // En mode proximité (requête ponctuelle), on resynchronise tout de suite.
+      if (_nearOnly) await _refreshNear();
       return true;
     } catch (_) {
       return false;
@@ -525,6 +527,8 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<bool> resolve(String reportId) async {
     try {
       await _service.resolveReport(reportId);
+      // En mode proximité (requête ponctuelle), on resynchronise tout de suite.
+      if (_nearOnly) await _refreshNear();
       return true;
     } catch (_) {
       return false;
