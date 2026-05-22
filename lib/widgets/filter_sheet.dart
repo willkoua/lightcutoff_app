@@ -124,20 +124,20 @@ class _FilterSheetState extends State<_FilterSheet> {
               ],
             ),
             const SizedBox(height: 16),
-            _label('Cause'),
+            _label('Type'),
             Wrap(
               spacing: 8,
               children: [
                 _choice(
                   'Toutes',
-                  p.causeFilter == null,
-                  () => p.setCauseFilter(null),
+                  p.typeFilter == null,
+                  () => p.setTypeFilter(null),
                 ),
-                for (final c in OutageCause.values)
+                for (final t in OutageType.values)
                   _choice(
-                    c.label,
-                    p.causeFilter == c,
-                    () => p.setCauseFilter(c),
+                    t.label,
+                    p.typeFilter == t,
+                    () => p.setTypeFilter(t),
                   ),
               ],
             ),

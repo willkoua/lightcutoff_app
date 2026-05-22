@@ -55,7 +55,15 @@ class ReportDetailScreen extends StatelessWidget {
             bold: true,
           ),
           const SizedBox(height: 8),
-          _InfoRow(icon: Icons.bolt_outlined, text: report.cause.label),
+          _InfoRow(icon: Icons.bolt_outlined, text: report.type.label),
+          if (report.authorUsername != null &&
+              report.authorUsername!.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            _InfoRow(
+              icon: Icons.person_outline,
+              text: '@${report.authorUsername}',
+            ),
+          ],
           const SizedBox(height: 8),
           _InfoRow(
             icon: Icons.schedule,

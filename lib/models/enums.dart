@@ -29,15 +29,19 @@ enum OutageStatus {
   );
 }
 
-enum OutageCause {
-  unknown,
+/// Type de coupure. Seules deux catégories existent : les coupures
+/// **programmées** (annoncées à l'avance, alimentées par les opérateurs) et les
+/// coupures **imprévues**. Tout signalement saisi par un utilisateur est
+/// imprévu par défaut.
+enum OutageType {
   unplanned,
-  scheduled,
-  incident;
+  scheduled;
 
-  static OutageCause fromName(String? value) => OutageCause.values.firstWhere(
+  static OutageType fromName(String? value) => OutageType.values.firstWhere(
     (e) => e.name == value,
-    orElse: () => OutageCause.unknown,
+    // Valeur inconnue ou absente (anciens docs, signalements citoyens) →
+    // imprévue.
+    orElse: () => OutageType.unplanned,
   );
 }
 
@@ -53,11 +57,9 @@ extension OutageStatusLabel on OutageStatus {
   String get label => this == OutageStatus.ongoing ? 'En cours' : 'Rétabli';
 }
 
-extension OutageCauseLabel on OutageCause {
+extension OutageTypeLabel on OutageType {
   String get label => switch (this) {
-    OutageCause.unknown => 'Cause inconnue',
-    OutageCause.unplanned => 'Coupure inopinée',
-    OutageCause.scheduled => 'Coupure programmée',
-    OutageCause.incident => 'Incident',
+    OutageType.unplanned => 'Coupure imprévue',
+    OutageType.scheduled => 'Coupure programmée',
   };
 }

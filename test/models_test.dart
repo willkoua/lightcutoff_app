@@ -11,14 +11,14 @@ void main() {
       expect(UserRole.fromName('operator'), UserRole.operator);
       expect(AccountStatus.fromName('disabled'), AccountStatus.disabled);
       expect(OutageStatus.fromName('resolved'), OutageStatus.resolved);
-      expect(OutageCause.fromName('scheduled'), OutageCause.scheduled);
+      expect(OutageType.fromName('scheduled'), OutageType.scheduled);
     });
 
     test('valeurs inconnues ou nulles -> défaut', () {
       expect(UserRole.fromName(null), UserRole.citizen);
       expect(AccountStatus.fromName('???'), AccountStatus.active);
       expect(OutageStatus.fromName(null), OutageStatus.ongoing);
-      expect(OutageCause.fromName('xyz'), OutageCause.unknown);
+      expect(OutageType.fromName('xyz'), OutageType.unplanned);
     });
   });
 
@@ -28,11 +28,9 @@ void main() {
       expect(OutageStatus.resolved.label, 'Rétabli');
     });
 
-    test('cause', () {
-      expect(OutageCause.unknown.label, 'Cause inconnue');
-      expect(OutageCause.unplanned.label, 'Coupure inopinée');
-      expect(OutageCause.scheduled.label, 'Coupure programmée');
-      expect(OutageCause.incident.label, 'Incident');
+    test('type', () {
+      expect(OutageType.unplanned.label, 'Coupure imprévue');
+      expect(OutageType.scheduled.label, 'Coupure programmée');
     });
   });
 
@@ -79,18 +77,20 @@ void main() {
         id: '',
         userId: 'u1',
         status: OutageStatus.ongoing,
-        cause: OutageCause.incident,
+        type: OutageType.scheduled,
         position: GeoPosition(lat: 1, lng: 2),
         location: GeoArea(city: 'Douala'),
         description: 'test',
+        authorUsername: 'willk',
       );
       final map = report.toCreateMap();
       expect(map['userId'], 'u1');
       expect(map['status'], 'ongoing');
-      expect(map['cause'], 'incident');
+      expect(map['type'], 'scheduled');
       expect(map['position'], {'lat': 1.0, 'lng': 2.0});
       expect((map['location'] as Map)['city'], 'Douala');
       expect(map['description'], 'test');
+      expect(map['authorUsername'], 'willk');
       expect(map['confirmationCount'], 0);
       expect(map['resolvedAt'], isNull);
     });

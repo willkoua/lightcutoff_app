@@ -133,7 +133,7 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   String _query = '';
   OutageStatus? _statusFilter = _defaultStatus;
-  OutageCause? _causeFilter;
+  OutageType? _typeFilter;
   bool _onlyMine = false;
   bool _nearOnly = false;
   ReportSort _sort = _defaultSort;
@@ -157,7 +157,7 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   String get query => _query;
   OutageStatus? get statusFilter => _statusFilter;
-  OutageCause? get causeFilter => _causeFilter;
+  OutageType? get typeFilter => _typeFilter;
   bool get onlyMine => _onlyMine;
   bool get nearOnly => _nearOnly;
   bool get nearLoading => _nearLoading;
@@ -168,7 +168,7 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
   bool get hasActiveFilters =>
       _query.isNotEmpty ||
       _statusFilter != _defaultStatus ||
-      _causeFilter != null ||
+      _typeFilter != null ||
       _onlyMine ||
       _sort != _defaultSort;
 
@@ -182,7 +182,7 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
     final list =
         base.where((r) {
           if (_statusFilter != null && r.status != _statusFilter) return false;
-          if (_causeFilter != null && r.cause != _causeFilter) return false;
+          if (_typeFilter != null && r.type != _typeFilter) return false;
           if (_onlyMine && r.userId != _uid) return false;
           if (q.isNotEmpty) {
             final haystack =
@@ -216,8 +216,8 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
-  void setCauseFilter(OutageCause? cause) {
-    _causeFilter = cause;
+  void setTypeFilter(OutageType? type) {
+    _typeFilter = type;
     notifyListeners();
   }
 
@@ -327,7 +327,7 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
   void clearFilters() {
     _query = '';
     _statusFilter = _defaultStatus;
-    _causeFilter = null;
+    _typeFilter = null;
     _onlyMine = false;
     _sort = _defaultSort;
     notifyListeners();
@@ -357,8 +357,8 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// Crée un signalement à la position courante. Retourne null si OK,
   /// sinon un message d'erreur.
   Future<String?> submitReport({
-    required OutageCause cause,
     String? description,
+    String? authorUsername,
   }) async {
     final uid = _uid;
     if (uid == null) return 'Vous devez être connecté.';
@@ -371,11 +371,13 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
         id: '',
         userId: uid,
         status: OutageStatus.ongoing,
-        cause: cause,
+        // Tout signalement citoyen est une coupure imprévue.
+        type: OutageType.unplanned,
         position: loc.position,
         location: loc.area,
         description:
             (description?.trim().isEmpty ?? true) ? null : description!.trim(),
+        authorUsername: authorUsername,
         geohash: encodeGeohash(loc.position.lat, loc.position.lng),
       );
       await _service.createReport(report);
@@ -478,9 +480,9 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// Crée le signalement à partir d'une localisation déjà résolue.
   Future<String?> createFromDraft(
     ReportDraft draft, {
-    required OutageCause cause,
     String? description,
     String? mediaUrl,
+    String? authorUsername,
   }) async {
     final uid = _uid;
     if (uid == null) return 'Vous devez être connecté.';
@@ -491,12 +493,14 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
         id: '',
         userId: uid,
         status: OutageStatus.ongoing,
-        cause: cause,
+        // Tout signalement citoyen est une coupure imprévue.
+        type: OutageType.unplanned,
         position: draft.position,
         location: draft.area,
         description:
             (description?.trim().isEmpty ?? true) ? null : description!.trim(),
         mediaUrl: mediaUrl,
+        authorUsername: authorUsername,
         geohash: encodeGeohash(draft.position.lat, draft.position.lng),
       );
       await _service.createReport(report);

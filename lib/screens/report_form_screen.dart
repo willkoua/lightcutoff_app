@@ -3,8 +3,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../config/app_constants.dart';
-import '../models/enums.dart';
 import '../models/report.dart';
+import '../providers/auth_provider.dart';
 import '../providers/report_provider.dart';
 import '../repositories/location_repository.dart';
 import '../theme/app_colors.dart';
@@ -23,7 +23,6 @@ class ReportFormScreen extends StatefulWidget {
 }
 
 class _ReportFormScreenState extends State<ReportFormScreen> {
-  OutageCause _cause = OutageCause.unplanned;
   final _description = TextEditingController();
   final _picker = ImagePicker();
   String? _mediaUrl;
@@ -134,6 +133,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
   }
 
   Future<void> _proceed(ReportProvider provider) async {
+    final authorUsername = context.read<AuthProvider>().profile?.username;
     final outcome = await provider.prepareReport();
     if (!mounted) return;
     if (outcome.error != null) {
@@ -160,9 +160,9 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
 
     final error = await provider.createFromDraft(
       draft,
-      cause: _cause,
       description: _description.text,
       mediaUrl: _mediaUrl,
+      authorUsername: authorUsername,
     );
     if (!mounted) return;
     _finish(error ?? 'Coupure signalée. Merci !', success: error == null);
@@ -227,23 +227,6 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
                 ],
               ),
               const SizedBox(height: 24),
-              const Text(
-                'Cause',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<OutageCause>(
-                value: _cause,
-                items:
-                    OutageCause.values
-                        .map(
-                          (c) =>
-                              DropdownMenuItem(value: c, child: Text(c.label)),
-                        )
-                        .toList(),
-                onChanged: (v) => setState(() => _cause = v ?? _cause),
-              ),
-              const SizedBox(height: 20),
               const Text(
                 'Description (facultatif)',
                 style: TextStyle(fontWeight: FontWeight.w600),
@@ -323,7 +306,7 @@ class _MediaField extends StatelessWidget {
         child: OutlinedButton.icon(
           onPressed: onPick,
           icon: const Icon(Icons.add_photo_alternate_outlined),
-          label: const Text('Ajouter une image ou un GIF'),
+          label: const Text('Ajouter une image'),
         ),
       );
     }

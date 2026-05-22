@@ -67,9 +67,21 @@ class ReportCard extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                report.cause.label,
+                report.type.label,
                 style: const TextStyle(color: AppColors.gray, fontSize: 13),
               ),
+              if (report.authorUsername != null &&
+                  report.authorUsername!.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  '@${report.authorUsername}',
+                  style: const TextStyle(
+                    color: AppColors.gray,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
               if (report.description != null) ...[
                 const SizedBox(height: 6),
                 Text(report.description!),

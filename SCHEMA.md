@@ -55,8 +55,9 @@ par **confirmations** (voir sous-collection), pas par création de nouveaux docs
 | Champ | Type | MVP | Description |
 |-------|------|-----|-------------|
 | `userId` | string | ✅ | auteur du signalement |
+| `authorUsername` | string \| null | ✅ | pseudo de l'auteur, dénormalisé à la création (attribution publique `@pseudo`) ; immuable. Prénom/nom restent privés. |
 | `status` | string enum | ✅ | `ongoing` \| `resolved` |
-| `cause` | string enum | ✅ | `unknown` \| `unplanned` \| `scheduled` \| `incident` |
+| `type` | string enum | ✅ | `unplanned` (imprévue) \| `scheduled` (programmée). Tout signalement citoyen est `unplanned` ; les coupures `scheduled` sont alimentées par les opérateurs. |
 | `position` | map `{lat, lng}` | ✅ | coordonnées GPS |
 | `location` | map `GeoArea` | ✅ | zone lisible (reverse-géocodage) |
 | `description` | string \| null | ✅ | texte libre |
@@ -130,3 +131,4 @@ Modèle Dart : `lib/models/device.dart`
 - **Audit** (`createdAt`/`updatedAt`) sur toutes les entités ; **désactivation de compte** via `status`/`disabledAt` sur `users`.
 - **Photos reportées** après le MVP (nécessite Firebase Storage) — champ `photoUrls` documenté mais non implémenté pour l'instant.
 - **Pas de soft-delete** sur les reports pour le moment.
+- **Identité publique = `@pseudo` uniquement.** Le prénom/nom vivent dans `users/{uid}` (lecture propriétaire/admin). Les signalements affichent `@pseudo` (champ `authorUsername` dénormalisé, immuable) ; les confirmations restent anonymes (« Vous »/« Un utilisateur »). Le pseudo étant immuable, la dénormalisation ne peut pas devenir incohérente. Pose les bases d'un futur fil social éphémère par coupure.

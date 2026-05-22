@@ -6,11 +6,15 @@ class Report {
   final String id;
   final String userId;
   final OutageStatus status;
-  final OutageCause cause;
+  final OutageType type;
   final GeoPosition position;
   final GeoArea location;
   final String? description;
   final String? mediaUrl;
+
+  /// Pseudo de l'auteur, dénormalisé à la création (immuable côté pseudo).
+  /// Sert d'attribution publique `@pseudo` ; le prénom/nom restent privés.
+  final String? authorUsername;
 
   /// Geohash de [position] — index de proximité (filtres de zone, notifications).
   final String? geohash;
@@ -24,11 +28,12 @@ class Report {
     required this.id,
     required this.userId,
     required this.status,
-    this.cause = OutageCause.unknown,
+    this.type = OutageType.unplanned,
     required this.position,
     this.location = const GeoArea(),
     this.description,
     this.mediaUrl,
+    this.authorUsername,
     this.geohash,
     this.confirmationCount = 0,
     this.reportedAt,
@@ -43,13 +48,14 @@ class Report {
       id: doc.id,
       userId: map['userId'] as String? ?? '',
       status: OutageStatus.fromName(map['status'] as String?),
-      cause: OutageCause.fromName(map['cause'] as String?),
+      type: OutageType.fromName(map['type'] as String?),
       position: GeoPosition.fromMap(
         (map['position'] as Map<String, dynamic>?) ?? const {},
       ),
       location: GeoArea.fromMap(map['location'] as Map<String, dynamic>?),
       description: map['description'] as String?,
       mediaUrl: map['mediaUrl'] as String?,
+      authorUsername: map['authorUsername'] as String?,
       geohash: map['geohash'] as String?,
       confirmationCount: (map['confirmationCount'] as num?)?.toInt() ?? 0,
       reportedAt: (map['reportedAt'] as Timestamp?)?.toDate(),
@@ -63,11 +69,12 @@ class Report {
   Map<String, dynamic> toCreateMap() => {
     'userId': userId,
     'status': status.name,
-    'cause': cause.name,
+    'type': type.name,
     'position': position.toMap(),
     'location': location.toMap(),
     'description': description,
     'mediaUrl': mediaUrl,
+    'authorUsername': authorUsername,
     'geohash': geohash,
     'confirmationCount': 0,
     'reportedAt':

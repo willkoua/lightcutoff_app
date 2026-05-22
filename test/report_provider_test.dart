@@ -78,7 +78,7 @@ void main() {
     when(() => service.createReport(any())).thenAnswer((_) async {});
 
     final provider = build();
-    final error = await provider.submitReport(cause: OutageCause.unplanned);
+    final error = await provider.submitReport();
 
     expect(error, isNull);
     final captured =
@@ -96,7 +96,7 @@ void main() {
       ).thenThrow(const LocationException('Position introuvable.'));
 
       final provider = build();
-      final error = await provider.submitReport(cause: OutageCause.unplanned);
+      final error = await provider.submitReport();
 
       expect(error, 'Position introuvable.');
       verifyNever(() => service.createReport(any()));
