@@ -269,4 +269,57 @@ void main() {
       expect(provider.filteredReports.map((r) => r.id), ['b', 'c', 'a']);
     });
   });
+
+  group('filtre proximité (requête bornée par geohash)', () {
+    test('setNearOnly utilise reportsWithinRadius comme base', () async {
+      when(() => location.getCurrentLocation()).thenAnswer(
+        (_) async => const LocationResult(
+          position: GeoPosition(lat: 3.86, lng: 11.51),
+          area: GeoArea(),
+        ),
+      );
+      when(
+        () => service.reportsWithinRadius(
+          lat: any(named: 'lat'),
+          lng: any(named: 'lng'),
+          radiusMeters: any(named: 'radiusMeters'),
+        ),
+      ).thenAnswer((_) async => [_report(id: 'near1'), _report(id: 'near2')]);
+
+      final provider = build();
+      await Future<void>.delayed(Duration.zero);
+
+      final err = await provider.setNearOnly(true);
+
+      expect(err, isNull);
+      expect(provider.nearOnly, isTrue);
+      expect(provider.filteredReports.map((r) => r.id), ['near1', 'near2']);
+      verify(
+        () => service.reportsWithinRadius(
+          lat: any(named: 'lat'),
+          lng: any(named: 'lng'),
+          radiusMeters: any(named: 'radiusMeters'),
+        ),
+      ).called(1);
+    });
+
+    test('erreur de localisation -> filtre désactivé + message', () async {
+      when(
+        () => location.getCurrentLocation(),
+      ).thenThrow(const LocationException('Position introuvable.'));
+
+      final provider = build();
+      final err = await provider.setNearOnly(true);
+
+      expect(err, 'Position introuvable.');
+      expect(provider.nearOnly, isFalse);
+      verifyNever(
+        () => service.reportsWithinRadius(
+          lat: any(named: 'lat'),
+          lng: any(named: 'lng'),
+          radiusMeters: any(named: 'radiusMeters'),
+        ),
+      );
+    });
+  });
 }

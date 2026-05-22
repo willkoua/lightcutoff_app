@@ -51,3 +51,65 @@ String encodeGeohash(
   }
   return hash.toString();
 }
+
+// Tables d'adjacence (algorithme classique movable-type). Index 0 = longueur
+// paire, index 1 = longueur impaire.
+const Map<String, List<String>> _neighborChars = {
+  'n': ['p0r21436x8zb9dcf5h7kjnmqesgutwvy', 'bc01fg45238967deuvhjyznpkmstqrwx'],
+  's': ['14365h7k9dcfesgujnmqp0r2twvyx8zb', '238967debc01fg45kmstqrwxuvhjyznp'],
+  'e': ['bc01fg45238967deuvhjyznpkmstqrwx', 'p0r21436x8zb9dcf5h7kjnmqesgutwvy'],
+  'w': ['238967debc01fg45kmstqrwxuvhjyznp', '14365h7k9dcfesgujnmqp0r2twvyx8zb'],
+};
+const Map<String, List<String>> _borderChars = {
+  'n': ['prxz', 'bcfguvyz'],
+  's': ['028b', '0145hjnp'],
+  'e': ['bcfguvyz', 'prxz'],
+  'w': ['0145hjnp', '028b'],
+};
+
+/// Cellule adjacente à [hash] dans la direction [dir] ('n','s','e','w').
+String _adjacent(String hash, String dir) {
+  final last = hash[hash.length - 1];
+  var parent = hash.substring(0, hash.length - 1);
+  final type = hash.length % 2; // 0 = paire, 1 = impaire
+  if (_borderChars[dir]![type].contains(last) && parent.isNotEmpty) {
+    parent = _adjacent(parent, dir);
+  }
+  return parent + _base32[_neighborChars[dir]![type].indexOf(last)];
+}
+
+/// Les 8 cellules voisines de [hash] (N, S, E, W puis diagonales).
+List<String> geohashNeighbors(String hash) {
+  final n = _adjacent(hash, 'n');
+  final s = _adjacent(hash, 's');
+  return [
+    n,
+    s,
+    _adjacent(hash, 'e'),
+    _adjacent(hash, 'w'),
+    _adjacent(n, 'e'),
+    _adjacent(n, 'w'),
+    _adjacent(s, 'e'),
+    _adjacent(s, 'w'),
+  ];
+}
+
+/// Précision geohash dont la cellule contient un rayon de [radiusMeters]
+/// (sa plus petite dimension ≥ rayon → centre + voisines couvrent le disque).
+int geohashPrecisionForRadius(double radiusMeters) {
+  if (radiusMeters <= 153) return 7;
+  if (radiusMeters <= 610) return 6;
+  if (radiusMeters <= 4890) return 5;
+  if (radiusMeters <= 19500) return 4;
+  if (radiusMeters <= 156000) return 3;
+  if (radiusMeters <= 625000) return 2;
+  return 1;
+}
+
+/// Préfixes geohash couvrant le disque (centre + 8 voisines), à utiliser comme
+/// bornes de requête Firestore puis à affiner par distance exacte.
+List<String> geohashesCovering(double lat, double lng, double radiusMeters) {
+  final precision = geohashPrecisionForRadius(radiusMeters);
+  final center = encodeGeohash(lat, lng, precision: precision);
+  return [center, ...geohashNeighbors(center)];
+}

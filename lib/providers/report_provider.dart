@@ -107,8 +107,12 @@ class ReportProvider extends ChangeNotifier {
   OutageCause? _causeFilter;
   bool _onlyMine = false;
   bool _nearOnly = false;
-  GeoPosition? _nearPosition;
   ReportSort _sort = ReportSort.recent;
+
+  /// Résultats de la requête bornée par geohash (filtre « à proximité »).
+  /// `null` quand le filtre est inactif.
+  List<Report>? _nearResults;
+  bool _nearLoading = false;
 
   List<Report> get reports => _reports;
   bool get loading => _loading;
@@ -122,6 +126,7 @@ class ReportProvider extends ChangeNotifier {
   OutageCause? get causeFilter => _causeFilter;
   bool get onlyMine => _onlyMine;
   bool get nearOnly => _nearOnly;
+  bool get nearLoading => _nearLoading;
   ReportSort get sort => _sort;
 
   bool get hasActiveFilters =>
@@ -132,10 +137,14 @@ class ReportProvider extends ChangeNotifier {
       _nearOnly;
 
   /// Liste filtrée + triée selon l'état courant des filtres.
+  ///
+  /// En mode « à proximité », la base est le résultat de la requête bornée par
+  /// geohash (déjà filtrée par distance) ; sinon, le flux temps réel paginé.
   List<Report> get filteredReports {
     final q = _query.trim().toLowerCase();
+    final base = _nearOnly ? (_nearResults ?? const <Report>[]) : _reports;
     final list =
-        _reports.where((r) {
+        base.where((r) {
           if (_statusFilter != null && r.status != _statusFilter) return false;
           if (_causeFilter != null && r.cause != _causeFilter) return false;
           if (_onlyMine && r.userId != _uid) return false;
@@ -143,14 +152,6 @@ class ReportProvider extends ChangeNotifier {
             final haystack =
                 '${r.location.label} ${r.description ?? ''}'.toLowerCase();
             if (!haystack.contains(q)) return false;
-          }
-          if (_nearOnly && _nearPosition != null) {
-            final d = _distance.as(
-              LengthUnit.Meter,
-              LatLng(_nearPosition!.lat, _nearPosition!.lng),
-              LatLng(r.position.lat, r.position.lng),
-            );
-            if (d > AppConstants.nearbyFilterRadiusMeters) return false;
           }
           return true;
         }).toList();
@@ -199,19 +200,33 @@ class ReportProvider extends ChangeNotifier {
   Future<String?> setNearOnly(bool value) async {
     if (!value) {
       _nearOnly = false;
-      _nearPosition = null;
+      _nearResults = null;
       notifyListeners();
       return null;
     }
     try {
       final loc = await _location.getCurrentLocation();
-      _nearPosition = loc.position;
       _nearOnly = true;
+      _nearLoading = true;
+      notifyListeners();
+      // Requête bornée par geohash (centre + voisines), affinée par distance.
+      _nearResults = await _service.reportsWithinRadius(
+        lat: loc.position.lat,
+        lng: loc.position.lng,
+        radiusMeters: AppConstants.nearbyFilterRadiusMeters,
+      );
+      _nearLoading = false;
       notifyListeners();
       return null;
     } on LocationException catch (e) {
+      _nearOnly = false;
+      _nearLoading = false;
+      notifyListeners();
       return e.message;
     } catch (_) {
+      _nearOnly = false;
+      _nearLoading = false;
+      notifyListeners();
       return 'Localisation impossible.';
     }
   }
@@ -222,7 +237,7 @@ class ReportProvider extends ChangeNotifier {
     _causeFilter = null;
     _onlyMine = false;
     _nearOnly = false;
-    _nearPosition = null;
+    _nearResults = null;
     _sort = ReportSort.recent;
     notifyListeners();
   }
@@ -232,9 +247,13 @@ class ReportProvider extends ChangeNotifier {
 
   bool isAuthor(Report report) => report.userId == _uid;
 
-  /// Retourne la coupure correspondante dans la liste courante, sinon null.
+  /// Retourne la coupure correspondante dans la liste courante (flux temps réel
+  /// ou résultats de proximité), sinon null.
   Report? reportById(String id) {
     for (final r in _reports) {
+      if (r.id == id) return r;
+    }
+    for (final r in _nearResults ?? const <Report>[]) {
       if (r.id == id) return r;
     }
     return null;

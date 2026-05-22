@@ -33,4 +33,43 @@ void main() {
       expect(yaounde[0], isNot(paris[0]));
     });
   });
+
+  group('geohashNeighbors', () {
+    test('renvoie 8 voisines distinctes, de même longueur, ≠ centre', () {
+      const center = 's28jyn';
+      final ns = geohashNeighbors(center);
+      expect(ns, hasLength(8));
+      expect(ns.toSet(), hasLength(8)); // toutes distinctes
+      expect(ns, everyElement(hasLength(center.length)));
+      expect(ns, isNot(contains(center)));
+    });
+
+    test('aller-retour : ouest(est(x)) == x (et n/s)', () {
+      for (final h in ['s28jyn', 'u4pruyd', 'gbsuv']) {
+        final e = geohashNeighbors(h)[2]; // est
+        final w = geohashNeighbors(h)[3]; // ouest
+        expect(geohashNeighbors(e)[3], h); // ouest de l'est = centre
+        expect(geohashNeighbors(w)[2], h); // est de l'ouest = centre
+      }
+    });
+  });
+
+  group('geohashesCovering', () {
+    test('centre + 8 voisines = 9 préfixes uniques', () {
+      final cover = geohashesCovering(3.861, 11.515, 2000);
+      expect(cover, hasLength(9));
+      expect(cover.toSet(), hasLength(9));
+    });
+
+    test('précision adaptée au rayon', () {
+      expect(geohashPrecisionForRadius(2000), 5); // 2 km -> cellule ~4,9 km
+      expect(geohashPrecisionForRadius(5000), 4); // 5 km -> cellule ~19,5 km
+      expect(geohashesCovering(3.861, 11.515, 2000).first.length, 5);
+    });
+
+    test('le centre couvre bien la position demandée', () {
+      final cover = geohashesCovering(3.861, 11.515, 2000);
+      expect(cover.first, encodeGeohash(3.861, 11.515, precision: 5));
+    });
+  });
 }

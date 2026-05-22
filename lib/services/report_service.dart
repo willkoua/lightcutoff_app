@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../models/confirmation.dart';
 import '../models/enums.dart';
 import '../models/report.dart';
 import '../repositories/report_repository.dart';
+import '../utils/geohash.dart';
 
 /// Implémentation Firestore de [ReportRepository].
 class ReportService implements ReportRepository {
@@ -23,6 +25,41 @@ class ReportService implements ReportRepository {
         .limit(limit)
         .snapshots()
         .map((snap) => snap.docs.map(Report.fromDoc).toList());
+  }
+
+  @override
+  Future<List<Report>> reportsWithinRadius({
+    required double lat,
+    required double lng,
+    required double radiusMeters,
+  }) async {
+    // 1) Pré-sélection serveur : une requête de plage par cellule couvrante.
+    final prefixes = geohashesCovering(lat, lng, radiusMeters);
+    final found = <String, Report>{};
+    await Future.wait(
+      prefixes.map((p) async {
+        final snap =
+            await _reports
+                .where('geohash', isGreaterThanOrEqualTo: p)
+                .where('geohash', isLessThanOrEqualTo: '$p~')
+                .get();
+        for (final d in snap.docs) {
+          found[d.id] = Report.fromDoc(d);
+        }
+      }),
+    );
+
+    // 2) Affinage client : distance exacte (cellule = carré, rayon = cercle).
+    const distance = Distance();
+    final center = LatLng(lat, lng);
+    return found.values.where((r) {
+      final d = distance.as(
+        LengthUnit.Meter,
+        center,
+        LatLng(r.position.lat, r.position.lng),
+      );
+      return d <= radiusMeters;
+    }).toList();
   }
 
   @override
