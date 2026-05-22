@@ -2,11 +2,12 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [master, main]
   pull_request:
 
 jobs:
   build:
+    name: Flutter (format, analyze, test, build)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,3 +25,32 @@ jobs:
 
       # Build APK (debug) pour valider la compilation Android
       - run: flutter build apk --debug
+
+  rules-tests:
+    name: Règles Firestore/Storage (émulateurs)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # L'émulateur Firestore nécessite une JVM.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - run: npm install -g firebase-tools
+      - run: npm ci
+        working-directory: rules_tests
+
+      # Démarre des émulateurs éphémères (config dédiée, ports isolés) et
+      # exécute la suite de tests de règles.
+      - name: Run rules tests
+        run: >
+          firebase emulators:exec
+          --config firebase.rules-test.json
+          --project demo-njuka
+          "npm --prefix rules_tests test"
