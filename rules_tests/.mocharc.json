@@ -1,0 +1,5 @@
+{
+  "require": "test/root.js",
+  "spec": "test/**/*.spec.js",
+  "timeout": 20000
+}
