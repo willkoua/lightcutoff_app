@@ -54,3 +54,6 @@ pubsub-debug.log
 
 # Test coverage artifacts
 /coverage/
+
+# Handoff context — local only, not versioned (ne doit pas arriver sur GitHub)
+/CONTEXT.md

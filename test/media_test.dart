@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
+import 'package:lightcutoff_app/config/app_constants.dart';
 import 'package:lightcutoff_app/utils/media.dart';
 
 Uint8List _jpg(int w, int h) =>
@@ -29,7 +30,7 @@ void main() {
     });
 
     test('GIF trop volumineux rejeté', () async {
-      final bytes = Uint8List(kMaxMediaBytes + 1);
+      final bytes = Uint8List(AppConstants.maxMediaBytes + 1);
       final r = await prepareMedia(bytes, filename: 'huge.gif');
       expect(r.media, isNull);
       expect(r.error, MediaError.tooLarge);
@@ -55,14 +56,14 @@ void main() {
     test('paysage redimensionné sur la largeur', () {
       final out = resizeStaticImage(_jpg(2000, 1000), png: false)!;
       final decoded = img.decodeImage(out)!;
-      expect(decoded.width, kMaxMediaDimension);
+      expect(decoded.width, AppConstants.maxMediaDimension);
       expect(decoded.height, 640);
     });
 
     test('portrait redimensionné sur la hauteur', () {
       final out = resizeStaticImage(_jpg(1000, 2000), png: false)!;
       final decoded = img.decodeImage(out)!;
-      expect(decoded.height, kMaxMediaDimension);
+      expect(decoded.height, AppConstants.maxMediaDimension);
       expect(decoded.width, 640);
     });
 

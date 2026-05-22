@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../config/app_constants.dart';
 import '../models/confirmation.dart';
 import '../models/enums.dart';
 import '../models/geo.dart';
@@ -83,9 +84,6 @@ class ReportProvider extends ChangeNotifier {
   GeoPosition? _nearPosition;
   ReportSort _sort = ReportSort.recent;
 
-  /// Rayon (m) du filtre « à proximité ».
-  static const double nearFilterRadiusMeters = 5000;
-
   List<Report> get reports => _reports;
   bool get loading => _loading;
   String? get error => _error;
@@ -124,7 +122,7 @@ class ReportProvider extends ChangeNotifier {
               LatLng(_nearPosition!.lat, _nearPosition!.lng),
               LatLng(r.position.lat, r.position.lng),
             );
-            if (d > nearFilterRadiusMeters) return false;
+            if (d > AppConstants.nearbyFilterRadiusMeters) return false;
           }
           return true;
         }).toList();
@@ -252,15 +250,12 @@ class ReportProvider extends ChangeNotifier {
     }
   }
 
-  /// Rayon (m) en-deçà duquel deux coupures sont considérées identiques.
-  static const double duplicateRadiusMeters = 500;
-
   static const Distance _distance = Distance();
 
   /// Coupure « en cours » la plus proche de [pos] dans le rayon, sinon null.
   Report? findNearbyOngoing(
     GeoPosition pos, {
-    double radiusMeters = duplicateRadiusMeters,
+    double radiusMeters = AppConstants.duplicateRadiusMeters,
   }) {
     final origin = LatLng(pos.lat, pos.lng);
     Report? best;

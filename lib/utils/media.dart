@@ -3,13 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 
-/// Côté le plus long (px) au-delà duquel une image fixe est redimensionnée.
-const int kMaxMediaDimension = 1280;
-
-/// Taille maximale d'un média uploadé (doit rester ≤ la règle Storage).
-const int kMaxMediaBytes = 8 * 1024 * 1024;
-
-const int _jpegQuality = 85;
+import '../config/app_constants.dart';
 
 enum _MediaKind { gif, png, jpeg }
 
@@ -45,7 +39,8 @@ _MediaKind? _detectKind(String filename, String? mimeType) {
 }
 
 /// Valide le type, redimensionne les images fixes dépassant
-/// [kMaxMediaDimension] et rejette tout média dépassant [kMaxMediaBytes].
+/// [AppConstants.maxMediaDimension] et rejette tout média dépassant
+/// [AppConstants.maxMediaBytes].
 ///
 /// Les GIF sont transmis tels quels pour préserver l'animation (seule leur
 /// taille est plafonnée).
@@ -58,7 +53,7 @@ Future<MediaOutcome> prepareMedia(
   if (kind == null) return const MediaOutcome.failure(MediaError.unsupportedType);
 
   if (kind == _MediaKind.gif) {
-    if (bytes.length > kMaxMediaBytes) {
+    if (bytes.length > AppConstants.maxMediaBytes) {
       return const MediaOutcome.failure(MediaError.tooLarge);
     }
     return MediaOutcome.success(PreparedMedia(bytes, 'image/gif'));
@@ -69,7 +64,7 @@ Future<MediaOutcome> prepareMedia(
   if (processed == null) {
     return const MediaOutcome.failure(MediaError.invalidImage);
   }
-  if (processed.length > kMaxMediaBytes) {
+  if (processed.length > AppConstants.maxMediaBytes) {
     return const MediaOutcome.failure(MediaError.tooLarge);
   }
   return MediaOutcome.success(
@@ -87,7 +82,7 @@ Uint8List? _resizeStatic(_ResizeRequest req) =>
     resizeStaticImage(req.bytes, png: req.png);
 
 /// Décode une image fixe, la redimensionne si son côté le plus long dépasse
-/// [kMaxMediaDimension] et la ré-encode. Renvoie les octets d'origine si elle
+/// [AppConstants.maxMediaDimension] et la ré-encode. Renvoie les octets si elle
 /// tient déjà dans la limite, ou `null` si le décodage échoue.
 ///
 /// Synchrone et sans dépendance Flutter : exécutable dans un isolate.
@@ -101,12 +96,12 @@ Uint8List? resizeStaticImage(Uint8List bytes, {required bool png}) {
   }
   if (decoded == null) return null;
   final longest = math.max(decoded.width, decoded.height);
-  if (longest <= kMaxMediaDimension) return bytes;
+  if (longest <= AppConstants.maxMediaDimension) return bytes;
   final resized =
       decoded.width >= decoded.height
-          ? img.copyResize(decoded, width: kMaxMediaDimension)
-          : img.copyResize(decoded, height: kMaxMediaDimension);
+          ? img.copyResize(decoded, width: AppConstants.maxMediaDimension)
+          : img.copyResize(decoded, height: AppConstants.maxMediaDimension);
   return png
       ? img.encodePng(resized)
-      : img.encodeJpg(resized, quality: _jpegQuality);
+      : img.encodeJpg(resized, quality: AppConstants.mediaJpegQuality);
 }

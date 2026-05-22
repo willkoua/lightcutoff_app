@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
+import '../config/app_constants.dart';
 import '../models/enums.dart';
 import '../models/report.dart';
 import '../providers/report_provider.dart';
@@ -251,7 +252,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
               TextField(
                 controller: _description,
                 maxLines: 3,
-                maxLength: 500,
+                maxLength: AppConstants.maxDescriptionLength,
                 decoration: const InputDecoration(
                   hintText: 'Ex. tout le quartier est touché depuis ce matin.',
                 ),
