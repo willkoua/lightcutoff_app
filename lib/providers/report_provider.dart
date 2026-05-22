@@ -48,10 +48,34 @@ class ReportProvider extends ChangeNotifier {
        _location = location ?? LocationService(),
        _storage = storage ?? StorageService(),
        _auth = auth ?? FirebaseAuth.instance {
-    _sub = _service.watchReports().listen(
+    _subscribe();
+  }
+
+  final ReportRepository _service;
+  final LocationRepository _location;
+  final StorageRepository _storage;
+  final FirebaseAuth _auth;
+  late StreamSubscription<List<Report>> _sub;
+
+  /// Taille courante de la fenêtre temps réel (grandit avec [loadMore]).
+  int _limit = AppConstants.reportsPageSize;
+
+  List<Report> _reports = [];
+  bool _loading = true;
+  bool _loadingMore = false;
+  bool _hasMore = true;
+  String? _error;
+  bool _submitting = false;
+
+  /// Écoute les coupures dans la limite courante. Re-souscrit à chaque
+  /// [loadMore] avec une fenêtre élargie (on conserve le temps réel).
+  void _subscribe() {
+    _sub = _service.watchReports(limit: _limit).listen(
       (data) {
         _reports = data;
+        _hasMore = data.length >= _limit;
         _loading = false;
+        _loadingMore = false;
         _error = null;
         notifyListeners();
       },
@@ -59,21 +83,22 @@ class ReportProvider extends ChangeNotifier {
         CrashReporter.recordError(e, st, reason: 'watchReports');
         _error = 'Impossible de charger les coupures.';
         _loading = false;
+        _loadingMore = false;
         notifyListeners();
       },
     );
   }
 
-  final ReportRepository _service;
-  final LocationRepository _location;
-  final StorageRepository _storage;
-  final FirebaseAuth _auth;
-  late final StreamSubscription<List<Report>> _sub;
-
-  List<Report> _reports = [];
-  bool _loading = true;
-  String? _error;
-  bool _submitting = false;
+  /// Charge un lot supplémentaire (scroll infini). Sans effet si le dernier
+  /// lot était incomplet (plus rien à charger) ou si un chargement est en cours.
+  void loadMore() {
+    if (_loading || _loadingMore || !_hasMore) return;
+    _loadingMore = true;
+    _limit += AppConstants.reportsPageSize;
+    notifyListeners();
+    _sub.cancel();
+    _subscribe();
+  }
 
   // --- État des filtres / recherche ---
   String _query = '';
@@ -86,6 +111,8 @@ class ReportProvider extends ChangeNotifier {
 
   List<Report> get reports => _reports;
   bool get loading => _loading;
+  bool get loadingMore => _loadingMore;
+  bool get hasMore => _hasMore;
   String? get error => _error;
   bool get submitting => _submitting;
 

@@ -33,6 +33,11 @@ class AppConstants {
   /// Longueur maximale de la description d'un signalement (caractères).
   static const int maxDescriptionLength = 500;
 
+  // --- Liste / pagination ---
+
+  /// Nombre de coupures chargées par lot (scroll infini de la liste).
+  static const int reportsPageSize = 20;
+
   // --- Notifications push ---
 
   /// Rayon (m) d'alerte : un device est notifié si la coupure tombe dedans.

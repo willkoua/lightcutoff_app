@@ -73,8 +73,23 @@ class HomeScreen extends StatelessWidget {
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.only(top: 4, bottom: 88),
-            itemCount: list.length,
+            // +1 pour le pied de liste (indicateur « charger plus »).
+            itemCount: list.length + 1,
             itemBuilder: (context, i) {
+              if (i == list.length) {
+                // Pagination désactivée tant qu'un filtre est actif : le
+                // filtrage en mémoire rendrait le « charger plus » ambigu.
+                final canLoadMore = reports.hasMore && !reports.hasActiveFilters;
+                if (!canLoadMore) return const SizedBox(height: 8);
+                // Déclenche le chargement quand le pied entre à l'écran.
+                WidgetsBinding.instance.addPostFrameCallback(
+                  (_) => reports.loadMore(),
+                );
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
               final report = list[i];
               return ReportCard(
                 report: report,

@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lightcutoff_app/config/app_constants.dart';
 import 'package:lightcutoff_app/models/enums.dart';
 import 'package:lightcutoff_app/models/geo.dart';
 import 'package:lightcutoff_app/models/report.dart';
@@ -50,7 +51,7 @@ void main() {
     user = MockUser();
 
     when(
-      () => service.watchReports(),
+      () => service.watchReports(limit: any(named: 'limit')),
     ).thenAnswer((_) => Stream<List<Report>>.value(const []));
     when(() => auth.currentUser).thenReturn(user);
     when(() => user.uid).thenReturn('u1');
@@ -111,7 +112,7 @@ void main() {
   });
 
   test('confirm refuse sa propre coupure', () async {
-    when(() => service.watchReports()).thenAnswer(
+    when(() => service.watchReports(limit: any(named: 'limit'))).thenAnswer(
       (_) => Stream<List<Report>>.value([_report(id: 'mine', userId: 'u1')]),
     );
     final provider = build();
@@ -123,11 +124,58 @@ void main() {
     verifyNever(() => service.confirmReport(any(), any()));
   });
 
+  group('pagination', () {
+    test('hasMore vrai quand un lot plein est reçu', () async {
+      final fullPage = List.generate(
+        AppConstants.reportsPageSize,
+        (i) => _report(id: 'r$i'),
+      );
+      when(
+        () => service.watchReports(limit: any(named: 'limit')),
+      ).thenAnswer((_) => Stream<List<Report>>.value(fullPage));
+      final provider = build();
+      await Future<void>.delayed(Duration.zero);
+      expect(provider.hasMore, isTrue);
+    });
+
+    test('lot incomplet -> hasMore faux', () async {
+      when(() => service.watchReports(limit: any(named: 'limit'))).thenAnswer(
+        (_) => Stream<List<Report>>.value([_report(id: 'a')]),
+      );
+      final provider = build();
+      await Future<void>.delayed(Duration.zero);
+      expect(provider.hasMore, isFalse);
+      provider.loadMore(); // sans effet (rien à charger)
+      verify(
+        () => service.watchReports(limit: any(named: 'limit')),
+      ).called(1);
+    });
+
+    test('loadMore re-souscrit avec une fenêtre élargie', () async {
+      final fullPage = List.generate(
+        AppConstants.reportsPageSize,
+        (i) => _report(id: 'r$i'),
+      );
+      when(
+        () => service.watchReports(limit: any(named: 'limit')),
+      ).thenAnswer((_) => Stream<List<Report>>.value(fullPage));
+      final provider = build();
+      await Future<void>.delayed(Duration.zero);
+
+      provider.loadMore();
+      await Future<void>.delayed(Duration.zero);
+
+      verify(
+        () => service.watchReports(limit: any(named: 'limit')),
+      ).called(2); // initial + loadMore
+    });
+  });
+
   group('findNearbyOngoing', () {
     // Yaoundé : 3.848, 11.502
     Future<ReportProvider> buildWith(List<Report> reports) async {
       when(
-        () => service.watchReports(),
+        () => service.watchReports(limit: any(named: 'limit')),
       ).thenAnswer((_) => Stream<List<Report>>.value(reports));
       final provider = build();
       await Future<void>.delayed(Duration.zero); // laisse le stream émettre
@@ -173,7 +221,7 @@ void main() {
   group('filteredReports', () {
     Future<ReportProvider> buildWith(List<Report> reports) async {
       when(
-        () => service.watchReports(),
+        () => service.watchReports(limit: any(named: 'limit')),
       ).thenAnswer((_) => Stream<List<Report>>.value(reports));
       final provider = build();
       await Future<void>.delayed(Duration.zero);
