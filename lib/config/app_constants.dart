@@ -16,6 +16,11 @@ class AppConstants {
   /// Rayon du filtre « à proximité » appliqué à la liste et à la carte.
   static const double nearbyFilterRadiusMeters = 5000;
 
+  /// Intervalle de rafraîchissement auto des coupures « à proximité ».
+  /// (Cette requête est ponctuelle, contrairement au flux principal qui est
+  /// déjà temps réel.)
+  static const Duration nearRefreshInterval = Duration(seconds: 60);
+
   // --- Médias des signalements ---
 
   /// Côté le plus long (px) au-delà duquel une image fixe est redimensionnée.

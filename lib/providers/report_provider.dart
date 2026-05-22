@@ -139,6 +139,11 @@ class ReportProvider extends ChangeNotifier {
   List<Report>? _nearResults;
   bool _nearLoading = false;
 
+  /// Centre courant de la recherche de proximité (réutilisé par le
+  /// rafraîchissement périodique) + son minuteur.
+  GeoPosition? _nearCenter;
+  Timer? _nearTimer;
+
   List<Report> get reports => _reports;
   bool get loading => _loading;
   bool get loadingMore => _loadingMore;
@@ -226,35 +231,66 @@ class ReportProvider extends ChangeNotifier {
   /// si la position n'a pas pu être obtenue.
   Future<String?> setNearOnly(bool value) async {
     if (!value) {
+      _nearTimer?.cancel();
       _nearOnly = false;
       _nearResults = null;
+      _nearCenter = null;
       notifyListeners();
       return null;
     }
     try {
       final loc = await _location.getCurrentLocation();
+      _nearCenter = loc.position;
       _nearOnly = true;
       _nearLoading = true;
       notifyListeners();
       // Requête bornée par geohash (centre + voisines), affinée par distance.
-      _nearResults = await _service.reportsWithinRadius(
-        lat: loc.position.lat,
-        lng: loc.position.lng,
-        radiusMeters: AppConstants.nearbyFilterRadiusMeters,
-      );
+      _nearResults = await _fetchNear();
       _nearLoading = false;
       notifyListeners();
+      _startNearAutoRefresh();
       return null;
     } on LocationException catch (e) {
-      _nearOnly = false;
-      _nearLoading = false;
-      notifyListeners();
+      _resetNear();
       return e.message;
     } catch (_) {
-      _nearOnly = false;
-      _nearLoading = false;
-      notifyListeners();
+      _resetNear();
       return 'Localisation impossible.';
+    }
+  }
+
+  void _resetNear() {
+    _nearTimer?.cancel();
+    _nearOnly = false;
+    _nearLoading = false;
+    _nearCenter = null;
+    notifyListeners();
+  }
+
+  Future<List<Report>> _fetchNear() => _service.reportsWithinRadius(
+    lat: _nearCenter!.lat,
+    lng: _nearCenter!.lng,
+    radiusMeters: AppConstants.nearbyFilterRadiusMeters,
+  );
+
+  /// Démarre le rafraîchissement périodique des résultats de proximité
+  /// (la requête n'étant pas temps réel).
+  void _startNearAutoRefresh() {
+    _nearTimer?.cancel();
+    _nearTimer = Timer.periodic(
+      AppConstants.nearRefreshInterval,
+      (_) => _refreshNear(),
+    );
+  }
+
+  /// Recharge silencieusement les coupures à proximité (sans spinner).
+  Future<void> _refreshNear() async {
+    if (!_nearOnly || _nearCenter == null) return;
+    try {
+      _nearResults = await _fetchNear();
+      notifyListeners();
+    } catch (_) {
+      // On conserve les résultats précédents en cas d'échec ponctuel.
     }
   }
 
@@ -470,6 +506,7 @@ class ReportProvider extends ChangeNotifier {
   @override
   void dispose() {
     _sub.cancel();
+    _nearTimer?.cancel();
     super.dispose();
   }
 }
