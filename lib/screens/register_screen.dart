@@ -21,9 +21,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _username = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
+  final _confirmPassword = TextEditingController();
   String _phoneNumber = '';
   DateTime? _birthDate;
   bool _obscure = true;
+  bool _checkingUsername = false;
 
   @override
   void dispose() {
@@ -32,6 +34,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _username.dispose();
     _email.dispose();
     _password.dispose();
+    _confirmPassword.dispose();
     super.dispose();
   }
 
@@ -56,6 +59,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
     final auth = context.read<AuthProvider>();
+    // Vérifie l'unicité du pseudo avant de créer le compte.
+    setState(() => _checkingUsername = true);
+    final available = await auth.isUsernameAvailable(_username.text);
+    if (!mounted) return;
+    setState(() => _checkingUsername = false);
+    if (!available) {
+      _snack('Ce pseudo est déjà pris.');
+      return;
+    }
     final ok = await auth.register(
       firstName: _firstName.text,
       lastName: _lastName.text,
@@ -167,8 +179,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 TextFormField(
                   controller: _password,
                   obscureText: _obscure,
-                  textInputAction: TextInputAction.done,
-                  onFieldSubmitted: (_) => _submit(),
+                  textInputAction: TextInputAction.next,
                   decoration: InputDecoration(
                     labelText: 'Mot de passe',
                     prefixIcon: const Icon(Icons.lock_outline),
@@ -183,11 +194,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   validator: Validators.password,
                 ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _confirmPassword,
+                  obscureText: _obscure,
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) => _submit(),
+                  decoration: const InputDecoration(
+                    labelText: 'Confirmer le mot de passe',
+                    prefixIcon: Icon(Icons.lock_outline),
+                  ),
+                  validator:
+                      (v) =>
+                          v != _password.text
+                              ? 'Les mots de passe diffèrent'
+                              : null,
+                ),
                 const SizedBox(height: 24),
                 ElevatedButton(
-                  onPressed: busy ? null : _submit,
+                  onPressed: (busy || _checkingUsername) ? null : _submit,
                   child:
-                      busy
+                      (busy || _checkingUsername)
                           ? const SizedBox(
                             height: 22,
                             width: 22,
