@@ -65,5 +65,18 @@ service cloud.firestore {
         allow delete: if isOwner(userId);
       }
     }
+
+    // Appareils pour notifications push (id = token FCM).
+    // Un utilisateur ne gère que ses propres appareils. La Cloud Function
+    // d'envoi utilise l'Admin SDK (qui contourne ces règles) pour lire tous
+    // les devices et purger les tokens périmés.
+    match /devices/{token} {
+      allow read: if isAdmin() || isOwner(resource.data.userId);
+      allow create: if isSignedIn()
+                    && request.resource.data.userId == request.auth.uid;
+      allow update: if isOwner(resource.data.userId)
+                    && request.resource.data.userId == request.auth.uid;
+      allow delete: if isOwner(resource.data.userId);
+    }
   }
 }

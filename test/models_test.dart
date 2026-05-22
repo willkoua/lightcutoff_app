@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lightcutoff_app/models/device.dart';
 import 'package:lightcutoff_app/models/enums.dart';
 import 'package:lightcutoff_app/models/geo.dart';
 import 'package:lightcutoff_app/models/report.dart';
@@ -91,6 +92,25 @@ void main() {
       expect(map['description'], 'test');
       expect(map['confirmationCount'], 0);
       expect(map['resolvedAt'], isNull);
+    });
+  });
+
+  group('Device.toWriteMap', () {
+    test('sérialise les champs et n\'inclut pas le token (= id du doc)', () {
+      const device = Device(
+        token: 'tok-123',
+        userId: 'u1',
+        platform: 'android',
+        homeLocation: GeoArea(city: 'Yaoundé'),
+        geohash: 's2x9c',
+      );
+      final map = device.toWriteMap();
+      expect(map['userId'], 'u1');
+      expect(map['platform'], 'android');
+      expect((map['homeLocation'] as Map)['city'], 'Yaoundé');
+      expect(map['geohash'], 's2x9c');
+      expect(map['fcmEnabled'], true);
+      expect(map.containsKey('token'), isFalse);
     });
   });
 }

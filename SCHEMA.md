@@ -68,14 +68,21 @@ autorisent un non-auteur à modifier uniquement `confirmationCount` (+ `updatedA
 
 ---
 
-## Collection `devices/{id}` 🔵 (post-MVP — notifications push)
+## Collection `devices/{token}` 🟡 (notifications push — en cours)
+
+**L'id du document est le token FCM** (un appareil = un token = un doc → upsert
+idempotent). Le token n'est donc pas dupliqué en champ.
 
 | Champ | Type | Description |
 |-------|------|-------------|
 | `userId` | string | propriétaire |
-| `messagingToken` | string | token FCM |
 | `platform` | string enum | `android` \| `ios` |
+| `homeLocation` | map `GeoArea` | zone de résidence (ciblage proximité v1) |
+| `geohash` | string \| null | geohash de la zone (ciblage par rayon v2) |
+| `fcmEnabled` | bool | l'utilisateur peut couper les alertes sans se désinscrire |
 | `updatedAt` | timestamp | nettoyage des tokens périmés |
+
+Modèle Dart : `lib/models/device.dart`
 
 ---
 
@@ -94,6 +101,7 @@ autorisent un non-auteur à modifier uniquement `confirmationCount` (+ `updatedA
 - **users** : lecture si connecté ; un utilisateur ne crée/modifie que son propre doc ; pas de suppression.
 - **reports** : lecture si connecté ; création réservée à l'auteur ; mise à jour/suppression par l'auteur, sauf `confirmationCount`/`updatedAt` modifiables par tout utilisateur connecté (confirmations).
 - **reports/{id}/confirmations** : lecture si connecté ; création/suppression uniquement par l'utilisateur lui-même (`uid == documentId`).
+- **devices** : un utilisateur ne lit/écrit/supprime que ses propres appareils (`userId == uid`) ; la Cloud Function d'envoi utilise l'Admin SDK (contourne les règles) pour lire tous les devices et purger les tokens périmés.
 
 ---
 

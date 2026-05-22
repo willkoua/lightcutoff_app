@@ -32,4 +32,12 @@ class AppConstants {
 
   /// Longueur maximale de la description d'un signalement (caractères).
   static const int maxDescriptionLength = 500;
+
+  // --- Notifications push ---
+
+  /// Rayon (m) d'alerte : un device est notifié si la coupure tombe dedans.
+  static const double notifyRadiusMeters = 2000;
+
+  /// Précision du geohash pour le ciblage de proximité (6 ≈ cellule ~1,2 km).
+  static const int geohashPrecision = 6;
 }
