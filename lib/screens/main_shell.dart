@@ -17,13 +17,16 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _index = 0;
 
-  // Conservés vivants entre les onglets (état carte, scroll liste…).
+  // Seul l'onglet actif est monté (pas d'IndexedStack) : la carte
+  // (flutter_map + cluster) ne se rend pas correctement si elle est construite
+  // hors-écran, donc on la recrée à chaque affichage. L'état métier (coupures,
+  // filtres, pagination) vit dans ReportProvider, au-dessus du shell.
   static const _tabs = [HomeScreen(), MapScreen(), ProfileScreen()];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _index, children: _tabs),
+      body: _tabs[_index],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _index,
         onTap: (i) => setState(() => _index = i),
