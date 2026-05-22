@@ -30,9 +30,10 @@ jobs:
   ios:
     name: iOS (build sans signature)
     runs-on: macos-latest
-    # macOS = minutes coûteuses : on évite les push de routine.
-    # Tourne sur les pull requests et sur déclenchement manuel.
-    if: github.event_name != 'push'
+    # Désactivé automatiquement (macOS = minutes coûteuses).
+    # Ne tourne QUE sur déclenchement manuel (Actions > CI > Run workflow).
+    # Pour le réactiver sur les PR : if: github.event_name != 'push'
+    if: github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v4
 
