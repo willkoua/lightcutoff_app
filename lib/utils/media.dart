@@ -50,7 +50,9 @@ Future<MediaOutcome> prepareMedia(
   String? mimeType,
 }) async {
   final kind = _detectKind(filename, mimeType);
-  if (kind == null) return const MediaOutcome.failure(MediaError.unsupportedType);
+  if (kind == null) {
+    return const MediaOutcome.failure(MediaError.unsupportedType);
+  }
 
   if (kind == _MediaKind.gif) {
     if (bytes.length > AppConstants.maxMediaBytes) {

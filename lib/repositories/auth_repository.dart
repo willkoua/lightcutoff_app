@@ -17,22 +17,46 @@ abstract class AuthRepository {
 
   Future<AppUser?> fetchProfile(String uid);
 
-  Future<void> signIn({required String email, required String password});
+  /// `true` si le pseudo (normalisé en minuscules) n'est pas déjà pris.
+  Future<bool> isUsernameAvailable(String username);
+
+  /// Connexion par **pseudo OU email** + mot de passe.
+  Future<void> signInWithIdentifier({
+    required String identifier,
+    required String password,
+  });
 
   Future<void> register({
+    required String firstName,
+    required String lastName,
+    required String username,
     required String email,
     required String password,
-    required String displayName,
     String? phoneNumber,
+    DateTime? birthDate,
   });
 
   Future<void> sendEmailVerification();
   Future<void> reloadUser();
 
   Future<void> updateProfile({
-    required String displayName,
+    required String firstName,
+    required String lastName,
     String? phoneNumber,
+    DateTime? birthDate,
     GeoArea? homeLocation,
+  });
+
+  /// Change l'email (ré-authentification + email de confirmation à la nouvelle
+  /// adresse ; l'email effectif change après que l'utilisateur clique le lien).
+  Future<void> changeEmail({
+    required String newEmail,
+    required String currentPassword,
+  });
+
+  Future<void> changePassword({
+    required String newPassword,
+    required String currentPassword,
   });
 
   Future<void> signOut();

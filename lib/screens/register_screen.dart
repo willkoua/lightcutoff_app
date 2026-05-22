@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
 import '../theme/app_colors.dart';
+import '../utils/formatting.dart';
 import '../utils/validators.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -15,38 +16,67 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _name = TextEditingController();
+  final _firstName = TextEditingController();
+  final _lastName = TextEditingController();
+  final _username = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
   String _phoneNumber = '';
+  DateTime? _birthDate;
   bool _obscure = true;
 
   @override
   void dispose() {
-    _name.dispose();
+    _firstName.dispose();
+    _lastName.dispose();
+    _username.dispose();
     _email.dispose();
     _password.dispose();
     super.dispose();
   }
 
+  Future<void> _pickBirthDate() async {
+    FocusScope.of(context).unfocus();
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _birthDate ?? DateTime(now.year - 25),
+      firstDate: DateTime(1900),
+      lastDate: now,
+      helpText: 'Date de naissance',
+    );
+    if (picked != null) setState(() => _birthDate = picked);
+  }
+
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
+    if (_birthDate == null) {
+      _snack('Indiquez votre date de naissance.');
+      return;
+    }
     final auth = context.read<AuthProvider>();
     final ok = await auth.register(
+      firstName: _firstName.text,
+      lastName: _lastName.text,
+      username: _username.text,
       email: _email.text,
       password: _password.text,
-      displayName: _name.text,
       phoneNumber: _phoneNumber,
+      birthDate: _birthDate,
     );
     if (!mounted) return;
     if (ok) {
       Navigator.of(context).pop();
     } else if (auth.error != null) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(auth.error!)));
+      _snack(auth.error!);
     }
+  }
+
+  void _snack(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -63,24 +93,67 @@ class _RegisterScreenState extends State<RegisterScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 TextFormField(
-                  controller: _name,
+                  controller: _firstName,
                   textInputAction: TextInputAction.next,
+                  textCapitalization: TextCapitalization.words,
                   decoration: const InputDecoration(
-                    labelText: 'Nom complet',
+                    labelText: 'Prénom',
                     prefixIcon: Icon(Icons.person_outline),
                   ),
+                  validator: (v) => Validators.required(v, label: 'Le prénom'),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _lastName,
+                  textInputAction: TextInputAction.next,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: const InputDecoration(
+                    labelText: 'Nom',
+                    prefixIcon: Icon(Icons.badge_outlined),
+                  ),
                   validator: (v) => Validators.required(v, label: 'Le nom'),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _username,
+                  textInputAction: TextInputAction.next,
+                  autocorrect: false,
+                  decoration: const InputDecoration(
+                    labelText: 'Pseudo',
+                    prefixIcon: Icon(Icons.alternate_email),
+                  ),
+                  validator: Validators.username,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _email,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
+                  autocorrect: false,
                   decoration: const InputDecoration(
                     labelText: 'Email',
                     prefixIcon: Icon(Icons.email_outlined),
                   ),
                   validator: Validators.email,
+                ),
+                const SizedBox(height: 16),
+                // Date de naissance (sélecteur).
+                InkWell(
+                  onTap: _pickBirthDate,
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'Date de naissance',
+                      prefixIcon: Icon(Icons.cake_outlined),
+                    ),
+                    child: Text(
+                      _birthDate == null
+                          ? 'Sélectionner…'
+                          : formatDate(_birthDate!),
+                      style: TextStyle(
+                        color: _birthDate == null ? AppColors.gray : null,
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 IntlPhoneField(

@@ -5,6 +5,7 @@ import '../models/enums.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_colors.dart';
 import '../utils/formatting.dart';
+import 'account_security_screen.dart';
 import 'edit_profile_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -38,17 +39,24 @@ class ProfileScreen extends StatelessWidget {
                 padding: const EdgeInsets.all(20),
                 children: [
                   const SizedBox(height: 8),
-                  _Avatar(name: profile.displayName),
+                  _Avatar(name: profile.fullName),
                   const SizedBox(height: 12),
                   Center(
                     child: Text(
-                      profile.displayName,
+                      profile.fullName.isEmpty ? '—' : profile.fullName,
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
+                  if (profile.username.isNotEmpty)
+                    Center(
+                      child: Text(
+                        '@${profile.username}',
+                        style: const TextStyle(color: AppColors.gray),
+                      ),
+                    ),
                   Center(
                     child: Text(
                       profile.email,
@@ -56,6 +64,14 @@ class ProfileScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 24),
+                  _InfoTile(
+                    icon: Icons.cake_outlined,
+                    label: 'Date de naissance',
+                    value:
+                        profile.birthDate != null
+                            ? formatDate(profile.birthDate!)
+                            : 'Non renseignée',
+                  ),
                   _InfoTile(
                     icon: Icons.phone_outlined,
                     label: 'Téléphone',
@@ -85,7 +101,27 @@ class ProfileScreen extends StatelessWidget {
                             ? relativeTime(profile.createdAt)
                             : '—',
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 8),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(
+                      Icons.shield_outlined,
+                      color: AppColors.gray,
+                    ),
+                    title: const Text('Sécurité'),
+                    subtitle: const Text(
+                      'Email et mot de passe',
+                      style: TextStyle(color: AppColors.gray, fontSize: 13),
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap:
+                        () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const AccountSecurityScreen(),
+                          ),
+                        ),
+                  ),
+                  const SizedBox(height: 16),
                   OutlinedButton.icon(
                     onPressed: () => context.read<AuthProvider>().logout(),
                     icon: const Icon(Icons.logout, color: AppColors.orange),

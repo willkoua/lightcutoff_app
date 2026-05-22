@@ -23,14 +23,14 @@ void main() {
   group('login - mapping des erreurs', () {
     test('mauvais identifiants', () async {
       when(
-        () => service.signIn(
-          email: any(named: 'email'),
+        () => service.signInWithIdentifier(
+          identifier: any(named: 'identifier'),
           password: any(named: 'password'),
         ),
       ).thenThrow(FirebaseAuthException(code: 'wrong-password'));
 
       final provider = build();
-      final ok = await provider.login(email: 'a@b.com', password: 'x');
+      final ok = await provider.login(identifier: 'pseudo', password: 'x');
 
       expect(ok, isFalse);
       expect(provider.error, 'Email ou mot de passe incorrect.');
@@ -38,14 +38,14 @@ void main() {
 
     test('compte désactivé', () async {
       when(
-        () => service.signIn(
-          email: any(named: 'email'),
+        () => service.signInWithIdentifier(
+          identifier: any(named: 'identifier'),
           password: any(named: 'password'),
         ),
       ).thenThrow(const AccountDisabledException());
 
       final provider = build();
-      final ok = await provider.login(email: 'a@b.com', password: 'x');
+      final ok = await provider.login(identifier: 'a@b.com', password: 'x');
 
       expect(ok, isFalse);
       expect(provider.error, 'Ce compte a été désactivé.');
@@ -53,37 +53,72 @@ void main() {
 
     test('email déjà utilisé (register)', () async {
       when(
+        () => service.isUsernameAvailable(any()),
+      ).thenAnswer((_) async => true);
+      when(
         () => service.register(
+          firstName: any(named: 'firstName'),
+          lastName: any(named: 'lastName'),
+          username: any(named: 'username'),
           email: any(named: 'email'),
           password: any(named: 'password'),
-          displayName: any(named: 'displayName'),
           phoneNumber: any(named: 'phoneNumber'),
+          birthDate: any(named: 'birthDate'),
         ),
       ).thenThrow(FirebaseAuthException(code: 'email-already-in-use'));
 
       final provider = build();
       final ok = await provider.register(
+        firstName: 'Will',
+        lastName: 'Koua',
+        username: 'willk',
         email: 'a@b.com',
         password: 'secret',
-        displayName: 'Test',
         phoneNumber: '+237600000000',
+        birthDate: DateTime(2000, 1, 1),
       );
 
       expect(ok, isFalse);
       expect(provider.error, 'Cet email est déjà utilisé.');
     });
+
+    test('pseudo déjà pris (register)', () async {
+      when(
+        () => service.register(
+          firstName: any(named: 'firstName'),
+          lastName: any(named: 'lastName'),
+          username: any(named: 'username'),
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+          phoneNumber: any(named: 'phoneNumber'),
+          birthDate: any(named: 'birthDate'),
+        ),
+      ).thenThrow(FirebaseAuthException(code: 'username-already-in-use'));
+
+      final provider = build();
+      final ok = await provider.register(
+        firstName: 'Will',
+        lastName: 'Koua',
+        username: 'willk',
+        email: 'a@b.com',
+        password: 'secret',
+      );
+
+      expect(ok, isFalse);
+      expect(provider.error, 'Ce pseudo est déjà pris.');
+    });
   });
 
   test('login réussi -> pas d\'erreur', () async {
     when(
-      () => service.signIn(
-        email: any(named: 'email'),
+      () => service.signInWithIdentifier(
+        identifier: any(named: 'identifier'),
         password: any(named: 'password'),
       ),
     ).thenAnswer((_) async {});
 
     final provider = build();
-    final ok = await provider.login(email: 'a@b.com', password: 'secret');
+    final ok = await provider.login(identifier: 'willk', password: 'secret');
 
     expect(ok, isTrue);
     expect(provider.error, isNull);

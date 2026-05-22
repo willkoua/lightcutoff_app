@@ -22,6 +22,26 @@ class Validators {
     return null;
   }
 
+  static final _usernameRegex = RegExp(r'^[a-z0-9_.]+$');
+
+  /// Pseudo : 3-20 caractères, minuscules/chiffres/_/. (normalisé en minuscules).
+  static String? username(String? value) {
+    final v = (value ?? '').trim().toLowerCase();
+    if (v.isEmpty) return 'Le pseudo est requis';
+    if (v.length < 3) return 'Au moins 3 caractères';
+    if (v.length > 20) return 'Au plus 20 caractères';
+    if (!_usernameRegex.hasMatch(v)) {
+      return 'Lettres, chiffres, _ ou . uniquement';
+    }
+    return null;
+  }
+
+  /// Identifiant de connexion : pseudo OU email (non vide).
+  static String? identifier(String? value) {
+    if ((value?.trim() ?? '').isEmpty) return 'Pseudo ou email requis';
+    return null;
+  }
+
   static String? phone(String? value) {
     final v = value?.trim() ?? '';
     if (v.isEmpty) return 'Le téléphone est requis';

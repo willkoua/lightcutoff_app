@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/geo.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_colors.dart';
+import '../utils/formatting.dart';
 import '../utils/validators.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -15,27 +16,32 @@ class EditProfileScreen extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _name;
+  late final TextEditingController _firstName;
+  late final TextEditingController _lastName;
   late final TextEditingController _phone;
   late final TextEditingController _city;
   late final TextEditingController _region;
   late final TextEditingController _country;
+  DateTime? _birthDate;
 
   @override
   void initState() {
     super.initState();
     final profile = context.read<AuthProvider>().profile;
     final home = profile?.homeLocation ?? const GeoArea();
-    _name = TextEditingController(text: profile?.displayName ?? '');
+    _firstName = TextEditingController(text: profile?.firstName ?? '');
+    _lastName = TextEditingController(text: profile?.lastName ?? '');
     _phone = TextEditingController(text: profile?.phoneNumber ?? '');
     _city = TextEditingController(text: home.city);
     _region = TextEditingController(text: home.region);
     _country = TextEditingController(text: home.country);
+    _birthDate = profile?.birthDate;
   }
 
   @override
   void dispose() {
-    _name.dispose();
+    _firstName.dispose();
+    _lastName.dispose();
     _phone.dispose();
     _city.dispose();
     _region.dispose();
@@ -43,13 +49,28 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
+  Future<void> _pickBirthDate() async {
+    FocusScope.of(context).unfocus();
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _birthDate ?? DateTime(now.year - 25),
+      firstDate: DateTime(1900),
+      lastDate: now,
+      helpText: 'Date de naissance',
+    );
+    if (picked != null) setState(() => _birthDate = picked);
+  }
+
   Future<void> _save() async {
     FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
     final auth = context.read<AuthProvider>();
     final ok = await auth.updateProfile(
-      displayName: _name.text,
+      firstName: _firstName.text,
+      lastName: _lastName.text,
       phoneNumber: _phone.text,
+      birthDate: _birthDate,
       homeLocation: GeoArea(
         city: _city.text.trim(),
         region: _region.text.trim(),
@@ -85,12 +106,41 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 TextFormField(
-                  controller: _name,
+                  controller: _firstName,
+                  textCapitalization: TextCapitalization.words,
                   decoration: const InputDecoration(
-                    labelText: 'Nom complet',
+                    labelText: 'Prénom',
                     prefixIcon: Icon(Icons.person_outline),
                   ),
+                  validator: (v) => Validators.required(v, label: 'Le prénom'),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _lastName,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: const InputDecoration(
+                    labelText: 'Nom',
+                    prefixIcon: Icon(Icons.badge_outlined),
+                  ),
                   validator: (v) => Validators.required(v, label: 'Le nom'),
+                ),
+                const SizedBox(height: 16),
+                InkWell(
+                  onTap: _pickBirthDate,
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'Date de naissance',
+                      prefixIcon: Icon(Icons.cake_outlined),
+                    ),
+                    child: Text(
+                      _birthDate == null
+                          ? 'Sélectionner…'
+                          : formatDate(_birthDate!),
+                      style: TextStyle(
+                        color: _birthDate == null ? AppColors.gray : null,
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(

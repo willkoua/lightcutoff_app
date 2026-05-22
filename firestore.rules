@@ -31,9 +31,22 @@ service cloud.firestore {
       // Mise à jour limitée aux champs de profil (pas de role/status par l'utilisateur).
       allow update: if isOwner(userId)
                     && request.resource.data.diff(resource.data).affectedKeys()
-                       .hasOnly(['displayName', 'phoneNumber', 'photoURL',
-                                 'homeLocation', 'updatedAt']);
+                       .hasOnly(['firstName', 'lastName', 'birthDate',
+                                 'phoneNumber', 'photoURL', 'homeLocation',
+                                 'email', 'updatedAt']);
       allow delete: if false;
+    }
+
+    // Index pseudo → { uid, email } : permet la connexion par pseudo
+    // (résolution pseudo→email avant authentification). Lecture par id
+    // uniquement (pas d'énumération) ; chaque pseudo appartient à un uid.
+    match /usernames/{username} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if isSignedIn()
+                    && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if isSignedIn()
+                            && resource.data.uid == request.auth.uid;
     }
 
     // Coupures : lecture pour tout utilisateur connecté.

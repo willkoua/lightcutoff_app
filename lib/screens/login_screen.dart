@@ -15,13 +15,13 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _email = TextEditingController();
+  final _identifier = TextEditingController();
   final _password = TextEditingController();
   bool _obscure = true;
 
   @override
   void dispose() {
-    _email.dispose();
+    _identifier.dispose();
     _password.dispose();
     super.dispose();
   }
@@ -30,7 +30,10 @@ class _LoginScreenState extends State<LoginScreen> {
     FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
     final auth = context.read<AuthProvider>();
-    final ok = await auth.login(email: _email.text, password: _password.text);
+    final ok = await auth.login(
+      identifier: _identifier.text,
+      password: _password.text,
+    );
     if (!ok && mounted && auth.error != null) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
@@ -75,14 +78,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 32),
                   TextFormField(
-                    controller: _email,
-                    keyboardType: TextInputType.emailAddress,
+                    controller: _identifier,
                     textInputAction: TextInputAction.next,
+                    autocorrect: false,
                     decoration: const InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: Icon(Icons.email_outlined),
+                      labelText: 'Pseudo ou email',
+                      prefixIcon: Icon(Icons.person_outline),
                     ),
-                    validator: Validators.email,
+                    validator: Validators.identifier,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(

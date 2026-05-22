@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lightcutoff_app/models/app_user.dart';
 import 'package:lightcutoff_app/models/device.dart';
 import 'package:lightcutoff_app/models/enums.dart';
 import 'package:lightcutoff_app/models/geo.dart';
@@ -111,6 +112,35 @@ void main() {
       expect(map['geohash'], 's2x9c');
       expect(map['fcmEnabled'], true);
       expect(map.containsKey('token'), isFalse);
+    });
+  });
+
+  group('AppUser', () {
+    test('fullName combine prénom et nom', () {
+      const u = AppUser(
+        uid: 'u1',
+        email: 'a@b.com',
+        firstName: 'Willy',
+        lastName: 'Kouagnia',
+      );
+      expect(u.fullName, 'Willy Kouagnia');
+    });
+
+    test('toCreateMap sérialise les nouveaux champs', () {
+      final u = AppUser(
+        uid: 'u1',
+        email: 'a@b.com',
+        username: 'willk',
+        firstName: 'Willy',
+        lastName: 'Kouagnia',
+        birthDate: DateTime(2000, 1, 2),
+      );
+      final map = u.toCreateMap();
+      expect(map['username'], 'willk');
+      expect(map['firstName'], 'Willy');
+      expect(map['lastName'], 'Kouagnia');
+      expect(map['birthDate'], isNotNull);
+      expect(map['role'], 'citizen');
     });
   });
 }

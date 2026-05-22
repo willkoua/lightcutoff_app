@@ -14,8 +14,11 @@ Légende : ✅ MVP · 🔵 post-MVP
 
 | Champ | Type | MVP | Description |
 |-------|------|-----|-------------|
-| `email` | string | ✅ | identifiant de connexion |
-| `displayName` | string | ✅ | nom affiché |
+| `email` | string | ✅ | email de connexion / récupération |
+| `username` | string | ✅ | pseudo unique (minuscules) — connexion par pseudo |
+| `firstName` | string | ✅ | prénom |
+| `lastName` | string | ✅ | nom |
+| `birthDate` | timestamp \| null | ✅ | date de naissance |
 | `phoneNumber` | string \| null | ✅ | contact / contexte coupure |
 | `photoURL` | string \| null | ✅ | avatar (URL Firebase Storage) |
 | `homeLocation` | map `GeoArea` | ✅ | quartier de résidence (ciblage notifs) |
@@ -26,6 +29,21 @@ Légende : ✅ MVP · 🔵 post-MVP
 | `updatedAt` | timestamp | ✅ | dernière modification (serveur) |
 
 Modèle Dart : `lib/models/app_user.dart`
+
+---
+
+## Collection `usernames/{username}`
+
+Index pseudo → compte, pour la **connexion par pseudo** (résolution
+pseudo→email avant authentification). Id du doc = pseudo en minuscules.
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| `uid` | string | propriétaire du pseudo |
+| `email` | string | email du compte (résolution login pseudo→email) |
+
+Règles : `get` public (résolution pré-auth), **pas de `list`** (anti-énumération),
+écriture réservée au propriétaire (`uid == auth.uid`).
 
 ---
 

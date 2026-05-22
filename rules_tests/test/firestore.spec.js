@@ -45,11 +45,11 @@ describe("Firestore — users", () => {
 
   it("mise à jour limitée aux champs de profil (pas le rôle)", async () => {
     await seed((db) =>
-      setDoc(doc(db, "users/alice"), { displayName: "Alice", role: "citizen" }),
+      setDoc(doc(db, "users/alice"), { firstName: "Alice", role: "citizen" }),
     );
     await assertSucceeds(
       updateDoc(doc(as("alice"), "users/alice"), {
-        displayName: "Alicia",
+        firstName: "Alicia",
         updatedAt: serverTimestamp(),
       }),
     );
@@ -163,5 +163,35 @@ describe("Firestore — devices", () => {
     await assertFails(getDoc(doc(as("bob"), "devices/tokenA")));
     await assertFails(deleteDoc(doc(as("bob"), "devices/tokenA")));
     await assertSucceeds(deleteDoc(doc(as("alice"), "devices/tokenA")));
+  });
+});
+
+describe("Firestore — usernames (index pseudo)", () => {
+  it("lecture publique (résolution login) ; pas de squat d'un pseudo existant", async () => {
+    await seed((db) =>
+      setDoc(doc(db, "usernames/alice"), { uid: "alice", email: "a@b.com" }),
+    );
+    await assertSucceeds(getDoc(doc(anon(), "usernames/alice")));
+    await assertFails(
+      setDoc(doc(as("bob"), "usernames/alice"), {
+        uid: "bob",
+        email: "bob@b.com",
+      }),
+    );
+  });
+
+  it("on ne crée un pseudo qu'à son propre uid", async () => {
+    await assertSucceeds(
+      setDoc(doc(as("alice"), "usernames/willk"), {
+        uid: "alice",
+        email: "a@b.com",
+      }),
+    );
+    await assertFails(
+      setDoc(doc(as("alice"), "usernames/bobby"), {
+        uid: "bob",
+        email: "x@b.com",
+      }),
+    );
   });
 });

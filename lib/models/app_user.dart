@@ -5,7 +5,10 @@ import 'geo.dart';
 class AppUser {
   final String uid;
   final String email;
-  final String displayName;
+  final String username;
+  final String firstName;
+  final String lastName;
+  final DateTime? birthDate;
   final String? phoneNumber;
   final String? photoURL;
   final GeoArea homeLocation;
@@ -18,7 +21,10 @@ class AppUser {
   const AppUser({
     required this.uid,
     required this.email,
-    required this.displayName,
+    this.username = '',
+    this.firstName = '',
+    this.lastName = '',
+    this.birthDate,
     this.phoneNumber,
     this.photoURL,
     this.homeLocation = const GeoArea(),
@@ -31,12 +37,18 @@ class AppUser {
 
   bool get isDisabled => status == AccountStatus.disabled;
 
+  /// Nom complet « Prénom Nom » (vide si non renseigné).
+  String get fullName => '$firstName $lastName'.trim();
+
   factory AppUser.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final map = doc.data() ?? {};
     return AppUser(
       uid: doc.id,
       email: map['email'] as String? ?? '',
-      displayName: map['displayName'] as String? ?? '',
+      username: map['username'] as String? ?? '',
+      firstName: map['firstName'] as String? ?? '',
+      lastName: map['lastName'] as String? ?? '',
+      birthDate: (map['birthDate'] as Timestamp?)?.toDate(),
       phoneNumber: map['phoneNumber'] as String?,
       photoURL: map['photoURL'] as String?,
       homeLocation: GeoArea.fromMap(
@@ -53,7 +65,10 @@ class AppUser {
   /// Données pour la création initiale du profil.
   Map<String, dynamic> toCreateMap() => {
     'email': email,
-    'displayName': displayName,
+    'username': username,
+    'firstName': firstName,
+    'lastName': lastName,
+    'birthDate': birthDate != null ? Timestamp.fromDate(birthDate!) : null,
     'phoneNumber': phoneNumber,
     'photoURL': photoURL,
     'homeLocation': homeLocation.toMap(),

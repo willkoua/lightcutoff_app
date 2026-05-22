@@ -67,22 +67,67 @@ class AuthProvider extends ChangeNotifier {
     return false;
   }
 
-  Future<bool> login({required String email, required String password}) {
-    return _run(() => _service.signIn(email: email, password: password));
+  Future<bool> login({required String identifier, required String password}) {
+    return _run(
+      () => _service.signInWithIdentifier(
+        identifier: identifier,
+        password: password,
+      ),
+    );
+  }
+
+  /// `true` si le pseudo est disponible (best-effort : renvoie `true` en cas
+  /// d'erreur réseau pour ne pas bloquer la saisie).
+  Future<bool> isUsernameAvailable(String username) async {
+    try {
+      return await _service.isUsernameAvailable(username);
+    } catch (_) {
+      return true;
+    }
   }
 
   Future<bool> register({
+    required String firstName,
+    required String lastName,
+    required String username,
     required String email,
     required String password,
-    required String displayName,
     String? phoneNumber,
+    DateTime? birthDate,
   }) {
     return _run(
       () => _service.register(
+        firstName: firstName,
+        lastName: lastName,
+        username: username,
         email: email,
         password: password,
-        displayName: displayName,
         phoneNumber: phoneNumber,
+        birthDate: birthDate,
+      ),
+    );
+  }
+
+  Future<bool> changeEmail({
+    required String newEmail,
+    required String currentPassword,
+  }) {
+    return _run(
+      () => _service.changeEmail(
+        newEmail: newEmail,
+        currentPassword: currentPassword,
+      ),
+    );
+  }
+
+  Future<bool> changePassword({
+    required String newPassword,
+    required String currentPassword,
+  }) {
+    return _run(
+      () => _service.changePassword(
+        newPassword: newPassword,
+        currentPassword: currentPassword,
       ),
     );
   }
@@ -91,8 +136,10 @@ class AuthProvider extends ChangeNotifier {
 
   /// Met à jour le profil puis rafraîchit l'utilisateur courant.
   Future<bool> updateProfile({
-    required String displayName,
+    required String firstName,
+    required String lastName,
     String? phoneNumber,
+    DateTime? birthDate,
     GeoArea? homeLocation,
   }) async {
     _busy = true;
@@ -100,8 +147,10 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
     try {
       await _service.updateProfile(
-        displayName: displayName,
+        firstName: firstName,
+        lastName: lastName,
         phoneNumber: phoneNumber,
+        birthDate: birthDate,
         homeLocation: homeLocation,
       );
       final user = _service.currentUser;
@@ -158,8 +207,12 @@ class AuthProvider extends ChangeNotifier {
         return 'Email ou mot de passe incorrect.';
       case 'email-already-in-use':
         return 'Cet email est déjà utilisé.';
+      case 'username-already-in-use':
+        return 'Ce pseudo est déjà pris.';
       case 'weak-password':
         return 'Mot de passe trop faible.';
+      case 'requires-recent-login':
+        return 'Reconnecte-toi pour effectuer cette action sensible.';
       case 'network-request-failed':
         return 'Pas de connexion réseau.';
       default:
