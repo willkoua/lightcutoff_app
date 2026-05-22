@@ -30,10 +30,7 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final reports = context.watch<ReportProvider>();
     return Scaffold(
-      appBar: NjukaAppBar(
-        title: 'Coupures signalées',
-        filterProvider: reports,
-      ),
+      appBar: NjukaAppBar(title: 'Coupures signalées', filterProvider: reports),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _open(context, const ReportFormScreen(), reports),
         icon: const Icon(Icons.add),
@@ -71,60 +68,65 @@ class HomeScreen extends StatelessWidget {
             onClear: reports.clearFilters,
           ),
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.only(top: 4, bottom: 88),
-            // +1 pour le pied de liste (indicateur « charger plus »).
-            itemCount: list.length + 1,
-            itemBuilder: (context, i) {
-              if (i == list.length) {
-                // Pagination désactivée en mode proximité (résultats bornés,
-                // non paginés) ou tant qu'un filtre en mémoire est actif.
-                final canLoadMore =
-                    reports.hasMore &&
-                    !reports.nearOnly &&
-                    !reports.hasActiveFilters;
-                if (!canLoadMore) return const SizedBox(height: 8);
-                // Déclenche le chargement quand le pied entre à l'écran.
-                WidgetsBinding.instance.addPostFrameCallback(
-                  (_) => reports.loadMore(),
+          child: RefreshIndicator(
+            onRefresh: reports.refresh,
+            child: ListView.builder(
+              // Toujours défilable pour permettre le tirer-pour-rafraîchir.
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.only(top: 4, bottom: 88),
+              // +1 pour le pied de liste (indicateur « charger plus »).
+              itemCount: list.length + 1,
+              itemBuilder: (context, i) {
+                if (i == list.length) {
+                  // Pagination désactivée en mode proximité (résultats bornés,
+                  // non paginés) ou tant qu'un filtre en mémoire est actif.
+                  final canLoadMore =
+                      reports.hasMore &&
+                      !reports.nearOnly &&
+                      !reports.hasActiveFilters;
+                  if (!canLoadMore) return const SizedBox(height: 8);
+                  // Déclenche le chargement quand le pied entre à l'écran.
+                  WidgetsBinding.instance.addPostFrameCallback(
+                    (_) => reports.loadMore(),
+                  );
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                final report = list[i];
+                return ReportCard(
+                  report: report,
+                  isAuthor: reports.isAuthor(report),
+                  onTap:
+                      () => _open(
+                        context,
+                        ReportDetailScreen(reportId: report.id),
+                        reports,
+                      ),
+                  onConfirm: () async {
+                    final ok = await reports.confirm(report.id);
+                    if (context.mounted) {
+                      _snack(
+                        context,
+                        ok ? 'Coupure confirmée.' : 'Échec de la confirmation.',
+                      );
+                    }
+                  },
+                  onResolve: () async {
+                    final ok = await reports.resolve(report.id);
+                    if (context.mounted) {
+                      _snack(
+                        context,
+                        ok
+                            ? 'Coupure marquée rétablie.'
+                            : 'Échec de la mise à jour.',
+                      );
+                    }
+                  },
                 );
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20),
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
-              final report = list[i];
-              return ReportCard(
-                report: report,
-                isAuthor: reports.isAuthor(report),
-                onTap:
-                    () => _open(
-                      context,
-                      ReportDetailScreen(reportId: report.id),
-                      reports,
-                    ),
-                onConfirm: () async {
-                  final ok = await reports.confirm(report.id);
-                  if (context.mounted) {
-                    _snack(
-                      context,
-                      ok ? 'Coupure confirmée.' : 'Échec de la confirmation.',
-                    );
-                  }
-                },
-                onResolve: () async {
-                  final ok = await reports.resolve(report.id);
-                  if (context.mounted) {
-                    _snack(
-                      context,
-                      ok
-                          ? 'Coupure marquée rétablie.'
-                          : 'Échec de la mise à jour.',
-                    );
-                  }
-                },
-              );
-            },
+              },
+            ),
           ),
         ),
       ],

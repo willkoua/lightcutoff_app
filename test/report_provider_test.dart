@@ -41,6 +41,9 @@ void main() {
   late MockUser user;
 
   setUpAll(() {
+    // Le provider s'enregistre comme WidgetsBindingObserver (cycle de vie) :
+    // le binding de test doit être initialisé.
+    TestWidgetsFlutterBinding.ensureInitialized();
     registerFallbackValue(_report());
   });
 

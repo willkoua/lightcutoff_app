@@ -1,7 +1,8 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../config/app_constants.dart';
@@ -39,7 +40,7 @@ class PrepareOutcome {
 /// Critère de tri de la liste des coupures.
 enum ReportSort { recent, active, confirmed }
 
-class ReportProvider extends ChangeNotifier {
+class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
   ReportProvider({
     ReportRepository? repository,
     LocationRepository? location,
@@ -49,6 +50,7 @@ class ReportProvider extends ChangeNotifier {
        _location = location ?? LocationService(),
        _storage = storage ?? StorageService(),
        _auth = auth ?? FirebaseAuth.instance {
+    WidgetsBinding.instance.addObserver(this);
     _subscribe();
     _applyDefaultProximity();
   }
@@ -90,23 +92,25 @@ class ReportProvider extends ChangeNotifier {
   /// Écoute les coupures dans la limite courante. Re-souscrit à chaque
   /// [loadMore] avec une fenêtre élargie (on conserve le temps réel).
   void _subscribe() {
-    _sub = _service.watchReports(limit: _limit).listen(
-      (data) {
-        _reports = data;
-        _hasMore = data.length >= _limit;
-        _loading = false;
-        _loadingMore = false;
-        _error = null;
-        notifyListeners();
-      },
-      onError: (Object e, StackTrace st) {
-        CrashReporter.recordError(e, st, reason: 'watchReports');
-        _error = 'Impossible de charger les coupures.';
-        _loading = false;
-        _loadingMore = false;
-        notifyListeners();
-      },
-    );
+    _sub = _service
+        .watchReports(limit: _limit)
+        .listen(
+          (data) {
+            _reports = data;
+            _hasMore = data.length >= _limit;
+            _loading = false;
+            _loadingMore = false;
+            _error = null;
+            notifyListeners();
+          },
+          onError: (Object e, StackTrace st) {
+            CrashReporter.recordError(e, st, reason: 'watchReports');
+            _error = 'Impossible de charger les coupures.';
+            _loading = false;
+            _loadingMore = false;
+            notifyListeners();
+          },
+        );
   }
 
   /// Charge un lot supplémentaire (scroll infini). Sans effet si le dernier
@@ -291,6 +295,30 @@ class ReportProvider extends ChangeNotifier {
       notifyListeners();
     } catch (_) {
       // On conserve les résultats précédents en cas d'échec ponctuel.
+    }
+  }
+
+  /// Rafraîchissement manuel (pull-to-refresh). En mode proximité, relance la
+  /// requête ; sinon le flux principal est déjà temps réel (rien à recharger).
+  Future<void> refresh() async {
+    if (_nearOnly && _nearCenter != null) {
+      await _refreshNear();
+    } else {
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+    }
+  }
+
+  /// Met le rafraîchissement périodique en pause hors-écran (économie batterie
+  /// et lectures), et le relance — avec un rafraîchissement immédiat — au retour.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (_nearOnly && _nearCenter != null) {
+        _refreshNear();
+        _startNearAutoRefresh();
+      }
+    } else {
+      _nearTimer?.cancel();
     }
   }
 
@@ -505,6 +533,7 @@ class ReportProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _sub.cancel();
     _nearTimer?.cancel();
     super.dispose();
