@@ -81,12 +81,12 @@ class ReportDetailScreen extends StatelessWidget {
               child: Text(report.description!),
             ),
           ],
-          if (report.gifUrl != null) ...[
+          if (report.mediaUrl != null) ...[
             const SizedBox(height: 16),
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Image.network(
-                report.gifUrl!,
+                report.mediaUrl!,
                 width: double.infinity,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => const SizedBox.shrink(),

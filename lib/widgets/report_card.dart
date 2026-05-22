@@ -74,12 +74,12 @@ class ReportCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(report.description!),
               ],
-              if (report.gifUrl != null) ...[
+              if (report.mediaUrl != null) ...[
                 const SizedBox(height: 8),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10),
                   child: Image.network(
-                    report.gifUrl!,
+                    report.mediaUrl!,
                     width: double.infinity,
                     height: 160,
                     fit: BoxFit.cover,

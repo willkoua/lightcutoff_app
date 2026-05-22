@@ -320,9 +320,9 @@ class ReportProvider extends ChangeNotifier {
     }
   }
 
-  /// Upload un GIF (octets) pour la description courante. Renvoie l'URL,
+  /// Upload un média (octets) pour la description courante. Renvoie l'URL,
   /// ou null en cas d'échec.
-  Future<String?> uploadDescriptionGif(
+  Future<String?> uploadDescriptionMedia(
     Uint8List bytes, {
     String contentType = 'image/gif',
   }) async {
@@ -335,7 +335,7 @@ class ReportProvider extends ChangeNotifier {
         contentType: contentType,
       );
     } catch (e, st) {
-      CrashReporter.recordError(e, st, reason: 'uploadDescriptionGif');
+      CrashReporter.recordError(e, st, reason: 'uploadDescriptionMedia');
       return null;
     }
   }
@@ -345,7 +345,7 @@ class ReportProvider extends ChangeNotifier {
     ReportDraft draft, {
     required OutageCause cause,
     String? description,
-    String? gifUrl,
+    String? mediaUrl,
   }) async {
     final uid = _uid;
     if (uid == null) return 'Vous devez être connecté.';
@@ -361,7 +361,7 @@ class ReportProvider extends ChangeNotifier {
         location: draft.area,
         description:
             (description?.trim().isEmpty ?? true) ? null : description!.trim(),
-        gifUrl: gifUrl,
+        mediaUrl: mediaUrl,
       );
       await _service.createReport(report);
       return null;

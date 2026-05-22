@@ -8,6 +8,7 @@ import '../providers/report_provider.dart';
 import '../repositories/location_repository.dart';
 import '../theme/app_colors.dart';
 import '../utils/formatting.dart';
+import '../utils/media.dart';
 import '../widgets/location_permission_sheet.dart';
 import '../widgets/njuka_app_bar.dart';
 
@@ -24,8 +25,8 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
   OutageCause _cause = OutageCause.unplanned;
   final _description = TextEditingController();
   final _picker = ImagePicker();
-  String? _gifUrl;
-  bool _uploadingGif = false;
+  String? _mediaUrl;
+  bool _uploadingMedia = false;
 
   @override
   void dispose() {
@@ -33,26 +34,43 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
     super.dispose();
   }
 
-  Future<void> _pickGif() async {
+  Future<void> _pickMedia() async {
     final provider = context.read<ReportProvider>();
     final file = await _picker.pickMedia();
     if (file == null || !mounted) return;
-    setState(() => _uploadingGif = true);
+    setState(() => _uploadingMedia = true);
     final bytes = await file.readAsBytes();
-    final name = file.name.toLowerCase();
-    final contentType =
-        name.endsWith('.gif') ? 'image/gif' : (file.mimeType ?? 'image/jpeg');
-    final url = await provider.uploadDescriptionGif(
+    final outcome = await prepareMedia(
       bytes,
-      contentType: contentType,
+      filename: file.name,
+      mimeType: file.mimeType,
+    );
+    if (!mounted) return;
+    if (outcome.error != null) {
+      setState(() => _uploadingMedia = false);
+      _snack(_mediaErrorMessage(outcome.error!));
+      return;
+    }
+    final media = outcome.media!;
+    final url = await provider.uploadDescriptionMedia(
+      media.bytes,
+      contentType: media.contentType,
     );
     if (!mounted) return;
     setState(() {
-      _uploadingGif = false;
-      _gifUrl = url;
+      _uploadingMedia = false;
+      _mediaUrl = url;
     });
-    if (url == null) _snack('Échec de l\'ajout du GIF.');
+    if (url == null) _snack('Échec de l\'ajout du média.');
   }
+
+  String _mediaErrorMessage(MediaError error) => switch (error) {
+    MediaError.unsupportedType =>
+      'Format non supporté. Utilisez un GIF, JPEG ou PNG.',
+    MediaError.tooLarge => 'Média trop volumineux (max 8 Mo).',
+    MediaError.invalidImage =>
+      'Image illisible. Réessayez avec un autre fichier.',
+  };
 
   void _snack(String message) {
     ScaffoldMessenger.of(context)
@@ -143,7 +161,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
       draft,
       cause: _cause,
       description: _description.text,
-      gifUrl: _gifUrl,
+      mediaUrl: _mediaUrl,
     );
     if (!mounted) return;
     _finish(error ?? 'Coupure signalée. Merci !', success: error == null);
@@ -239,11 +257,11 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              _GifField(
-                gifUrl: _gifUrl,
-                uploading: _uploadingGif,
-                onPick: _pickGif,
-                onRemove: () => setState(() => _gifUrl = null),
+              _MediaField(
+                mediaUrl: _mediaUrl,
+                uploading: _uploadingMedia,
+                onPick: _pickMedia,
+                onRemove: () => setState(() => _mediaUrl = null),
               ),
               const SizedBox(height: 32),
               ElevatedButton.icon(
@@ -269,16 +287,16 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
   }
 }
 
-/// Champ d'ajout d'un GIF animé (depuis l'appareil) à la description.
-class _GifField extends StatelessWidget {
-  const _GifField({
-    required this.gifUrl,
+/// Champ d'ajout d'un média (image ou GIF, depuis l'appareil) à la description.
+class _MediaField extends StatelessWidget {
+  const _MediaField({
+    required this.mediaUrl,
     required this.uploading,
     required this.onPick,
     required this.onRemove,
   });
 
-  final String? gifUrl;
+  final String? mediaUrl;
   final bool uploading;
   final VoidCallback onPick;
   final VoidCallback onRemove;
@@ -294,17 +312,17 @@ class _GifField extends StatelessWidget {
             child: CircularProgressIndicator(strokeWidth: 2),
           ),
           SizedBox(width: 10),
-          Text('Ajout du GIF…', style: TextStyle(color: AppColors.gray)),
+          Text('Ajout du média…', style: TextStyle(color: AppColors.gray)),
         ],
       );
     }
-    if (gifUrl == null) {
+    if (mediaUrl == null) {
       return Align(
         alignment: Alignment.centerLeft,
         child: OutlinedButton.icon(
           onPressed: onPick,
-          icon: const Icon(Icons.gif_box_outlined),
-          label: const Text('Ajouter un GIF'),
+          icon: const Icon(Icons.add_photo_alternate_outlined),
+          label: const Text('Ajouter une image ou un GIF'),
         ),
       );
     }
@@ -314,7 +332,7 @@ class _GifField extends StatelessWidget {
         ClipRRect(
           borderRadius: BorderRadius.circular(12),
           child: Image.network(
-            gifUrl!,
+            mediaUrl!,
             width: double.infinity,
             height: 180,
             fit: BoxFit.cover,
