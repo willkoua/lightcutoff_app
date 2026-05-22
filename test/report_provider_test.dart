@@ -73,7 +73,11 @@ void main() {
     final error = await provider.submitReport(cause: OutageCause.unplanned);
 
     expect(error, isNull);
-    verify(() => service.createReport(any())).called(1);
+    final captured =
+        verify(() => service.createReport(captureAny())).captured;
+    final report = captured.single as Report;
+    expect(report.geohash, isNotNull);
+    expect(report.geohash!.length, AppConstants.geohashPrecision);
   });
 
   test(

@@ -11,6 +11,9 @@ class Report {
   final GeoArea location;
   final String? description;
   final String? mediaUrl;
+
+  /// Geohash de [position] — index de proximité (filtres de zone, notifications).
+  final String? geohash;
   final int confirmationCount;
   final DateTime? reportedAt;
   final DateTime? resolvedAt;
@@ -26,6 +29,7 @@ class Report {
     this.location = const GeoArea(),
     this.description,
     this.mediaUrl,
+    this.geohash,
     this.confirmationCount = 0,
     this.reportedAt,
     this.resolvedAt,
@@ -46,6 +50,7 @@ class Report {
       location: GeoArea.fromMap(map['location'] as Map<String, dynamic>?),
       description: map['description'] as String?,
       mediaUrl: map['mediaUrl'] as String?,
+      geohash: map['geohash'] as String?,
       confirmationCount: (map['confirmationCount'] as num?)?.toInt() ?? 0,
       reportedAt: (map['reportedAt'] as Timestamp?)?.toDate(),
       resolvedAt: (map['resolvedAt'] as Timestamp?)?.toDate(),
@@ -63,6 +68,7 @@ class Report {
     'location': location.toMap(),
     'description': description,
     'mediaUrl': mediaUrl,
+    'geohash': geohash,
     'confirmationCount': 0,
     'reportedAt':
         reportedAt != null

@@ -16,6 +16,7 @@ import '../services/location_service.dart';
 import '../services/report_service.dart';
 import '../services/storage_service.dart';
 import '../utils/crash_reporter.dart';
+import '../utils/geohash.dart';
 
 /// Localisation résolue, prête à devenir un signalement.
 class ReportDraft {
@@ -264,6 +265,7 @@ class ReportProvider extends ChangeNotifier {
         location: loc.area,
         description:
             (description?.trim().isEmpty ?? true) ? null : description!.trim(),
+        geohash: encodeGeohash(loc.position.lat, loc.position.lng),
       );
       await _service.createReport(report);
       return null;
@@ -384,6 +386,7 @@ class ReportProvider extends ChangeNotifier {
         description:
             (description?.trim().isEmpty ?? true) ? null : description!.trim(),
         mediaUrl: mediaUrl,
+        geohash: encodeGeohash(draft.position.lat, draft.position.lng),
       );
       await _service.createReport(report);
       return null;

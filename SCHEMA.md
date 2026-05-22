@@ -43,6 +43,7 @@ par **confirmations** (voir sous-collection), pas par création de nouveaux docs
 | `location` | map `GeoArea` | ✅ | zone lisible (reverse-géocodage) |
 | `description` | string \| null | ✅ | texte libre |
 | `mediaUrl` | string \| null | ✅ | média joint (GIF/JPEG/PNG) sur Firebase Storage ; images fixes redimensionnées à ≤ 1280 px |
+| `geohash` | string \| null | ✅ | geohash de `position` (index de proximité ; `AppConstants.geohashPrecision`) |
 | `confirmationCount` | int | ✅ | nb de confirmations (dénormalisé) |
 | `photoUrls` | string[] | 🔵 | preuves visuelles (Firebase Storage) |
 | `reportedAt` | timestamp | ✅ | début de coupure signalé |
