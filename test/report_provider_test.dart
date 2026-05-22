@@ -53,6 +53,11 @@ void main() {
     when(
       () => service.watchReports(limit: any(named: 'limit')),
     ).thenAnswer((_) => Stream<List<Report>>.value(const []));
+    // Par défaut, localisation non autorisée -> la proximité ne s'auto-active
+    // pas au démarrage (préserve l'état de filtres attendu par les tests).
+    when(
+      () => location.checkAccess(),
+    ).thenAnswer((_) async => LocationAccess.denied);
     when(() => auth.currentUser).thenReturn(user);
     when(() => user.uid).thenReturn('u1');
   });
@@ -320,6 +325,46 @@ void main() {
           radiusMeters: any(named: 'radiusMeters'),
         ),
       );
+    });
+  });
+
+  group('filtres par défaut', () {
+    test('statut « en cours » + tri « activité », sans filtre actif', () {
+      final provider = build();
+      expect(provider.statusFilter, OutageStatus.ongoing);
+      expect(provider.sort, ReportSort.active);
+      expect(provider.hasActiveFilters, isFalse);
+    });
+
+    test('proximité activée au démarrage si localisation autorisée', () async {
+      when(
+        () => location.checkAccess(),
+      ).thenAnswer((_) async => LocationAccess.granted);
+      when(() => location.getCurrentLocation()).thenAnswer(
+        (_) async => const LocationResult(
+          position: GeoPosition(lat: 3.86, lng: 11.51),
+          area: GeoArea(),
+        ),
+      );
+      when(
+        () => service.reportsWithinRadius(
+          lat: any(named: 'lat'),
+          lng: any(named: 'lng'),
+          radiusMeters: any(named: 'radiusMeters'),
+        ),
+      ).thenAnswer((_) async => [_report(id: 'near')]);
+
+      final provider = build();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(provider.nearOnly, isTrue);
+      expect(provider.filteredReports.map((r) => r.id), ['near']);
+    });
+
+    test('proximité non activée si localisation refusée', () async {
+      final provider = build();
+      await Future<void>.delayed(Duration.zero);
+      expect(provider.nearOnly, isFalse);
     });
   });
 }

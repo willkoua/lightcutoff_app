@@ -77,9 +77,12 @@ class HomeScreen extends StatelessWidget {
             itemCount: list.length + 1,
             itemBuilder: (context, i) {
               if (i == list.length) {
-                // Pagination désactivée tant qu'un filtre est actif : le
-                // filtrage en mémoire rendrait le « charger plus » ambigu.
-                final canLoadMore = reports.hasMore && !reports.hasActiveFilters;
+                // Pagination désactivée en mode proximité (résultats bornés,
+                // non paginés) ou tant qu'un filtre en mémoire est actif.
+                final canLoadMore =
+                    reports.hasMore &&
+                    !reports.nearOnly &&
+                    !reports.hasActiveFilters;
                 if (!canLoadMore) return const SizedBox(height: 8);
                 // Déclenche le chargement quand le pied entre à l'écran.
                 WidgetsBinding.instance.addPostFrameCallback(

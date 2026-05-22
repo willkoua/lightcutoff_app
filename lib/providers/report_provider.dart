@@ -50,6 +50,20 @@ class ReportProvider extends ChangeNotifier {
        _storage = storage ?? StorageService(),
        _auth = auth ?? FirebaseAuth.instance {
     _subscribe();
+    _applyDefaultProximity();
+  }
+
+  /// Active le filtre « à proximité » par défaut, mais seulement si la
+  /// localisation est déjà autorisée (sans déclencher de demande système au
+  /// démarrage). Sinon, la liste reste non géolocalisée jusqu'à activation.
+  Future<void> _applyDefaultProximity() async {
+    try {
+      if (await _location.checkAccess() == LocationAccess.granted) {
+        await setNearOnly(true);
+      }
+    } catch (_) {
+      // Démarrage silencieux : on ignore toute erreur de localisation.
+    }
   }
 
   final ReportRepository _service;
@@ -102,12 +116,18 @@ class ReportProvider extends ChangeNotifier {
   }
 
   // --- État des filtres / recherche ---
+  // Filtres par défaut à l'ouverture : coupures « en cours », triées par
+  // activité, et « à proximité » (activé au démarrage si la localisation est
+  // déjà autorisée — voir _applyDefaultProximity).
+  static const OutageStatus _defaultStatus = OutageStatus.ongoing;
+  static const ReportSort _defaultSort = ReportSort.active;
+
   String _query = '';
-  OutageStatus? _statusFilter;
+  OutageStatus? _statusFilter = _defaultStatus;
   OutageCause? _causeFilter;
   bool _onlyMine = false;
   bool _nearOnly = false;
-  ReportSort _sort = ReportSort.recent;
+  ReportSort _sort = _defaultSort;
 
   /// Résultats de la requête bornée par geohash (filtre « à proximité »).
   /// `null` quand le filtre est inactif.
@@ -129,12 +149,14 @@ class ReportProvider extends ChangeNotifier {
   bool get nearLoading => _nearLoading;
   ReportSort get sort => _sort;
 
+  /// Vrai si l'utilisateur a modifié les filtres au-delà des valeurs par
+  /// défaut (la proximité, qui est un mode par défaut, n'est pas comptée ici).
   bool get hasActiveFilters =>
       _query.isNotEmpty ||
-      _statusFilter != null ||
+      _statusFilter != _defaultStatus ||
       _causeFilter != null ||
       _onlyMine ||
-      _nearOnly;
+      _sort != _defaultSort;
 
   /// Liste filtrée + triée selon l'état courant des filtres.
   ///
@@ -231,15 +253,16 @@ class ReportProvider extends ChangeNotifier {
     }
   }
 
+  /// Réinitialise aux filtres par défaut (en cours · toutes · activité) et
+  /// réactive la proximité si la localisation est disponible.
   void clearFilters() {
     _query = '';
-    _statusFilter = null;
+    _statusFilter = _defaultStatus;
     _causeFilter = null;
     _onlyMine = false;
-    _nearOnly = false;
-    _nearResults = null;
-    _sort = ReportSort.recent;
+    _sort = _defaultSort;
     notifyListeners();
+    if (!_nearOnly) _applyDefaultProximity();
   }
 
   String? get _uid => _auth.currentUser?.uid;
