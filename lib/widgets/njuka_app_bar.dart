@@ -1,27 +1,17 @@
 import 'package:flutter/material.dart';
 
 import '../providers/report_provider.dart';
-import '../screens/profile_screen.dart';
 import 'filter_sheet.dart';
 
-/// AppBar commune de l'app.
-/// - le bouton **profil** est présent sur toutes les pages (sauf si
-///   [showProfile] est désactivé, ex. la page profil elle-même) ;
-/// - le bouton **filtre / recherche** n'apparaît que si [filterProvider] est
-///   fourni (pages qui listent les coupures : liste et carte).
+/// AppBar commune de l'app. Le bouton **filtre / recherche** n'apparaît que si
+/// [filterProvider] est fourni (pages qui listent les coupures : Liste et Carte).
+/// La navigation (Liste / Carte / Profil) est portée par la barre du bas
+/// (`MainShell`), pas par l'entête.
 class NjukaAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const NjukaAppBar({
-    super.key,
-    required this.title,
-    this.filterProvider,
-    this.extraActions = const [],
-    this.showProfile = true,
-  });
+  const NjukaAppBar({super.key, required this.title, this.filterProvider});
 
   final String title;
   final ReportProvider? filterProvider;
-  final List<Widget> extraActions;
-  final bool showProfile;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -31,7 +21,6 @@ class NjukaAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       title: Text(title),
       actions: [
-        ...extraActions,
         if (filterProvider != null)
           IconButton(
             tooltip: 'Filtrer / rechercher',
@@ -41,15 +30,6 @@ class NjukaAppBar extends StatelessWidget implements PreferredSizeWidget {
               child: const Icon(Icons.tune),
             ),
             onPressed: () => showFilterSheet(context, filterProvider!),
-          ),
-        if (showProfile)
-          IconButton(
-            tooltip: 'Mon profil',
-            icon: const Icon(Icons.account_circle_outlined),
-            onPressed:
-                () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
-                ),
           ),
       ],
     );
