@@ -26,6 +26,23 @@ jobs:
       # Build APK (debug) pour valider la compilation Android
       - run: flutter build apk --debug
 
+  ios:
+    name: iOS (build sans signature)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.29.0'
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      # Compile l'app iOS sans signer (pas besoin de certificats Apple en CI).
+      - run: flutter build ios --debug --no-codesign
+
   rules-tests:
     name: Règles Firestore/Storage (émulateurs)
     runs-on: ubuntu-latest
