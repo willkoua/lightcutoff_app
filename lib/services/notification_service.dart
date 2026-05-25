@@ -308,20 +308,61 @@ class NotificationService {
   /// Tentative non bloquante de récupération de la position GPS pour calculer
   /// le geohash du device. N'appelle [getCurrentLocation] que si la
   /// permission est **déjà accordée** — on ne déclenche pas de pop-up.
-  Future<void> _refreshGeohashIfGranted() async {
+  /// Retourne `true` si le geohash a **réellement** changé (utile pour éviter
+  /// un upsert Firestore inutile — optim « skip same cell »).
+  Future<bool> _refreshGeohashIfGranted() async {
     try {
       final access = await _location.checkAccess();
-      if (access != LocationAccess.granted) return;
+      if (access != LocationAccess.granted) return false;
       final result = await _location.getCurrentLocation();
-      _currentGeohash = encodeGeohash(
+      final newGeohash = encodeGeohash(
         result.position.lat,
         result.position.lng,
         precision: AppConstants.geohashPrecision,
       );
-      debugPrint('[FCM] geohash device = $_currentGeohash');
+      if (newGeohash == _currentGeohash) return false;
+      _currentGeohash = newGeohash;
+      debugPrint('[FCM] geohash device = $newGeohash');
+      return true;
     } catch (_) {
       // Pas de position → on laisse le geohash à null (la CF fallback sur
       // homeLocation.city).
+      return false;
+    }
+  }
+
+  /// Met à jour le geohash du device à partir d'une position **déjà connue**
+  /// (ex. la position du draft d'un signalement qu'on vient de créer). Ne
+  /// déclenche aucune requête GPS supplémentaire. Idempotent : si le geohash
+  /// calculé est identique au courant, l'écriture est sautée pour limiter le
+  /// volume Firestore (optim « skip same cell »).
+  Future<void> refreshGeohashFrom(GeoPosition position) async {
+    if (_userId == null) return;
+    final newGeohash = encodeGeohash(
+      position.lat,
+      position.lng,
+      precision: AppConstants.geohashPrecision,
+    );
+    if (newGeohash == _currentGeohash) return; // pas de changement, skip
+    _currentGeohash = newGeohash;
+    debugPrint('[FCM] geohash device mis à jour = $newGeohash');
+    final token = _lastToken ?? await _messaging.getToken();
+    if (token == null) return;
+    await _upsert(token);
+  }
+
+  /// Variante : capture la position GPS courante puis **persiste** le nouveau
+  /// geohash si la cellule a changé. Best-effort, non bloquante. Utilisée par
+  /// le pull-to-refresh.
+  Future<void> refreshGeohashIfPossible() async {
+    final changed = await _refreshGeohashIfGranted();
+    if (!changed) return;
+    final token = _lastToken;
+    if (token == null || _userId == null) return;
+    try {
+      await _upsert(token);
+    } catch (e, st) {
+      CrashReporter.recordError(e, st, reason: 'fcm geohash refresh');
     }
   }
 

@@ -15,6 +15,7 @@ import '../repositories/location_repository.dart';
 import '../repositories/report_repository.dart';
 import '../repositories/storage_repository.dart';
 import '../services/location_service.dart';
+import '../services/notification_service.dart';
 import '../services/report_service.dart';
 import '../services/storage_service.dart';
 import '../utils/crash_reporter.dart';
@@ -301,11 +302,36 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Rafraîchissement manuel (pull-to-refresh). En mode proximité, relance la
   /// requête ; sinon le flux principal est déjà temps réel (rien à recharger).
+  /// On en profite aussi pour mettre à jour le geohash du device si la
+  /// localisation est autorisée (best-effort, async non bloquante).
   Future<void> refresh() async {
+    _refreshDeviceGeohashIfPossible();
     if (_nearOnly && _nearCenter != null) {
       await _refreshNear();
     } else {
       await Future<void>.delayed(const Duration(milliseconds: 300));
+    }
+  }
+
+  /// Wrapper défensif sur [NotificationService.instance] : ignore toute
+  /// exception (Firebase non initialisé en tests, permissions absentes…) —
+  /// le ciblage des notifs reste opérationnel grâce au fallback
+  /// `homeLocation.city` côté Cloud Function.
+  void _refreshDeviceGeohashFrom(GeoPosition position) {
+    try {
+      unawaited(
+        NotificationService.instance.refreshGeohashFrom(position),
+      );
+    } catch (_) {
+      /* ignore */
+    }
+  }
+
+  void _refreshDeviceGeohashIfPossible() {
+    try {
+      unawaited(NotificationService.instance.refreshGeohashIfPossible());
+    } catch (_) {
+      /* ignore */
     }
   }
 
@@ -385,6 +411,11 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
       // En mode proximité (requête ponctuelle), on resynchronise tout de suite
       // pour que le nouveau signalement apparaisse sans attendre le refresh.
       if (_nearOnly) await _refreshNear();
+      // Profite de la position GPS qu'on vient d'utiliser pour rafraîchir le
+      // geohash du device — sans déclencher de nouvelle requête GPS. Wrappé
+      // dans un try/catch défensif (NotificationService.instance peut taper
+      // Firebase en environnement de test).
+      _refreshDeviceGeohashFrom(loc.position);
       return null;
     } on LocationException catch (e) {
       return e.message;
@@ -511,6 +542,8 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
       // En mode proximité (requête ponctuelle), on resynchronise tout de suite
       // pour que le nouveau signalement apparaisse sans attendre le refresh.
       if (_nearOnly) await _refreshNear();
+      // Refresh geohash device (sans nouvelle requête GPS, on a déjà la position).
+      _refreshDeviceGeohashFrom(draft.position);
       return null;
     } catch (_) {
       return 'Échec du signalement. Réessayez.';
