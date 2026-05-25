@@ -100,6 +100,7 @@ class ReportCard extends StatelessWidget {
                 ),
               ],
               const SizedBox(height: 10),
+              // Ligne compteurs (toujours visible).
               Row(
                 children: [
                   const Icon(
@@ -113,8 +114,32 @@ class ReportCard extends StatelessWidget {
                     '${report.confirmationCount > 1 ? 's' : ''}',
                     style: const TextStyle(color: AppColors.gray, fontSize: 13),
                   ),
-                  const Spacer(),
-                  if (ongoing) ...[
+                  if (report.restorationCount > 0) ...[
+                    const SizedBox(width: 12),
+                    const Icon(
+                      Icons.lightbulb,
+                      size: 18,
+                      color: AppColors.resolved,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${report.restorationCount}',
+                      style: const TextStyle(
+                        color: AppColors.gray,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              // Boutons d'action : Wrap pour passer à la ligne sur petits écrans
+              // (évite l'overflow horizontal quand les deux boutons sont là).
+              if (ongoing) ...[
+                const SizedBox(height: 4),
+                Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 4,
+                  children: [
                     if (!isAuthor)
                       TextButton.icon(
                         onPressed: onConfirm,
@@ -127,8 +152,8 @@ class ReportCard extends StatelessWidget {
                       label: const Text('Courant revenu'),
                     ),
                   ],
-                ],
-              ),
+                ),
+              ],
             ],
           ),
         ),
