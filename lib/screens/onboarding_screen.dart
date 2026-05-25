@@ -25,18 +25,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   static const _slides = [
     _Slide(
       Icons.flash_off,
-      'Signalez les coupures',
-      'Indiquez en quelques secondes une coupure de courant autour de vous, géolocalisée automatiquement.',
+      'Bienvenue sur NJUKA',
+      'Signalez et suivez les coupures de courant autour de vous, en temps réel.',
     ),
     _Slide(
       Icons.how_to_reg,
-      'Confirmez ensemble',
-      'Une coupure est déjà signalée près de chez vous ? Confirmez-la pour renforcer l\'information.',
+      'Une coupure, une seule fois',
+      'Si une coupure est déjà signalée près de chez vous, confirmez-la au lieu d\'en créer une nouvelle. Plus de confirmations = plus de crédibilité.',
     ),
     _Slide(
-      Icons.map_outlined,
-      'Suivez en temps réel',
-      'Consultez la liste et la carte des coupures, et suivez leur résolution.',
+      Icons.lightbulb_outline,
+      'Le courant est revenu ?',
+      'Dites-le ! Quand assez de voisins confirment le retour du courant, la coupure se ferme automatiquement.',
+    ),
+    _Slide(
+      Icons.notifications_active_outlined,
+      'Alertes à proximité',
+      'Recevez une notification dès qu\'une coupure est signalée dans un rayon de 2 km autour de chez vous.',
     ),
   ];
 

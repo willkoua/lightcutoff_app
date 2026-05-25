@@ -9,7 +9,10 @@ import 'splash_screen.dart';
 class OnboardingGate extends StatefulWidget {
   const OnboardingGate({super.key});
 
-  static const _prefKey = 'onboarding_seen';
+  /// Clé `SharedPreferences` du drapeau « onboarding déjà vu ». Exposée
+  /// publiquement pour que l'écran Paramètres puisse la **réinitialiser**
+  /// (« Revoir le tutoriel ») sans dépendre de l'implémentation interne.
+  static const prefKey = 'onboarding_seen';
 
   @override
   State<OnboardingGate> createState() => _OnboardingGateState();
@@ -27,12 +30,12 @@ class _OnboardingGateState extends State<OnboardingGate> {
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
-    setState(() => _seen = prefs.getBool(OnboardingGate._prefKey) ?? false);
+    setState(() => _seen = prefs.getBool(OnboardingGate.prefKey) ?? false);
   }
 
   Future<void> _finish() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(OnboardingGate._prefKey, true);
+    await prefs.setBool(OnboardingGate.prefKey, true);
     if (!mounted) return;
     setState(() => _seen = true);
   }

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/notification_service.dart';
 import '../theme/app_colors.dart';
+import 'onboarding_gate.dart';
+import 'onboarding_screen.dart';
 
 /// Écran « Paramètres » — point d'entrée unique pour les préférences
 /// transversales (notifications pour le moment ; pourra héberger thème,
@@ -17,6 +20,8 @@ class SettingsScreen extends StatelessWidget {
         children: const [
           _SectionHeader('Notifications'),
           _NotificationsToggle(),
+          _SectionHeader('Aide'),
+          _ReplayOnboardingTile(),
         ],
       ),
     );
@@ -40,6 +45,46 @@ class _SectionHeader extends StatelessWidget {
           letterSpacing: 0.8,
         ),
       ),
+    );
+  }
+}
+
+/// Re-déclenche l'écran d'onboarding (utile après une mise à jour majeure).
+/// On affiche l'OnboardingScreen en plein écran ; à la fin (« Commencer » ou
+/// « Passer »), on retombe sur l'écran Paramètres.
+class _ReplayOnboardingTile extends StatelessWidget {
+  const _ReplayOnboardingTile();
+
+  Future<void> _replay(BuildContext context) async {
+    // On n'invalide PAS le flag SharedPreferences : la prochaine ouverture de
+    // l'app n'affichera donc pas à nouveau l'onboarding pour rien. On se
+    // contente d'ouvrir l'écran à la demande.
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder:
+            (_) => OnboardingScreen(
+              onDone: () async {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setBool(OnboardingGate.prefKey, true);
+                if (context.mounted) Navigator.of(context).pop();
+              },
+            ),
+        fullscreenDialog: true,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: const Icon(Icons.help_outline, color: AppColors.gray),
+      title: const Text('Revoir le tutoriel'),
+      subtitle: const Text(
+        'Les explications affichées à la première ouverture',
+        style: TextStyle(color: AppColors.gray, fontSize: 13),
+      ),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => _replay(context),
     );
   }
 }
