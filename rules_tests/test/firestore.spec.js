@@ -84,11 +84,12 @@ describe("Firestore — reports", () => {
     );
   });
 
-  it("un tiers ne peut faire varier que le compteur de confirmations", async () => {
+  it("un tiers ne peut faire varier que les compteurs (confirmations / rétablissements)", async () => {
     await seed((db) =>
       setDoc(doc(db, "reports/r1"), {
         userId: "alice",
         confirmationCount: 0,
+        restorationCount: 0,
       }),
     );
     await assertSucceeds(
@@ -97,8 +98,17 @@ describe("Firestore — reports", () => {
         updatedAt: serverTimestamp(),
       }),
     );
+    await assertSucceeds(
+      updateDoc(doc(as("bob"), "reports/r1"), {
+        restorationCount: 1,
+        updatedAt: serverTimestamp(),
+      }),
+    );
     await assertFails(
       updateDoc(doc(as("bob"), "reports/r1"), { description: "piraté" }),
+    );
+    await assertFails(
+      updateDoc(doc(as("bob"), "reports/r1"), { status: "resolved" }),
     );
   });
 
@@ -138,6 +148,65 @@ describe("Firestore — confirmations (anonymat)", () => {
     );
     await assertFails(
       getDoc(doc(as("carol"), "reports/r1/confirmations/bob")),
+    );
+  });
+});
+
+describe("Firestore — restorations (rétablissements crowd-sourcés)", () => {
+  beforeEach(async () => {
+    await seed((db) => setDoc(doc(db, "reports/r1"), { userId: "alice" }));
+  });
+
+  it("n'importe qui peut déclarer le rétablissement, y compris l'auteur", async () => {
+    await assertSucceeds(
+      setDoc(doc(as("bob"), "reports/r1/restorations/bob"), {
+        createdAt: serverTimestamp(),
+      }),
+    );
+    // L'auteur PEUT, contrairement aux confirmations.
+    await assertSucceeds(
+      setDoc(doc(as("alice"), "reports/r1/restorations/alice"), {
+        createdAt: serverTimestamp(),
+      }),
+    );
+  });
+
+  it("on ne déclare que pour soi (id = uid)", async () => {
+    await assertFails(
+      setDoc(doc(as("bob"), "reports/r1/restorations/carol"), {
+        createdAt: serverTimestamp(),
+      }),
+    );
+  });
+
+  it("lecture réservée à l'auteur du report, à l'admin, ou au propriétaire", async () => {
+    await seed((db) =>
+      setDoc(doc(db, "reports/r1/restorations/bob"), {
+        createdAt: serverTimestamp(),
+      }),
+    );
+    await assertSucceeds(
+      getDoc(doc(as("alice"), "reports/r1/restorations/bob")),
+    );
+    await assertSucceeds(
+      getDoc(doc(as("bob"), "reports/r1/restorations/bob")),
+    );
+    await assertFails(
+      getDoc(doc(as("carol"), "reports/r1/restorations/bob")),
+    );
+  });
+
+  it("le propriétaire peut retirer sa déclaration", async () => {
+    await seed((db) =>
+      setDoc(doc(db, "reports/r1/restorations/bob"), {
+        createdAt: serverTimestamp(),
+      }),
+    );
+    await assertFails(
+      deleteDoc(doc(as("carol"), "reports/r1/restorations/bob")),
+    );
+    await assertSucceeds(
+      deleteDoc(doc(as("bob"), "reports/r1/restorations/bob")),
     );
   });
 });

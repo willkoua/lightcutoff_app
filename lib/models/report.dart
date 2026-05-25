@@ -19,6 +19,11 @@ class Report {
   /// Geohash de [position] — index de proximité (filtres de zone, notifications).
   final String? geohash;
   final int confirmationCount;
+
+  /// Nombre de déclarations « le courant est revenu chez moi ». Quand ce
+  /// compteur franchit le seuil (cf. constantes), la Cloud Function
+  /// [onRestorationCreated] passe le `status` à `resolved` automatiquement.
+  final int restorationCount;
   final DateTime? reportedAt;
   final DateTime? resolvedAt;
   final DateTime? createdAt;
@@ -36,6 +41,7 @@ class Report {
     this.authorUsername,
     this.geohash,
     this.confirmationCount = 0,
+    this.restorationCount = 0,
     this.reportedAt,
     this.resolvedAt,
     this.createdAt,
@@ -58,6 +64,7 @@ class Report {
       authorUsername: map['authorUsername'] as String?,
       geohash: map['geohash'] as String?,
       confirmationCount: (map['confirmationCount'] as num?)?.toInt() ?? 0,
+      restorationCount: (map['restorationCount'] as num?)?.toInt() ?? 0,
       reportedAt: (map['reportedAt'] as Timestamp?)?.toDate(),
       resolvedAt: (map['resolvedAt'] as Timestamp?)?.toDate(),
       createdAt: (map['createdAt'] as Timestamp?)?.toDate(),
@@ -77,6 +84,7 @@ class Report {
     'authorUsername': authorUsername,
     'geohash': geohash,
     'confirmationCount': 0,
+    'restorationCount': 0,
     'reportedAt':
         reportedAt != null
             ? Timestamp.fromDate(reportedAt!)

@@ -56,11 +56,17 @@ service cloud.firestore {
                     && request.resource.data.userId == request.auth.uid;
 
       // L'auteur modifie/supprime son signalement ;
-      // les autres peuvent uniquement faire varier le compteur de confirmations.
+      // les autres peuvent uniquement faire varier les compteurs (confirmations
+      // / rétablissements) — les transitions de statut sont portées par les
+      // Cloud Functions via l'Admin SDK.
       allow update: if isSignedIn() && (
                       resource.data.userId == request.auth.uid ||
                       request.resource.data.diff(resource.data).affectedKeys()
-                        .hasOnly(['confirmationCount', 'updatedAt'])
+                        .hasOnly([
+                          'confirmationCount',
+                          'restorationCount',
+                          'updatedAt',
+                        ])
                     );
       allow delete: if isSignedIn()
                     && resource.data.userId == request.auth.uid;
@@ -75,6 +81,18 @@ service cloud.firestore {
         // On ne peut pas confirmer sa propre coupure.
         allow create: if isOwner(userId)
                       && request.auth.uid != reportAuthor(reportId);
+        allow delete: if isOwner(userId);
+      }
+
+      // Rétablissements (« le courant est revenu chez moi ») : un document
+      // par utilisateur (id = uid). Symétrique aux confirmations, mais
+      // **l'auteur peut déclarer son propre rétablissement** — il devient
+      // un confirmant comme les autres pour cette action.
+      match /restorations/{userId} {
+        allow read: if isOwner(userId)
+                    || isAdmin()
+                    || request.auth.uid == reportAuthor(reportId);
+        allow create: if isOwner(userId);
         allow delete: if isOwner(userId);
       }
     }

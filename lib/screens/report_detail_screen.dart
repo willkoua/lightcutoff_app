@@ -102,36 +102,65 @@ class ReportDetailScreen extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 24),
-          if (ongoing && !isAuthor)
-            ElevatedButton.icon(
-              onPressed: () async {
-                final ok = await provider.confirm(report.id);
-                if (context.mounted) {
-                  _snack(
-                    context,
-                    ok ? 'Coupure confirmée.' : 'Échec de la confirmation.',
-                  );
-                }
-              },
-              icon: const Icon(Icons.thumb_up_outlined),
-              label: const Text('Confirmer cette coupure'),
-            )
-          else if (ongoing && isAuthor)
+          // Coupures « en cours » :
+          //   - les tiers peuvent confirmer (« c'est coupé chez moi aussi »)
+          //   - tout le monde (auteur compris) peut déclarer le retour du courant
+          //     → l'auto-résolution est portée par une Cloud Function quand
+          //     le seuil de rétablissements est franchi.
+          if (ongoing) ...[
+            if (!isAuthor)
+              ElevatedButton.icon(
+                onPressed: () async {
+                  final ok = await provider.confirm(report.id);
+                  if (context.mounted) {
+                    _snack(
+                      context,
+                      ok
+                          ? 'Coupure confirmée.'
+                          : 'Échec de la confirmation.',
+                    );
+                  }
+                },
+                icon: const Icon(Icons.thumb_up_outlined),
+                label: const Text('Confirmer cette coupure'),
+              ),
+            if (!isAuthor) const SizedBox(height: 8),
             OutlinedButton.icon(
               onPressed: () async {
-                final ok = await provider.resolve(report.id);
+                final ok = await provider.markRestored(report.id);
                 if (context.mounted) {
                   _snack(
                     context,
                     ok
-                        ? 'Coupure marquée rétablie.'
-                        : 'Échec de la mise à jour.',
+                        ? 'Merci ! Votre déclaration a été enregistrée.'
+                        : 'Échec de la déclaration.',
                   );
                 }
               },
-              icon: const Icon(Icons.check),
-              label: const Text('Marquer rétabli'),
+              icon: const Icon(Icons.lightbulb_outline),
+              label: const Text('Le courant est revenu chez moi'),
             ),
+          ],
+          // Compteur public de rétablissements (sans détails individuels).
+          if (report.restorationCount > 0) ...[
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Icon(
+                  Icons.lightbulb,
+                  size: 18,
+                  color: AppColors.resolved,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '${report.restorationCount} personne'
+                  '${report.restorationCount > 1 ? 's' : ''} '
+                  'ont annoncé le retour du courant',
+                  style: const TextStyle(color: AppColors.gray, fontSize: 13),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 24),
           const Divider(),
           const SizedBox(height: 8),

@@ -31,6 +31,12 @@ const BATCH_SIZE = 500;
 const OUTAGE_CHANNEL_ID = "njuka_outage_alerts";
 const STALE_DEVICE_AGE_DAYS = 90;
 
+// Auto-résolution crowd-sourcée : un report passe à `resolved` quand
+// restorationCount >= max(RESTORATION_MIN_VOTES, confirmationCount * RESTORATION_RATIO).
+// Doit rester aligné avec `AppConstants.restorationMinVotes` / `restorationRatio` côté Dart.
+const RESTORATION_MIN_VOTES = 3;
+const RESTORATION_RATIO = 0.5;
+
 interface GeoPoint {
   lat: number;
   lng: number;
@@ -217,6 +223,54 @@ async function collectCandidates(
 
   return result;
 }
+
+/**
+ * Auto-résolution crowd-sourcée : à chaque nouvelle déclaration « courant
+ * revenu chez moi » (`restorations/{uid}`), on vérifie si le seuil est franchi
+ * et, si oui, on bascule le report en `resolved` avec `resolvedAt` côté
+ * serveur. Pattern symétrique aux confirmations : aucune action de l'auteur
+ * n'est requise, les voisins ferment la coupure collectivement.
+ */
+export const onRestorationCreated = onDocumentCreated(
+  "reports/{reportId}/restorations/{uid}",
+  async (event) => {
+    const reportId = event.params.reportId;
+    const db = admin.firestore();
+    const reportRef = db.collection("reports").doc(reportId);
+    const snap = await reportRef.get();
+    if (!snap.exists) {
+      logger.warn(`onRestorationCreated: report ${reportId} introuvable.`);
+      return;
+    }
+    const report = snap.data() as ReportDoc & {
+      status?: string;
+      confirmationCount?: number;
+      restorationCount?: number;
+    };
+    if (report.status === "resolved") return; // déjà fermé
+
+    const confirmations = report.confirmationCount ?? 0;
+    const restorations = report.restorationCount ?? 0;
+    const threshold = Math.max(
+      RESTORATION_MIN_VOTES,
+      Math.ceil(confirmations * RESTORATION_RATIO)
+    );
+
+    logger.info(
+      `onRestorationCreated: report=${reportId} restorations=${restorations} ` +
+        `confirmations=${confirmations} threshold=${threshold}`
+    );
+
+    if (restorations < threshold) return;
+
+    await reportRef.update({
+      status: "resolved",
+      resolvedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    logger.info(`onRestorationCreated: report ${reportId} → resolved.`);
+  }
+);
 
 /**
  * Cron quotidien : supprime les devices dont `updatedAt` est plus ancien que

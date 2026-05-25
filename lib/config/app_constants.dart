@@ -61,4 +61,16 @@ class AppConstants {
   /// Description du channel.
   static const String fcmOutageChannelDescription =
       'Notifications de coupures signalées près de chez vous.';
+
+  // --- Résolution crowd-sourcée ---
+
+  /// Nombre minimum de déclarations « courant revenu » avant de pouvoir
+  /// passer une coupure en `resolved` automatiquement. Plancher pour éviter
+  /// qu'une seule personne ferme une vraie coupure.
+  static const int restorationMinVotes = 3;
+
+  /// Ratio (rapporté à [Report.confirmationCount]) à atteindre en plus du
+  /// plancher pour déclencher l'auto-résolution. Ex. 0.5 = il faut au moins
+  /// la moitié des confirmants pour fermer la coupure.
+  static const double restorationRatio = 0.5;
 }

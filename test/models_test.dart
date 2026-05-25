@@ -4,6 +4,7 @@ import 'package:lightcutoff_app/models/device.dart';
 import 'package:lightcutoff_app/models/enums.dart';
 import 'package:lightcutoff_app/models/geo.dart';
 import 'package:lightcutoff_app/models/report.dart';
+import 'package:lightcutoff_app/models/restoration.dart';
 
 void main() {
   group('Enums.fromName', () {
@@ -92,7 +93,16 @@ void main() {
       expect(map['description'], 'test');
       expect(map['authorUsername'], 'willk');
       expect(map['confirmationCount'], 0);
+      expect(map['restorationCount'], 0);
       expect(map['resolvedAt'], isNull);
+    });
+  });
+
+  group('Restoration', () {
+    test('toCreateMap pose un createdAt serveur', () {
+      const r = Restoration(userId: 'bob');
+      final map = r.toCreateMap();
+      expect(map.containsKey('createdAt'), isTrue);
     });
   });
 

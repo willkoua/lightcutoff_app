@@ -11,14 +11,14 @@ class ReportCard extends StatelessWidget {
     required this.report,
     required this.isAuthor,
     required this.onConfirm,
-    required this.onResolve,
+    required this.onMarkRestored,
     this.onTap,
   });
 
   final Report report;
   final bool isAuthor;
   final VoidCallback onConfirm;
-  final VoidCallback onResolve;
+  final VoidCallback onMarkRestored;
   final VoidCallback? onTap;
 
   @override
@@ -114,17 +114,19 @@ class ReportCard extends StatelessWidget {
                     style: const TextStyle(color: AppColors.gray, fontSize: 13),
                   ),
                   const Spacer(),
-                  if (ongoing && isAuthor)
-                    TextButton(
-                      onPressed: onResolve,
-                      child: const Text('Marquer rétabli'),
-                    )
-                  else if (ongoing && !isAuthor)
+                  if (ongoing) ...[
+                    if (!isAuthor)
+                      TextButton.icon(
+                        onPressed: onConfirm,
+                        icon: const Icon(Icons.thumb_up_outlined, size: 18),
+                        label: const Text('Confirmer'),
+                      ),
                     TextButton.icon(
-                      onPressed: onConfirm,
-                      icon: const Icon(Icons.thumb_up_outlined, size: 18),
-                      label: const Text('Confirmer'),
+                      onPressed: onMarkRestored,
+                      icon: const Icon(Icons.lightbulb_outline, size: 18),
+                      label: const Text('Courant revenu'),
                     ),
+                  ],
                 ],
               ),
             ],

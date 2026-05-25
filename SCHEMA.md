@@ -64,6 +64,7 @@ par **confirmations** (voir sous-collection), pas par création de nouveaux docs
 | `mediaUrl` | string \| null | ✅ | média joint (GIF/JPEG/PNG) sur Firebase Storage ; images fixes redimensionnées à ≤ 1280 px |
 | `geohash` | string \| null | ✅ | geohash de `position` (index de proximité ; `AppConstants.geohashPrecision`) |
 | `confirmationCount` | int | ✅ | nb de confirmations (dénormalisé) |
+| `restorationCount` | int | ✅ | nb de déclarations « courant revenu » (dénormalisé) ; quand le seuil est franchi, la Cloud Function `onRestorationCreated` passe le `status` à `resolved`. |
 | `photoUrls` | string[] | 🔵 | preuves visuelles (Firebase Storage) |
 | `reportedAt` | timestamp | ✅ | début de coupure signalé |
 | `resolvedAt` | timestamp \| null | ✅ | retour du courant |
@@ -84,7 +85,27 @@ Modèle Dart : `lib/models/confirmation.dart`
 
 **Logique de confirmation** : à la création d'une confirmation, le client
 incrémente `confirmationCount` du report parent dans une transaction. Les règles
-autorisent un non-auteur à modifier uniquement `confirmationCount` (+ `updatedAt`).
+autorisent un non-auteur à modifier uniquement les compteurs
+(`confirmationCount`, `restorationCount`, `updatedAt`).
+
+### Sous-collection `reports/{id}/restorations/{uid}`
+
+> Symétrique aux confirmations. L'id du document = l'`uid` qui déclare que le
+> courant est revenu chez lui → **un seul vote par utilisateur**.
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| `createdAt` | timestamp | date de la déclaration de rétablissement |
+
+Modèle Dart : `lib/models/restoration.dart`
+
+**Logique de résolution crowd-sourcée** : à la création d'une restoration, le
+client incrémente `restorationCount`. La Cloud Function `onRestorationCreated`
+(`functions/src/index.ts`) bascule alors le `status` en `resolved` quand le
+seuil est franchi : `max(restorationMinVotes, ceil(confirmationCount × restorationRatio))`
+(constantes dans `AppConstants`). **L'auteur du report peut déclarer son propre
+rétablissement** (contrairement aux confirmations) — il devient un confirmant
+parmi d'autres pour cette action.
 
 ---
 
@@ -121,6 +142,7 @@ Modèle Dart : `lib/models/device.dart`
 - **users** : lecture si connecté ; un utilisateur ne crée/modifie que son propre doc ; pas de suppression.
 - **reports** : lecture si connecté ; création réservée à l'auteur ; mise à jour/suppression par l'auteur, sauf `confirmationCount`/`updatedAt` modifiables par tout utilisateur connecté (confirmations).
 - **reports/{id}/confirmations** : lecture si connecté ; création/suppression uniquement par l'utilisateur lui-même (`uid == documentId`).
+- **reports/{id}/restorations** : symétrique aux confirmations. Lecture réservée à l'auteur du report, aux admins, ou au propriétaire de sa propre déclaration. Création/suppression par l'utilisateur lui-même, **y compris l'auteur du report**.
 - **devices** : un utilisateur ne lit/écrit/supprime que ses propres appareils (`userId == uid`) ; la Cloud Function d'envoi utilise l'Admin SDK (contourne les règles) pour lire tous les devices et purger les tokens périmés.
 
 ---

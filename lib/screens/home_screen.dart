@@ -113,14 +113,14 @@ class HomeScreen extends StatelessWidget {
                       );
                     }
                   },
-                  onResolve: () async {
-                    final ok = await reports.resolve(report.id);
+                  onMarkRestored: () async {
+                    final ok = await reports.markRestored(report.id);
                     if (context.mounted) {
                       _snack(
                         context,
                         ok
-                            ? 'Coupure marquée rétablie.'
-                            : 'Échec de la mise à jour.',
+                            ? 'Merci ! Votre déclaration a été enregistrée.'
+                            : 'Échec de la déclaration.',
                       );
                     }
                   },

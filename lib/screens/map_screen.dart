@@ -99,12 +99,14 @@ class _MapScreenState extends State<MapScreen> {
                 _snack(ok ? 'Coupure confirmée.' : 'Échec de la confirmation.');
               }
             },
-            onResolve: () async {
+            onMarkRestored: () async {
               Navigator.of(sheetContext).pop();
-              final ok = await provider.resolve(report.id);
+              final ok = await provider.markRestored(report.id);
               if (mounted) {
                 _snack(
-                  ok ? 'Coupure marquée rétablie.' : 'Échec de la mise à jour.',
+                  ok
+                      ? 'Merci ! Votre déclaration a été enregistrée.'
+                      : 'Échec de la déclaration.',
                 );
               }
             },

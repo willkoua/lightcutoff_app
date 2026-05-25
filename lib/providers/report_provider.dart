@@ -10,6 +10,7 @@ import '../models/confirmation.dart';
 import '../models/enums.dart';
 import '../models/geo.dart';
 import '../models/report.dart';
+import '../models/restoration.dart';
 import '../repositories/location_repository.dart';
 import '../repositories/report_repository.dart';
 import '../repositories/storage_repository.dart';
@@ -544,6 +545,25 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
       return false;
     }
   }
+
+  /// Déclare « le courant est revenu chez moi » pour cette coupure. Symétrique
+  /// à [confirm], y compris pour l'auteur du report (qui devient un confirmant
+  /// comme les autres). L'auto-résolution est portée par la Cloud Function
+  /// `onRestorationCreated`.
+  Future<bool> markRestored(String reportId) async {
+    final uid = _uid;
+    if (uid == null) return false;
+    try {
+      await _service.markRestored(reportId, uid);
+      if (_nearOnly) await _refreshNear();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Stream<List<Restoration>> watchRestorations(String reportId) =>
+      _service.watchRestorations(reportId);
 
   @override
   void dispose() {

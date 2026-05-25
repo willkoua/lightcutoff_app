@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 import '../models/confirmation.dart';
 import '../models/enums.dart';
 import '../models/report.dart';
+import '../models/restoration.dart';
 import '../repositories/report_repository.dart';
 import '../utils/geohash.dart';
 
@@ -107,6 +108,43 @@ class ReportService implements ReportRepository {
       tx.set(confRef, {'createdAt': FieldValue.serverTimestamp()});
       tx.update(reportRef, {
         'confirmationCount': FieldValue.increment(1),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    });
+  }
+
+  @override
+  Stream<List<Restoration>> watchRestorations(String reportId) {
+    return _reports
+        .doc(reportId)
+        .collection('restorations')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snap) => snap.docs.map(Restoration.fromDoc).toList());
+  }
+
+  @override
+  Future<bool> hasRestored(String reportId, String uid) async {
+    final doc =
+        await _reports.doc(reportId).collection('restorations').doc(uid).get();
+    return doc.exists;
+  }
+
+  /// Déclare le rétablissement chez [uid] : vote unique par utilisateur,
+  /// compteur incrémenté de façon atomique. L'auto-résolution (passage du
+  /// status à `resolved`) est portée par la Cloud Function
+  /// [onRestorationCreated] côté serveur — pas ici, pour éviter les
+  /// conditions de course entre clients.
+  @override
+  Future<void> markRestored(String reportId, String uid) {
+    final reportRef = _reports.doc(reportId);
+    final restoRef = reportRef.collection('restorations').doc(uid);
+    return _db.runTransaction((tx) async {
+      final existing = await tx.get(restoRef);
+      if (existing.exists) return;
+      tx.set(restoRef, {'createdAt': FieldValue.serverTimestamp()});
+      tx.update(reportRef, {
+        'restorationCount': FieldValue.increment(1),
         'updatedAt': FieldValue.serverTimestamp(),
       });
     });
