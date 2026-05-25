@@ -55,18 +55,22 @@ service cloud.firestore {
       allow create: if isSignedIn()
                     && request.resource.data.userId == request.auth.uid;
 
-      // L'auteur modifie/supprime son signalement ;
-      // les autres peuvent uniquement faire varier les compteurs (confirmations
-      // / rétablissements) — les transitions de statut sont portées par les
-      // Cloud Functions via l'Admin SDK.
+      // L'auteur modifie/supprime son signalement (et peut l'archiver via
+      // `archivedAt`). Les autres peuvent uniquement faire varier les
+      // compteurs (confirmations / rétablissements) **tant que le report
+      // n'est pas archivé**. Les transitions de statut sont portées par les
+      // Cloud Functions via l'Admin SDK (qui contourne ces règles).
       allow update: if isSignedIn() && (
                       resource.data.userId == request.auth.uid ||
-                      request.resource.data.diff(resource.data).affectedKeys()
-                        .hasOnly([
-                          'confirmationCount',
-                          'restorationCount',
-                          'updatedAt',
-                        ])
+                      (
+                        resource.data.get('archivedAt', null) == null &&
+                        request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly([
+                            'confirmationCount',
+                            'restorationCount',
+                            'updatedAt',
+                          ])
+                      )
                     );
       allow delete: if isSignedIn()
                     && resource.data.userId == request.auth.uid;

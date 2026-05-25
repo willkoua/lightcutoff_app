@@ -30,6 +30,7 @@ const NOTIFY_RADIUS_M = 2000;
 const BATCH_SIZE = 500;
 const OUTAGE_CHANNEL_ID = "njuka_outage_alerts";
 const STALE_DEVICE_AGE_DAYS = 90;
+const ARCHIVED_RETENTION_DAYS = 30;
 
 // Auto-résolution crowd-sourcée : un report passe à `resolved` quand
 // restorationCount >= max(RESTORATION_MIN_VOTES, confirmationCount * RESTORATION_RATIO).
@@ -56,6 +57,7 @@ interface ReportDoc {
   geohash?: string;
   type?: string;
   cause?: string; // anciens docs (avant le rename type)
+  archivedAt?: FirebaseFirestore.Timestamp | null;
 }
 
 interface DeviceDoc {
@@ -79,6 +81,12 @@ export const onReportCreated = onDocumentCreated(
     const authorId = report.userId;
 
     logger.info("onReportCreated", { reportId, authorId, type: report.type });
+
+    // Garde : report déjà archivé (cas improbable mais défensif).
+    if (report.archivedAt) {
+      logger.info("Report déjà archivé — pas de notification.");
+      return;
+    }
 
     // 1. Récupération des devices candidats.
     const candidates = await collectCandidates(report, authorId);
@@ -248,6 +256,7 @@ export const onRestorationCreated = onDocumentCreated(
       restorationCount?: number;
     };
     if (report.status === "resolved") return; // déjà fermé
+    if (report.archivedAt) return; // archivé : pas d'auto-résolution
 
     const confirmations = report.confirmationCount ?? 0;
     const restorations = report.restorationCount ?? 0;
@@ -269,6 +278,45 @@ export const onRestorationCreated = onDocumentCreated(
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
     logger.info(`onRestorationCreated: report ${reportId} → resolved.`);
+  }
+);
+
+/**
+ * Cron quotidien : purge définitive (hard delete) des reports archivés depuis
+ * plus de [ARCHIVED_RETENTION_DAYS] jours. La suppression est **récursive** :
+ * sous-collections `confirmations` et `restorations` incluses (sinon elles
+ * deviennent orphelines puisque Firestore ne cascade pas).
+ */
+export const purgeArchivedReports = onSchedule(
+  {
+    schedule: "every 24 hours",
+    timeZone: "Africa/Douala",
+    retryCount: 0,
+  },
+  async () => {
+    const db = admin.firestore();
+    const cutoff = new Date(
+      Date.now() - ARCHIVED_RETENTION_DAYS * 24 * 60 * 60 * 1000
+    );
+    const stale = await db
+      .collection("reports")
+      .where("archivedAt", "<", cutoff)
+      .get();
+    logger.info(
+      `purgeArchivedReports: ${stale.size} report(s) à supprimer ` +
+        `(cutoff=${cutoff.toISOString()})`
+    );
+    if (stale.empty) return;
+
+    // recursiveDelete supprime le doc + ses sous-collections en un appel.
+    for (const doc of stale.docs) {
+      try {
+        await db.recursiveDelete(doc.ref);
+      } catch (e) {
+        logger.warn(`purgeArchivedReports: échec sur ${doc.id}`, e);
+      }
+    }
+    logger.info(`purgeArchivedReports: ${stale.size} report(s) purgé(s).`);
   }
 );
 

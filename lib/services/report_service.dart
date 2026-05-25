@@ -18,14 +18,21 @@ class ReportService implements ReportRepository {
   CollectionReference<Map<String, dynamic>> get _reports =>
       _db.collection('reports');
 
-  /// Flux des coupures, les plus récentes d'abord.
+  /// Flux des coupures, les plus récentes d'abord. Filtre les reports
+  /// archivés côté client (évite un index composite Firestore — acceptable
+  /// au volume MVP, car les archivages sont rares).
   @override
   Stream<List<Report>> watchReports({int limit = 50}) {
     return _reports
         .orderBy('reportedAt', descending: true)
         .limit(limit)
         .snapshots()
-        .map((snap) => snap.docs.map(Report.fromDoc).toList());
+        .map(
+          (snap) => snap.docs
+              .map(Report.fromDoc)
+              .where((r) => r.archivedAt == null)
+              .toList(),
+        );
   }
 
   @override
@@ -50,10 +57,12 @@ class ReportService implements ReportRepository {
       }),
     );
 
-    // 2) Affinage client : distance exacte (cellule = carré, rayon = cercle).
+    // 2) Affinage client : distance exacte (cellule = carré, rayon = cercle)
+    // et exclusion des reports archivés.
     const distance = Distance();
     final center = LatLng(lat, lng);
     return found.values.where((r) {
+      if (r.archivedAt != null) return false;
       final d = distance.as(
         LengthUnit.Meter,
         center,
@@ -74,6 +83,16 @@ class ReportService implements ReportRepository {
     return _reports.doc(reportId).update({
       'status': OutageStatus.resolved.name,
       'resolvedAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Soft-delete : pose `archivedAt = now`. La règle Firestore vérifie que
+  /// l'auteur seul peut écrire ce champ. Hard delete différé au cron.
+  @override
+  Future<void> archiveReport(String reportId) {
+    return _reports.doc(reportId).update({
+      'archivedAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }

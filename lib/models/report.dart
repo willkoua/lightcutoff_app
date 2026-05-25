@@ -26,6 +26,13 @@ class Report {
   final int restorationCount;
   final DateTime? reportedAt;
   final DateTime? resolvedAt;
+
+  /// Horodatage de l'archivage par l'auteur. Quand non-`null`, le report est
+  /// **invisible** côté app (filtré des listes / map / proximité / notifs) et
+  /// sera purgé définitivement par le cron `purgeArchivedReports` au bout de
+  /// [AppConstants.archivedRetentionDays] jours.
+  final DateTime? archivedAt;
+
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -44,6 +51,7 @@ class Report {
     this.restorationCount = 0,
     this.reportedAt,
     this.resolvedAt,
+    this.archivedAt,
     this.createdAt,
     this.updatedAt,
   });
@@ -67,6 +75,7 @@ class Report {
       restorationCount: (map['restorationCount'] as num?)?.toInt() ?? 0,
       reportedAt: (map['reportedAt'] as Timestamp?)?.toDate(),
       resolvedAt: (map['resolvedAt'] as Timestamp?)?.toDate(),
+      archivedAt: (map['archivedAt'] as Timestamp?)?.toDate(),
       createdAt: (map['createdAt'] as Timestamp?)?.toDate(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate(),
     );
@@ -90,6 +99,7 @@ class Report {
             ? Timestamp.fromDate(reportedAt!)
             : FieldValue.serverTimestamp(),
     'resolvedAt': null,
+    'archivedAt': null,
     'createdAt': FieldValue.serverTimestamp(),
     'updatedAt': FieldValue.serverTimestamp(),
   };

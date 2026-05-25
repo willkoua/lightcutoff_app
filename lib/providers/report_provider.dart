@@ -546,6 +546,24 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  /// Archive (soft-delete) un signalement. Réservé à l'auteur côté UI ; les
+  /// règles Firestore valident côté serveur. Disparaît immédiatement de tous
+  /// les flux (filtrés côté client) ; sera supprimé définitivement par le cron
+  /// `purgeArchivedReports`.
+  Future<bool> archive(String reportId) async {
+    final uid = _uid;
+    if (uid == null) return false;
+    // Garde-fou client : seul l'auteur peut archiver son report.
+    if (reportById(reportId)?.userId != uid) return false;
+    try {
+      await _service.archiveReport(reportId);
+      if (_nearOnly) await _refreshNear();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Déclare « le courant est revenu chez moi » pour cette coupure. Symétrique
   /// à [confirm], y compris pour l'auteur du report (qui devient un confirmant
   /// comme les autres). L'auto-résolution est portée par la Cloud Function

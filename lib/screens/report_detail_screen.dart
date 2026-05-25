@@ -20,6 +20,51 @@ class ReportDetailScreen extends StatelessWidget {
       ..showSnackBar(SnackBar(content: Text(message)));
   }
 
+  Future<void> _confirmAndArchive(
+    BuildContext context,
+    ReportProvider provider,
+    String reportId,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Supprimer ce signalement ?'),
+            content: const Text(
+              'Le signalement disparaîtra immédiatement de l\'app pour tout le '
+              'monde. Les confirmations et déclarations associées seront '
+              'définitivement supprimées sous 30 jours. Cette action est '
+              'irréversible.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Annuler'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.orange,
+                  foregroundColor: AppColors.white,
+                ),
+                child: const Text('Supprimer'),
+              ),
+            ],
+          ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    final ok = await provider.archive(reportId);
+    if (!context.mounted) return;
+    if (ok) {
+      _snack(context, 'Signalement supprimé.');
+      // On revient à la liste — l'écran de détail n'a plus de sens.
+      Navigator.of(context).pop();
+    } else {
+      _snack(context, 'Échec de la suppression.');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ReportProvider>();
@@ -159,6 +204,28 @@ class ReportDetailScreen extends StatelessWidget {
                   style: const TextStyle(color: AppColors.gray, fontSize: 13),
                 ),
               ],
+            ),
+          ],
+          // Action destructive de l'auteur : soft-delete. Disponible quel que
+          // soit le status (l'auteur peut retirer un report même rétabli ou
+          // déjà confirmé). La suppression définitive arrive automatiquement
+          // après 30 jours via le cron `purgeArchivedReports`.
+          if (isAuthor) ...[
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: () => _confirmAndArchive(context, provider, report.id),
+              icon: const Icon(
+                Icons.delete_outline,
+                color: AppColors.orange,
+              ),
+              label: const Text(
+                'Supprimer ce signalement',
+                style: TextStyle(color: AppColors.orange),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: AppColors.orange),
+                minimumSize: const Size.fromHeight(44),
+              ),
             ),
           ],
           const SizedBox(height: 24),

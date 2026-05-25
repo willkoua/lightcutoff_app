@@ -95,6 +95,7 @@ void main() {
       expect(map['confirmationCount'], 0);
       expect(map['restorationCount'], 0);
       expect(map['resolvedAt'], isNull);
+      expect(map['archivedAt'], isNull);
     });
   });
 

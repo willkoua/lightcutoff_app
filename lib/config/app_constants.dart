@@ -73,4 +73,11 @@ class AppConstants {
   /// plancher pour déclencher l'auto-résolution. Ex. 0.5 = il faut au moins
   /// la moitié des confirmants pour fermer la coupure.
   static const double restorationRatio = 0.5;
+
+  // --- Archivage ---
+
+  /// Durée (jours) pendant laquelle un report archivé reste en base avant
+  /// purge définitive par le cron `purgeArchivedReports`. Au-delà : hard
+  /// delete (récursif, sous-collections incluses).
+  static const int archivedRetentionDays = 30;
 }

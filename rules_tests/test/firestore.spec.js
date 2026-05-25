@@ -117,6 +117,43 @@ describe("Firestore — reports", () => {
     await assertFails(deleteDoc(doc(as("bob"), "reports/r1")));
     await assertSucceeds(deleteDoc(doc(as("alice"), "reports/r1")));
   });
+
+  it("seul l'auteur peut archiver son signalement (poser archivedAt)", async () => {
+    await seed((db) =>
+      setDoc(doc(db, "reports/r1"), {
+        userId: "alice",
+        archivedAt: null,
+      }),
+    );
+    await assertFails(
+      updateDoc(doc(as("bob"), "reports/r1"), {
+        archivedAt: serverTimestamp(),
+      }),
+    );
+    await assertSucceeds(
+      updateDoc(doc(as("alice"), "reports/r1"), {
+        archivedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }),
+    );
+  });
+
+  it("un tiers ne peut pas écrire les compteurs sur un report archivé", async () => {
+    await seed((db) =>
+      setDoc(doc(db, "reports/r1"), {
+        userId: "alice",
+        confirmationCount: 0,
+        restorationCount: 0,
+        archivedAt: new Date(),
+      }),
+    );
+    await assertFails(
+      updateDoc(doc(as("bob"), "reports/r1"), {
+        confirmationCount: 1,
+        updatedAt: serverTimestamp(),
+      }),
+    );
+  });
 });
 
 describe("Firestore — confirmations (anonymat)", () => {

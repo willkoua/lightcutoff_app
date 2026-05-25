@@ -68,6 +68,7 @@ par **confirmations** (voir sous-collection), pas par création de nouveaux docs
 | `photoUrls` | string[] | 🔵 | preuves visuelles (Firebase Storage) |
 | `reportedAt` | timestamp | ✅ | début de coupure signalé |
 | `resolvedAt` | timestamp \| null | ✅ | retour du courant |
+| `archivedAt` | timestamp \| null | ✅ | horodatage de suppression par l'auteur (soft-delete). Quand non-null : invisible côté app. Hard-delete (récursif) après 30 j via le cron `purgeArchivedReports`. |
 | `createdAt` | timestamp | ✅ | création (serveur) |
 | `updatedAt` | timestamp | ✅ | dernière modification (serveur) |
 
@@ -152,5 +153,5 @@ Modèle Dart : `lib/models/device.dart`
 - **Modèle « 1 coupure par zone » + confirmations** plutôt que signalements indépendants → évite les doublons, donne de la crédibilité.
 - **Audit** (`createdAt`/`updatedAt`) sur toutes les entités ; **désactivation de compte** via `status`/`disabledAt` sur `users`.
 - **Photos reportées** après le MVP (nécessite Firebase Storage) — champ `photoUrls` documenté mais non implémenté pour l'instant.
-- **Pas de soft-delete** sur les reports pour le moment.
+- **Soft-delete des reports** via `archivedAt` : l'auteur peut retirer son signalement (disparaît immédiatement de l'app). Hard-delete récursif (sous-collections incluses) automatique après 30 jours via le cron `purgeArchivedReports`. Préserve les confirmations/restorations pour audit pendant la fenêtre de rétention.
 - **Identité publique = `@pseudo` uniquement.** Le prénom/nom vivent dans `users/{uid}` (lecture propriétaire/admin). Les signalements affichent `@pseudo` (champ `authorUsername` dénormalisé, immuable) ; les confirmations restent anonymes (« Vous »/« Un utilisateur »). Le pseudo étant immuable, la dénormalisation ne peut pas devenir incohérente. Pose les bases d'un futur fil social éphémère par coupure.
