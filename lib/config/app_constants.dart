@@ -50,4 +50,15 @@ class AppConstants {
 
   /// Précision du geohash pour le ciblage de proximité (6 ≈ cellule ~1,2 km).
   static const int geohashPrecision = 6;
+
+  /// Identifiant du channel Android pour les notifications de coupure.
+  /// Doit correspondre au `channel_id` envoyé par la Cloud Function (Phase 4).
+  static const String fcmOutageChannelId = 'njuka_outage_alerts';
+
+  /// Libellé du channel (visible dans Paramètres → Notifications).
+  static const String fcmOutageChannelName = 'Alertes de coupure';
+
+  /// Description du channel.
+  static const String fcmOutageChannelDescription =
+      'Notifications de coupures signalées près de chez vous.';
 }

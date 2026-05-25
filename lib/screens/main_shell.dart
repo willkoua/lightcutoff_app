@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../providers/report_provider.dart';
+import '../services/notification_service.dart';
 import '../theme/app_colors.dart';
 import 'home_screen.dart';
 import 'map_screen.dart';
 import 'profile_screen.dart';
+import 'report_detail_screen.dart';
 
 /// Conteneur principal de l'app authentifiée : navigation par onglets
 /// (Liste / Carte / Profil) via une barre en bas, ce qui décharge l'entête.
@@ -22,6 +26,45 @@ class _MainShellState extends State<MainShell> {
   // hors-écran, donc on la recrée à chaque affichage. L'état métier (coupures,
   // filtres, pagination) vit dans ReportProvider, au-dessus du shell.
   static const _tabs = [HomeScreen(), MapScreen(), ProfileScreen()];
+
+  late final ValueNotifier<String?> _pendingReportId;
+
+  @override
+  void initState() {
+    super.initState();
+    // Écoute des demandes d'ouverture de détail venues d'une notif push.
+    // Le push doit se faire depuis ce scope (sous `ReportProvider`).
+    _pendingReportId = NotificationService.instance.pendingReportId;
+    _pendingReportId.addListener(_consumePendingReport);
+    // Cas « app lancée DEPUIS la notif » : la valeur peut déjà être présente
+    // avant que le listener ne soit attaché.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _consumePendingReport());
+  }
+
+  @override
+  void dispose() {
+    _pendingReportId.removeListener(_consumePendingReport);
+    super.dispose();
+  }
+
+  void _consumePendingReport() {
+    final reportId = _pendingReportId.value;
+    if (reportId == null || !mounted) return;
+    // Reset immédiat pour éviter une double consommation si le listener refire.
+    _pendingReportId.value = null;
+    // `Navigator.of(context).push` cible le root navigator, dont le subtree
+    // n'inclut PAS le `ReportProvider` (scoped sous AuthGate). On ré-injecte
+    // l'instance courante via `.value` pour que ReportDetailScreen y accède.
+    final reportProvider = context.read<ReportProvider>();
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ChangeNotifierProvider<ReportProvider>.value(
+          value: reportProvider,
+          child: ReportDetailScreen(reportId: reportId),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

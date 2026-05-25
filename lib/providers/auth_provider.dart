@@ -20,7 +20,9 @@ enum AuthStatus {
 class AuthProvider extends ChangeNotifier {
   AuthProvider({AuthRepository? repository, NotificationService? notifications})
     : _service = repository ?? AuthService(),
-      _notifications = notifications ?? NotificationService() {
+      // Singleton partagé avec `main.dart` (init du service) pour que
+      // l'enregistrement du device parle au même instance que l'init.
+      _notifications = notifications ?? NotificationService.instance {
     _sub = _service.authStateChanges.listen(_onAuthStateChanged);
   }
 
