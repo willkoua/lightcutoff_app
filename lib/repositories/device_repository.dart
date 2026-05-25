@@ -10,4 +10,8 @@ abstract class DeviceRepository {
 
   /// Supprime un doc device (déconnexion / désinscription).
   Future<void> deleteDevice(String token);
+
+  /// Retourne la valeur courante de `fcmEnabled` pour ce token, ou `null` si
+  /// le doc n'existe pas / pas de champ.
+  Future<bool?> getFcmEnabled(String token);
 }

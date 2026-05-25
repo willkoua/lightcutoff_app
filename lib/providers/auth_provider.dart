@@ -168,7 +168,17 @@ class AuthProvider extends ChangeNotifier {
         homeLocation: homeLocation,
       );
       final user = _service.currentUser;
-      if (user != null) _profile = await _service.fetchProfile(user.uid);
+      if (user != null) {
+        _profile = await _service.fetchProfile(user.uid);
+        // Resync du device : la nouvelle résidence + la position GPS éventuelle
+        // mettent à jour le ciblage de la Cloud Function de notifs.
+        unawaited(
+          _notifications.registerForUser(
+            userId: user.uid,
+            homeLocation: _profile?.homeLocation ?? const GeoArea(),
+          ),
+        );
+      }
       return true;
     } catch (_) {
       _error = 'Échec de la mise à jour du profil.';

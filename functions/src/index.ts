@@ -20,6 +20,7 @@
 
 import * as admin from "firebase-admin";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 import { logger } from "firebase-functions";
 import { geohashQueryBounds } from "geofire-common";
 
@@ -28,6 +29,7 @@ admin.initializeApp();
 const NOTIFY_RADIUS_M = 2000;
 const BATCH_SIZE = 500;
 const OUTAGE_CHANNEL_ID = "njuka_outage_alerts";
+const STALE_DEVICE_AGE_DAYS = 90;
 
 interface GeoPoint {
   lat: number;
@@ -215,6 +217,46 @@ async function collectCandidates(
 
   return result;
 }
+
+/**
+ * Cron quotidien : supprime les devices dont `updatedAt` est plus ancien que
+ * [STALE_DEVICE_AGE_DAYS]. Utile pour les comptes désinstallés silencieusement
+ * (pas de logout, donc pas de deleteDevice client-side) — ces tokens
+ * accumulent autrement et provoquent des envois inutiles (qu'on purge au coup
+ * par coup via [onReportCreated], mais ça ne couvre que les tokens
+ * **invalides**, pas ceux qui restent valides mais sont inactifs).
+ */
+export const purgeStaleDevices = onSchedule(
+  {
+    schedule: "every 24 hours",
+    timeZone: "Africa/Douala",
+    retryCount: 0,
+  },
+  async () => {
+    const db = admin.firestore();
+    const cutoff = new Date(
+      Date.now() - STALE_DEVICE_AGE_DAYS * 24 * 60 * 60 * 1000
+    );
+    const stale = await db
+      .collection("devices")
+      .where("updatedAt", "<", cutoff)
+      .get();
+    logger.info(
+      `purgeStaleDevices: ${stale.size} device(s) à supprimer (cutoff=${cutoff.toISOString()})`
+    );
+    if (stale.empty) return;
+
+    // Suppression par batchs de 500 (limite Firestore).
+    for (let i = 0; i < stale.docs.length; i += BATCH_SIZE) {
+      const batch = db.batch();
+      stale.docs
+        .slice(i, i + BATCH_SIZE)
+        .forEach((doc) => batch.delete(doc.ref));
+      await batch.commit();
+    }
+    logger.info(`purgeStaleDevices: ${stale.size} device(s) supprimé(s).`);
+  }
+);
 
 /** Construit le corps de la notif à partir de la zone du report. */
 function buildBody(area: GeoArea | undefined): string {

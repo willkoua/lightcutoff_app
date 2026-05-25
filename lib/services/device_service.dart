@@ -19,4 +19,11 @@ class DeviceService implements DeviceRepository {
 
   @override
   Future<void> deleteDevice(String token) => _devices.doc(token).delete();
+
+  @override
+  Future<bool?> getFcmEnabled(String token) async {
+    final snap = await _devices.doc(token).get();
+    if (!snap.exists) return null;
+    return snap.data()?['fcmEnabled'] as bool?;
+  }
 }

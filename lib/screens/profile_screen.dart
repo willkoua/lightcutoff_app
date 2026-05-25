@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../models/enums.dart';
 import '../providers/auth_provider.dart';
+import '../services/notification_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/formatting.dart';
 import 'account_security_screen.dart';
@@ -121,6 +122,7 @@ class ProfileScreen extends StatelessWidget {
                           ),
                         ),
                   ),
+                  const _NotificationsToggle(),
                   const SizedBox(height: 16),
                   OutlinedButton.icon(
                     onPressed: () => context.read<AuthProvider>().logout(),
@@ -168,6 +170,58 @@ class _Avatar extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _NotificationsToggle extends StatefulWidget {
+  const _NotificationsToggle();
+
+  @override
+  State<_NotificationsToggle> createState() => _NotificationsToggleState();
+}
+
+class _NotificationsToggleState extends State<_NotificationsToggle> {
+  bool? _enabled; // null = en cours de chargement
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final value = await NotificationService.instance.readFcmEnabled();
+    if (!mounted) return;
+    setState(() => _enabled = value);
+  }
+
+  Future<void> _toggle(bool value) async {
+    setState(() {
+      _enabled = value;
+      _busy = true;
+    });
+    await NotificationService.instance.setFcmEnabled(value);
+    if (!mounted) return;
+    setState(() => _busy = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SwitchListTile(
+      contentPadding: EdgeInsets.zero,
+      secondary: const Icon(
+        Icons.notifications_outlined,
+        color: AppColors.gray,
+      ),
+      title: const Text('Recevoir les alertes'),
+      subtitle: const Text(
+        'Notifications de coupures dans votre zone',
+        style: TextStyle(color: AppColors.gray, fontSize: 13),
+      ),
+      value: _enabled ?? true,
+      onChanged: (_enabled == null || _busy) ? null : _toggle,
     );
   }
 }

@@ -255,6 +255,41 @@ class NotificationService {
     });
   }
 
+  /// Lit la valeur courante de `fcmEnabled` pour le token actif. Renvoie
+  /// `true` par défaut si aucun doc n'existe (cohérent avec le défaut côté
+  /// modèle Device).
+  Future<bool> readFcmEnabled() async {
+    final token = _lastToken ?? await _messaging.getToken();
+    if (token == null) return true;
+    try {
+      return await _devices.getFcmEnabled(token) ?? true;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  /// Active/désactive les notifications pour cet appareil. Le doc device est
+  /// re-upserté avec la nouvelle valeur ; les autres champs restent inchangés
+  /// (le merge:true côté repo préserve ce qui n'est pas réécrit).
+  Future<void> setFcmEnabled(bool enabled) async {
+    final token = _lastToken ?? await _messaging.getToken();
+    if (token == null) return;
+    final device = Device(
+      token: token,
+      userId: _userId ?? '',
+      platform: _platform(),
+      homeLocation: _homeLocation,
+      geohash: _currentGeohash,
+      fcmEnabled: enabled,
+    );
+    try {
+      await _devices.upsertDevice(device);
+      debugPrint('[FCM] fcmEnabled=$enabled persisté');
+    } catch (e, st) {
+      CrashReporter.recordError(e, st, reason: 'fcm setFcmEnabled');
+    }
+  }
+
   /// Supprime le doc device courant (déconnexion). Échec silencieux.
   Future<void> unregister() async {
     _tokenSub?.cancel();
