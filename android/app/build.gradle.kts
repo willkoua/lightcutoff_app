@@ -12,11 +12,15 @@ plugins {
 android {
     namespace = "com.njuka.app"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // NDK aligné sur la version exigée par les plugins Firebase + Flutter (27+).
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        // Requis par flutter_local_notifications (API timezone moderne sur
+        // minSdk < 26).
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -45,4 +49,10 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Active le desugaring des APIs Java récentes (java.time, etc.) pour
+    // flutter_local_notifications sur les versions Android anciennes.
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

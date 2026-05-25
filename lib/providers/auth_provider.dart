@@ -7,6 +7,7 @@ import '../models/app_user.dart';
 import '../models/geo.dart';
 import '../repositories/auth_repository.dart';
 import '../services/auth_service.dart';
+import '../services/notification_service.dart';
 import '../utils/crash_reporter.dart';
 
 enum AuthStatus {
@@ -17,12 +18,14 @@ enum AuthStatus {
 }
 
 class AuthProvider extends ChangeNotifier {
-  AuthProvider({AuthRepository? repository})
-    : _service = repository ?? AuthService() {
+  AuthProvider({AuthRepository? repository, NotificationService? notifications})
+    : _service = repository ?? AuthService(),
+      _notifications = notifications ?? NotificationService() {
     _sub = _service.authStateChanges.listen(_onAuthStateChanged);
   }
 
   final AuthRepository _service;
+  final NotificationService _notifications;
   late final StreamSubscription<User?> _sub;
 
   AuthStatus _status = AuthStatus.unknown;
@@ -40,12 +43,21 @@ class AuthProvider extends ChangeNotifier {
     if (user == null) {
       _profile = null;
       _status = AuthStatus.unauthenticated;
+      // Désinscription du device pour ne plus recevoir de notifs.
+      unawaited(_notifications.unregister());
     } else if (!user.emailVerified) {
       _profile = null;
       _status = AuthStatus.awaitingVerification;
     } else {
       _profile = await _service.fetchProfile(user.uid);
       _status = AuthStatus.authenticated;
+      // Enregistre le device pour les notifs push (idempotent, ne bloque pas).
+      unawaited(
+        _notifications.registerForUser(
+          userId: user.uid,
+          homeLocation: _profile?.homeLocation ?? const GeoArea(),
+        ),
+      );
     }
     notifyListeners();
   }

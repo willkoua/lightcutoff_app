@@ -1,22 +1,42 @@
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lightcutoff_app/models/geo.dart';
 import 'package:lightcutoff_app/providers/auth_provider.dart';
 import 'package:lightcutoff_app/repositories/auth_repository.dart';
+import 'package:lightcutoff_app/services/notification_service.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockAuthRepository extends Mock implements AuthRepository {}
 
+class MockNotificationService extends Mock implements NotificationService {}
+
 void main() {
   late MockAuthRepository service;
+  late MockNotificationService notifications;
+
+  setUpAll(() {
+    // Argument matcher pour les enums / valeurs personnalisées passées
+    // à `unregister` ou `registerForUser`.
+    registerFallbackValue(const GeoArea());
+  });
 
   setUp(() {
     service = MockAuthRepository();
+    notifications = MockNotificationService();
     when(
       () => service.authStateChanges,
     ).thenAnswer((_) => Stream<User?>.value(null));
+    when(() => notifications.unregister()).thenAnswer((_) async {});
+    when(
+      () => notifications.registerForUser(
+        userId: any(named: 'userId'),
+        homeLocation: any(named: 'homeLocation'),
+      ),
+    ).thenAnswer((_) async {});
   });
 
-  AuthProvider build() => AuthProvider(repository: service);
+  AuthProvider build() =>
+      AuthProvider(repository: service, notifications: notifications);
 
   Future<void> settle() => Future<void>.delayed(Duration.zero);
 
