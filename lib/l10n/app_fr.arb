@@ -27,5 +27,14 @@
   },
 
   "snackOperationFailed": "Échec. Réessayez.",
-  "snackPositionUnavailable": "Position indisponible."
+  "snackPositionUnavailable": "Position indisponible.",
+
+  "settingsSectionLanguageDebug": "Langue (debug)",
+  "settingsLanguageLabel": "Langue de l'app",
+  "@settingsLanguageLabel": {
+    "description": "Sélecteur de langue visible uniquement en build debug/profile, masqué en release."
+  },
+  "languageSystem": "Système",
+  "languageFrench": "Français",
+  "languageEnglish": "Anglais"
 }

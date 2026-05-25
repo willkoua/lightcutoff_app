@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../providers/locale_provider.dart';
 import '../services/notification_service.dart';
 import '../theme/app_colors.dart';
 import 'onboarding_gate.dart';
@@ -24,6 +27,12 @@ class SettingsScreen extends StatelessWidget {
           const _NotificationsToggle(),
           _SectionHeader(l.settingsSectionHelp),
           const _ReplayOnboardingTile(),
+          // Sélecteur de langue : utile aux devs / QA pour tester FR↔EN sans
+          // changer la langue du téléphone. Caché en build release.
+          if (!kReleaseMode) ...[
+            _SectionHeader(l.settingsSectionLanguageDebug),
+            const _LanguagePickerTile(),
+          ],
         ],
       ),
     );
@@ -47,6 +56,74 @@ class _SectionHeader extends StatelessWidget {
           letterSpacing: 0.8,
         ),
       ),
+    );
+  }
+}
+
+/// Sélecteur de langue debug. Affiche la sélection courante et ouvre un
+/// SimpleDialog avec « Système / Français / Anglais ». Persiste via
+/// [LocaleProvider] (SharedPreferences).
+class _LanguagePickerTile extends StatelessWidget {
+  const _LanguagePickerTile();
+
+  String _labelFor(BuildContext context, Locale? locale) {
+    final l = AppLocalizations.of(context);
+    if (locale == null) return l.languageSystem;
+    switch (locale.languageCode) {
+      case 'fr':
+        return l.languageFrench;
+      case 'en':
+        return l.languageEnglish;
+      default:
+        return locale.languageCode;
+    }
+  }
+
+  Future<void> _pick(BuildContext context) async {
+    final l = AppLocalizations.of(context);
+    final provider = context.read<LocaleProvider>();
+    final selected = await showDialog<Locale?>(
+      context: context,
+      builder:
+          (ctx) => SimpleDialog(
+            title: Text(l.settingsLanguageLabel),
+            children: [
+              SimpleDialogOption(
+                onPressed: () => Navigator.of(ctx).pop(null),
+                child: Text(l.languageSystem),
+              ),
+              SimpleDialogOption(
+                onPressed: () => Navigator.of(ctx).pop(const Locale('fr')),
+                child: Text(l.languageFrench),
+              ),
+              SimpleDialogOption(
+                onPressed: () => Navigator.of(ctx).pop(const Locale('en')),
+                child: Text(l.languageEnglish),
+              ),
+            ],
+          ),
+    );
+    // `selected == null` est ambigu (dialog dismiss vs choix « Système »).
+    // On distingue via le 2e Navigator.pop(null) qui retourne `null`
+    // explicitement → ici on l'accepte comme un choix « Système ».
+    // Si l'utilisateur tape hors du dialog, on reçoit aussi null → ok, on
+    // applique « Système ». Pas critique vu que c'est un outil de debug.
+    await provider.setLocale(selected);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final current = context.watch<LocaleProvider>().locale;
+    return ListTile(
+      leading: const Icon(Icons.translate, color: AppColors.gray),
+      title: Text(l.settingsLanguageLabel),
+      subtitle: Text(
+        _labelFor(context, current),
+        style: const TextStyle(color: AppColors.gray, fontSize: 13),
+      ),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => _pick(context),
     );
   }
 }

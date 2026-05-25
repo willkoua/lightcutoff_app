@@ -17,5 +17,11 @@
   "actionSignal": "Report",
 
   "snackOperationFailed": "Failed. Please try again.",
-  "snackPositionUnavailable": "Location unavailable."
+  "snackPositionUnavailable": "Location unavailable.",
+
+  "settingsSectionLanguageDebug": "Language (debug)",
+  "settingsLanguageLabel": "App language",
+  "languageSystem": "System",
+  "languageFrench": "French",
+  "languageEnglish": "English"
 }
