@@ -10,6 +10,7 @@ import '../providers/report_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/njuka_app_bar.dart';
 import '../widgets/report_card.dart';
+import 'report_form_screen.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -46,11 +47,6 @@ class _MapScreenState extends State<MapScreen> {
       ..showSnackBar(SnackBar(content: Text(message)));
   }
 
-  void _zoom(double delta) {
-    final cam = _controller.camera;
-    _controller.move(cam.center, (cam.zoom + delta).clamp(_minZoom, _maxZoom));
-  }
-
   /// Recadre une fois la carte prête et les coupures chargées.
   void _maybeFit(List<LatLng> points) {
     if (!_mapReady || _didFit || points.isEmpty) return;
@@ -81,6 +77,21 @@ class _MapScreenState extends State<MapScreen> {
     }
     setState(() => _myPos = LatLng(pos.lat, pos.lng));
     _controller.move(_myPos!, 15);
+  }
+
+  /// Ouvre le formulaire de signalement, en ré-injectant le ReportProvider
+  /// pour que la nouvelle route ait accès au même état (cf. fix nav depuis
+  /// les notifications push).
+  void _openReportForm(ReportProvider provider) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder:
+            (_) => ChangeNotifierProvider<ReportProvider>.value(
+              value: provider,
+              child: const ReportFormScreen(),
+            ),
+      ),
+    );
   }
 
   void _openDetails(Report report) {
@@ -128,6 +139,16 @@ class _MapScreenState extends State<MapScreen> {
       appBar: NjukaAppBar(
         title: 'Carte des coupures',
         filterProvider: provider,
+      ),
+      // FAB « Signaler » à gauche pour ne pas chevaucher la colonne de
+      // boutons zoom/recenter à droite. Réutilise le formulaire commun ; la
+      // position du report sera la GPS actuelle de l'utilisateur (cohérent
+      // avec le flux depuis la Liste).
+      floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _openReportForm(provider),
+        icon: const Icon(Icons.add),
+        label: const Text('Signaler'),
       ),
       body: Stack(
         children: [
@@ -221,26 +242,10 @@ class _MapScreenState extends State<MapScreen> {
           Positioned(
             right: 16,
             bottom: 24,
-            child: Column(
-              children: [
-                FloatingActionButton.small(
-                  heroTag: 'recenter',
-                  onPressed: _recenterOnMe,
-                  child: const Icon(Icons.my_location),
-                ),
-                const SizedBox(height: 12),
-                FloatingActionButton.small(
-                  heroTag: 'zoom_in',
-                  onPressed: () => _zoom(1),
-                  child: const Icon(Icons.add),
-                ),
-                const SizedBox(height: 8),
-                FloatingActionButton.small(
-                  heroTag: 'zoom_out',
-                  onPressed: () => _zoom(-1),
-                  child: const Icon(Icons.remove),
-                ),
-              ],
+            child: FloatingActionButton.small(
+              heroTag: 'recenter',
+              onPressed: _recenterOnMe,
+              child: const Icon(Icons.my_location),
             ),
           ),
         ],
