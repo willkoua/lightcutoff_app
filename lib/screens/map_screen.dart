@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:latlong2/latlong.dart';
@@ -148,7 +149,7 @@ class _MapScreenState extends State<MapScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openReportForm(provider),
         icon: const Icon(Icons.add),
-        label: const Text('Signaler'),
+        label: Text(AppLocalizations.of(context).actionSignal),
       ),
       body: Stack(
         children: [

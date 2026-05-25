@@ -1,0 +1,9 @@
+# Configuration de la génération de localisations Flutter.
+# Les fichiers ARB se trouvent dans lib/l10n/.
+# Le template de référence est app_fr.arb (langue d'origine du projet) ;
+# les autres locales se calquent dessus.
+arb-dir: lib/l10n
+template-arb-file: app_fr.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+nullable-getter: false

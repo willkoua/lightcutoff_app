@@ -1,0 +1,31 @@
+{
+  "@@locale": "fr",
+
+  "appName": "NJUKA",
+  "@appName": {
+    "description": "Nom de l'app — invariant."
+  },
+
+  "navList": "Liste",
+  "@navList": {
+    "description": "Onglet bottom-nav : liste des coupures signalées."
+  },
+  "navMap": "Carte",
+  "navProfile": "Profil",
+
+  "settingsTitle": "Paramètres",
+  "settingsSectionNotifications": "Notifications",
+  "settingsSectionHelp": "Aide",
+  "settingsReceiveAlerts": "Recevoir les alertes",
+  "settingsReceiveAlertsDescription": "Notifications de coupures dans votre zone",
+  "settingsReplayOnboarding": "Revoir le tutoriel",
+  "settingsReplayOnboardingDescription": "Les explications affichées à la première ouverture",
+
+  "actionSignal": "Signaler",
+  "@actionSignal": {
+    "description": "CTA principal de création d'un signalement."
+  },
+
+  "snackOperationFailed": "Échec. Réessayez.",
+  "snackPositionUnavailable": "Position indisponible."
+}

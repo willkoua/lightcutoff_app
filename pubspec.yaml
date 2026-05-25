@@ -30,6 +30,12 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  # Localisations Material / Cupertino (auto-détection langue système).
+  flutter_localizations:
+    sdk: flutter
+  # Formatage dates / nombres locale-aware ; les versions sont gérées par
+  # flutter_localizations.
+  intl: any
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -78,6 +84,11 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # Génération automatique de `AppLocalizations` à partir des fichiers ARB
+  # déclarés dans `l10n.yaml`. Le code généré n'est PAS commité ; il est
+  # régénéré à chaque `flutter pub get` / build.
+  generate: true
 
   # To add assets to your application, add an assets section, like this:
   # assets:

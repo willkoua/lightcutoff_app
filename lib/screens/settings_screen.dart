@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/notification_service.dart';
@@ -14,14 +15,15 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Paramètres')),
+      appBar: AppBar(title: Text(l.settingsTitle)),
       body: ListView(
-        children: const [
-          _SectionHeader('Notifications'),
-          _NotificationsToggle(),
-          _SectionHeader('Aide'),
-          _ReplayOnboardingTile(),
+        children: [
+          _SectionHeader(l.settingsSectionNotifications),
+          const _NotificationsToggle(),
+          _SectionHeader(l.settingsSectionHelp),
+          const _ReplayOnboardingTile(),
         ],
       ),
     );
@@ -76,12 +78,13 @@ class _ReplayOnboardingTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return ListTile(
       leading: const Icon(Icons.help_outline, color: AppColors.gray),
-      title: const Text('Revoir le tutoriel'),
-      subtitle: const Text(
-        'Les explications affichées à la première ouverture',
-        style: TextStyle(color: AppColors.gray, fontSize: 13),
+      title: Text(l.settingsReplayOnboarding),
+      subtitle: Text(
+        l.settingsReplayOnboardingDescription,
+        style: const TextStyle(color: AppColors.gray, fontSize: 13),
       ),
       trailing: const Icon(Icons.chevron_right),
       onTap: () => _replay(context),
@@ -124,15 +127,16 @@ class _NotificationsToggleState extends State<_NotificationsToggle> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return SwitchListTile(
       secondary: const Icon(
         Icons.notifications_outlined,
         color: AppColors.gray,
       ),
-      title: const Text('Recevoir les alertes'),
-      subtitle: const Text(
-        'Notifications de coupures dans votre zone',
-        style: TextStyle(color: AppColors.gray, fontSize: 13),
+      title: Text(l.settingsReceiveAlerts),
+      subtitle: Text(
+        l.settingsReceiveAlertsDescription,
+        style: const TextStyle(color: AppColors.gray, fontSize: 13),
       ),
       value: _enabled ?? true,
       onChanged: (_enabled == null || _busy) ? null : _toggle,

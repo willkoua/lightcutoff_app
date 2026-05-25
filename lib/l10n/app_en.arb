@@ -1,0 +1,21 @@
+{
+  "@@locale": "en",
+
+  "appName": "NJUKA",
+  "navList": "List",
+  "navMap": "Map",
+  "navProfile": "Profile",
+
+  "settingsTitle": "Settings",
+  "settingsSectionNotifications": "Notifications",
+  "settingsSectionHelp": "Help",
+  "settingsReceiveAlerts": "Receive alerts",
+  "settingsReceiveAlertsDescription": "Outage notifications in your area",
+  "settingsReplayOnboarding": "Replay the tutorial",
+  "settingsReplayOnboardingDescription": "The explanations shown on first launch",
+
+  "actionSignal": "Report",
+
+  "snackOperationFailed": "Failed. Please try again.",
+  "snackPositionUnavailable": "Location unavailable."
+}
