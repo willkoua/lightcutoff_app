@@ -8,12 +8,13 @@ import '../providers/auth_provider.dart';
 import '../providers/report_provider.dart';
 import '../repositories/location_repository.dart';
 import '../theme/app_colors.dart';
+import 'report_detail_screen.dart';
 import '../utils/formatting.dart';
 import '../utils/media.dart';
 import '../widgets/location_permission_sheet.dart';
 import '../widgets/njuka_app_bar.dart';
 
-enum _DupChoice { confirm, anyway, cancel }
+enum _DupChoice { confirm, anyway, viewMine, cancel }
 
 class ReportFormScreen extends StatefulWidget {
   const ReportFormScreen({super.key});
@@ -144,11 +145,22 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
     final nearby = outcome.nearby;
 
     if (nearby != null) {
-      // Si la coupure existante est la sienne, on ne propose pas « Confirmer »
-      // (un auteur ne peut pas confirmer sa propre coupure).
+      // Si la coupure existante est la sienne, on bloque la création d'un
+      // doublon (« 1 report ongoing par user par zone ») : on propose
+      // seulement de la consulter ou d'annuler.
       final isOwn = provider.isAuthor(nearby);
       final choice = await _askDuplicate(nearby, isOwn: isOwn);
       if (!mounted || choice == _DupChoice.cancel) return;
+      if (choice == _DupChoice.viewMine) {
+        // Ferme le formulaire et ouvre le détail de la coupure existante.
+        Navigator.of(context).pop();
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => ReportDetailScreen(reportId: nearby.id),
+          ),
+        );
+        return;
+      }
       if (choice == _DupChoice.confirm) {
         final ok = await provider.confirm(nearby.id);
         if (!mounted) return;
@@ -158,7 +170,8 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
         );
         return;
       }
-      // _DupChoice.anyway : on crée un nouveau signalement.
+      // _DupChoice.anyway : on crée un nouveau signalement (cas tiers
+      // uniquement — pas proposé si isOwn).
     }
 
     final error = await provider.createFromDraft(
@@ -183,7 +196,9 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
                 '${relativeTime(nearby.reportedAt)} · '
                 '${nearby.confirmationCount} confirmation'
                 '${nearby.confirmationCount > 1 ? 's' : ''}\n\n'
-                'Vous pouvez la consulter ou en créer une nouvelle malgré tout.'
+                'Vous ne pouvez pas en créer une seconde tant qu\'elle est '
+                'en cours. Marquez-la rétablie depuis le détail si le '
+                'courant est revenu.'
             : 'Une coupure est déjà signalée près d\'ici :\n\n'
                 '$zone\n'
                 '${relativeTime(nearby.reportedAt)} · '
@@ -196,22 +211,42 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
           (ctx) => AlertDialog(
             title: Text(title),
             content: Text(body),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(_DupChoice.cancel),
-                child: const Text('Annuler'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(_DupChoice.anyway),
-                child: const Text('Signaler quand même'),
-              ),
-              // Bouton « Confirmer » caché si c'est notre propre coupure.
-              if (!isOwn)
-                ElevatedButton(
-                  onPressed: () => Navigator.of(ctx).pop(_DupChoice.confirm),
-                  child: const Text('Confirmer'),
-                ),
-            ],
+            actions:
+                isOwn
+                    // Cas « propre coupure » : pas de doublon possible.
+                    // L'utilisateur peut seulement consulter son signalement
+                    // ou annuler.
+                    ? [
+                      TextButton(
+                        onPressed:
+                            () => Navigator.of(ctx).pop(_DupChoice.cancel),
+                        child: const Text('Annuler'),
+                      ),
+                      ElevatedButton(
+                        onPressed:
+                            () => Navigator.of(ctx).pop(_DupChoice.viewMine),
+                        child: const Text('Voir mon signalement'),
+                      ),
+                    ]
+                    // Cas coupure d'un autre utilisateur : on propose de
+                    // confirmer, ou de signaler malgré tout en cas de doute.
+                    : [
+                      TextButton(
+                        onPressed:
+                            () => Navigator.of(ctx).pop(_DupChoice.cancel),
+                        child: const Text('Annuler'),
+                      ),
+                      TextButton(
+                        onPressed:
+                            () => Navigator.of(ctx).pop(_DupChoice.anyway),
+                        child: const Text('Signaler quand même'),
+                      ),
+                      ElevatedButton(
+                        onPressed:
+                            () => Navigator.of(ctx).pop(_DupChoice.confirm),
+                        child: const Text('Confirmer'),
+                      ),
+                    ],
           ),
     );
   }
