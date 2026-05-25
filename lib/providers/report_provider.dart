@@ -381,6 +381,9 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
         geohash: encodeGeohash(loc.position.lat, loc.position.lng),
       );
       await _service.createReport(report);
+      // En mode proximité (requête ponctuelle), on resynchronise tout de suite
+      // pour que le nouveau signalement apparaisse sans attendre le refresh.
+      if (_nearOnly) await _refreshNear();
       return null;
     } on LocationException catch (e) {
       return e.message;
@@ -504,6 +507,9 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
         geohash: encodeGeohash(draft.position.lat, draft.position.lng),
       );
       await _service.createReport(report);
+      // En mode proximité (requête ponctuelle), on resynchronise tout de suite
+      // pour que le nouveau signalement apparaisse sans attendre le refresh.
+      if (_nearOnly) await _refreshNear();
       return null;
     } catch (_) {
       return 'Échec du signalement. Réessayez.';

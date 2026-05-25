@@ -144,7 +144,10 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
     final nearby = outcome.nearby;
 
     if (nearby != null) {
-      final choice = await _askDuplicate(nearby);
+      // Si la coupure existante est la sienne, on ne propose pas « Confirmer »
+      // (un auteur ne peut pas confirmer sa propre coupure).
+      final isOwn = provider.isAuthor(nearby);
+      final choice = await _askDuplicate(nearby, isOwn: isOwn);
       if (!mounted || choice == _DupChoice.cancel) return;
       if (choice == _DupChoice.confirm) {
         final ok = await provider.confirm(nearby.id);
@@ -168,22 +171,31 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
     _finish(error ?? 'Coupure signalée. Merci !', success: error == null);
   }
 
-  Future<_DupChoice?> _askDuplicate(Report nearby) {
+  Future<_DupChoice?> _askDuplicate(Report nearby, {required bool isOwn}) {
     final zone =
         nearby.location.label.isEmpty ? 'à proximité' : nearby.location.label;
+    final title =
+        isOwn ? 'Vous avez déjà signalé ici' : 'Coupure déjà signalée';
+    final body =
+        isOwn
+            ? 'Vous avez déjà signalé une coupure dans cette zone :\n\n'
+                '$zone\n'
+                '${relativeTime(nearby.reportedAt)} · '
+                '${nearby.confirmationCount} confirmation'
+                '${nearby.confirmationCount > 1 ? 's' : ''}\n\n'
+                'Vous pouvez la consulter ou en créer une nouvelle malgré tout.'
+            : 'Une coupure est déjà signalée près d\'ici :\n\n'
+                '$zone\n'
+                '${relativeTime(nearby.reportedAt)} · '
+                '${nearby.confirmationCount} confirmation'
+                '${nearby.confirmationCount > 1 ? 's' : ''}\n\n'
+                'Voulez-vous la confirmer plutôt que d\'en créer une nouvelle ?';
     return showDialog<_DupChoice>(
       context: context,
       builder:
           (ctx) => AlertDialog(
-            title: const Text('Coupure déjà signalée'),
-            content: Text(
-              'Une coupure est déjà signalée près d\'ici :\n\n'
-              '$zone\n'
-              '${relativeTime(nearby.reportedAt)} · '
-              '${nearby.confirmationCount} confirmation'
-              '${nearby.confirmationCount > 1 ? 's' : ''}\n\n'
-              'Voulez-vous la confirmer plutôt que d\'en créer une nouvelle ?',
-            ),
+            title: Text(title),
+            content: Text(body),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(_DupChoice.cancel),
@@ -193,10 +205,12 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
                 onPressed: () => Navigator.of(ctx).pop(_DupChoice.anyway),
                 child: const Text('Signaler quand même'),
               ),
-              ElevatedButton(
-                onPressed: () => Navigator.of(ctx).pop(_DupChoice.confirm),
-                child: const Text('Confirmer'),
-              ),
+              // Bouton « Confirmer » caché si c'est notre propre coupure.
+              if (!isOwn)
+                ElevatedButton(
+                  onPressed: () => Navigator.of(ctx).pop(_DupChoice.confirm),
+                  child: const Text('Confirmer'),
+                ),
             ],
           ),
     );
