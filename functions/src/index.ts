@@ -1,11 +1,229 @@
 /**
- * Cloud Functions NJUKA — notifications push FCM.
+ * Cloud Functions NJUKA — notifications push FCM (Phase 4).
  *
- * Le déclencheur d'envoi des alertes de proximité sera ajouté en Phase 4 :
- *   onDocumentCreated("reports/{reportId}") → trouver les `devices` proches
- *   (zone de résidence puis geohash) → admin.messaging().sendEachForMulticast(...)
- *   en excluant l'auteur et en purgeant les tokens périmés.
+ * Déclencheur : à chaque création d'un signalement (`reports/{id}`), on
+ * notifie les devices dans un rayon de [NOTIFY_RADIUS_M] mètres.
  *
- * Scaffold initialisé en Phase 0 ; aucune fonction n'est encore déployée.
+ * Stratégie de ciblage (en deux temps) :
+ *   1. **Géohash** : si le report a une position et que des devices ont un
+ *      `geohash`, on utilise `geofire-common.geohashQueryBounds` pour borner
+ *      la collection (rapide, scalable).
+ *   2. **Fallback ville** : pour les devices sans geohash (permission GPS
+ *      refusée à l'enregistrement), on cible ceux dont `homeLocation.city`
+ *      correspond à `report.location.city`.
+ *
+ * Exclusions systématiques : auteur du report + devices avec `fcmEnabled` faux.
+ * Envoi par batches de 500 (limite FCM). Tokens `UNREGISTERED` / `INVALID`
+ * supprimés silencieusement (nettoyage opportuniste — Phase 5 ajoutera un
+ * cron de purge périodique).
  */
-export {};
+
+import * as admin from "firebase-admin";
+import { onDocumentCreated } from "firebase-functions/v2/firestore";
+import { logger } from "firebase-functions";
+import { geohashQueryBounds } from "geofire-common";
+
+admin.initializeApp();
+
+const NOTIFY_RADIUS_M = 2000;
+const BATCH_SIZE = 500;
+const OUTAGE_CHANNEL_ID = "njuka_outage_alerts";
+
+interface GeoPoint {
+  lat: number;
+  lng: number;
+}
+
+interface GeoArea {
+  country?: string;
+  region?: string;
+  city?: string;
+  neighborhood?: string;
+}
+
+interface ReportDoc {
+  userId: string;
+  position?: GeoPoint;
+  location?: GeoArea;
+  geohash?: string;
+  type?: string;
+  cause?: string; // anciens docs (avant le rename type)
+}
+
+interface DeviceDoc {
+  userId: string;
+  platform?: string;
+  homeLocation?: GeoArea;
+  geohash?: string;
+  fcmEnabled?: boolean;
+}
+
+export const onReportCreated = onDocumentCreated(
+  "reports/{reportId}",
+  async (event) => {
+    const snap = event.data;
+    if (!snap) {
+      logger.warn("Pas de snapshot dans l'event, abandon.");
+      return;
+    }
+    const report = snap.data() as ReportDoc;
+    const reportId = event.params.reportId;
+    const authorId = report.userId;
+
+    logger.info("onReportCreated", { reportId, authorId, type: report.type });
+
+    // 1. Récupération des devices candidats.
+    const candidates = await collectCandidates(report, authorId);
+    if (candidates.length === 0) {
+      logger.info("Aucun device candidat — pas d'envoi.");
+      return;
+    }
+    logger.info(`${candidates.length} device(s) candidat(s) à notifier.`);
+
+    // 2. Construction du payload commun.
+    const body = buildBody(report.location);
+    const dataPayload: Record<string, string> = {
+      reportId,
+      type: report.type ?? report.cause ?? "unplanned",
+    };
+
+    // 3. Envoi par batches de 500 (limite FCM).
+    const tokens = candidates.map((d) => d.id);
+    const toDelete: string[] = [];
+    let sent = 0;
+    let failed = 0;
+
+    for (let i = 0; i < tokens.length; i += BATCH_SIZE) {
+      const batch = tokens.slice(i, i + BATCH_SIZE);
+      const resp = await admin.messaging().sendEachForMulticast({
+        tokens: batch,
+        notification: {
+          title: "Coupure à proximité",
+          body,
+        },
+        data: dataPayload,
+        android: {
+          priority: "high",
+          notification: {
+            channelId: OUTAGE_CHANNEL_ID,
+            priority: "high",
+          },
+        },
+      });
+      sent += resp.successCount;
+      failed += resp.failureCount;
+
+      resp.responses.forEach((r, idx) => {
+        if (r.success) return;
+        const code = r.error?.code;
+        if (
+          code === "messaging/registration-token-not-registered" ||
+          code === "messaging/invalid-argument" ||
+          code === "messaging/invalid-registration-token"
+        ) {
+          toDelete.push(batch[idx]);
+        } else {
+          logger.warn("Envoi FCM échoué", {
+            token: batch[idx].slice(0, 12) + "…",
+            code,
+            message: r.error?.message,
+          });
+        }
+      });
+    }
+
+    logger.info(`FCM résultats — envoyé:${sent} échec:${failed}`);
+
+    // 4. Purge opportuniste des tokens morts.
+    if (toDelete.length > 0) {
+      logger.info(`Purge de ${toDelete.length} token(s) périmé(s).`);
+      const db = admin.firestore();
+      await Promise.all(
+        toDelete.map((token) =>
+          db
+            .collection("devices")
+            .doc(token)
+            .delete()
+            .catch((e) =>
+              logger.warn("Échec delete token", {
+                token: token.slice(0, 12),
+                e,
+              })
+            )
+        )
+      );
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Retourne la liste des devices candidats à notifier (déjà filtrés sur
+ * `fcmEnabled` et l'exclusion de l'auteur). Doublons éventuels écartés.
+ */
+async function collectCandidates(
+  report: ReportDoc,
+  authorId: string
+): Promise<FirebaseFirestore.QueryDocumentSnapshot[]> {
+  const db = admin.firestore();
+  const seen = new Set<string>();
+  const result: FirebaseFirestore.QueryDocumentSnapshot[] = [];
+
+  const pushUnique = (doc: FirebaseFirestore.QueryDocumentSnapshot) => {
+    if (seen.has(doc.id)) return;
+    const data = doc.data() as DeviceDoc;
+    if (data.userId === authorId) return;
+    if (data.fcmEnabled === false) return;
+    seen.add(doc.id);
+    result.push(doc);
+  };
+
+  // Voie 1 : devices avec geohash, dans les bounds calculés par geofire.
+  if (report.position) {
+    const center: [number, number] = [report.position.lat, report.position.lng];
+    const bounds = geohashQueryBounds(center, NOTIFY_RADIUS_M);
+    const geoQueries = bounds.map(([start, end]) =>
+      db
+        .collection("devices")
+        .orderBy("geohash")
+        .startAt(start)
+        .endAt(end)
+        .get()
+    );
+    const snapshots = await Promise.all(geoQueries);
+    snapshots.forEach((s) => s.docs.forEach(pushUnique));
+  }
+
+  // Voie 2 (fallback) : devices sans geohash mais dont la résidence est dans
+  // la même ville que le report.
+  const city = report.location?.city;
+  if (city) {
+    const citySnap = await db
+      .collection("devices")
+      .where("homeLocation.city", "==", city)
+      .get();
+    // On ne reprend QUE ceux qui n'ont pas de geohash (les autres ont déjà été
+    // traités par la voie 1, ou ne sont volontairement pas à proximité).
+    citySnap.docs.forEach((d) => {
+      const data = d.data() as DeviceDoc;
+      if (!data.geohash) pushUnique(d);
+    });
+  }
+
+  return result;
+}
+
+/** Construit le corps de la notif à partir de la zone du report. */
+function buildBody(area: GeoArea | undefined): string {
+  if (!area) return "Une coupure vient d'être signalée près de chez vous.";
+  const parts = [area.neighborhood, area.city].filter(
+    (s): s is string => !!s && s.length > 0
+  );
+  if (parts.length === 0) {
+    return "Une coupure vient d'être signalée près de chez vous.";
+  }
+  return `${parts.join(", ")} · à l'instant`;
+}

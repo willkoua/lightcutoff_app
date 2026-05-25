@@ -11,7 +11,10 @@ import '../config/app_constants.dart';
 import '../models/device.dart';
 import '../models/geo.dart';
 import '../repositories/device_repository.dart';
+import '../repositories/location_repository.dart';
+import '../services/location_service.dart';
 import '../utils/crash_reporter.dart';
+import '../utils/geohash.dart';
 import 'device_service.dart';
 
 /// Encapsule l'accès au SDK Firebase Cloud Messaging + l'affichage des
@@ -29,10 +32,12 @@ class NotificationService {
     FirebaseMessaging? messaging,
     DeviceRepository? deviceRepository,
     FlutterLocalNotificationsPlugin? localNotifications,
+    LocationRepository? location,
   }) : _messaging = messaging ?? FirebaseMessaging.instance,
        _devices = deviceRepository ?? DeviceService(),
        _localNotifications =
-           localNotifications ?? FlutterLocalNotificationsPlugin();
+           localNotifications ?? FlutterLocalNotificationsPlugin(),
+       _location = location ?? LocationService();
 
   /// Singleton partagé entre `main.dart` (init) et `AuthProvider`
   /// (register/unregister). Permet de garantir qu'on parle au même instance
@@ -48,6 +53,7 @@ class NotificationService {
   final FirebaseMessaging _messaging;
   final DeviceRepository _devices;
   final FlutterLocalNotificationsPlugin _localNotifications;
+  final LocationRepository _location;
 
   StreamSubscription<String>? _tokenSub;
   StreamSubscription<RemoteMessage>? _foregroundSub;
@@ -66,6 +72,12 @@ class NotificationService {
   String? _userId;
   GeoArea _homeLocation = const GeoArea();
   String? _lastToken;
+
+  /// Geohash de la position GPS capturée à l'enregistrement (ou rotation).
+  /// Permet à la Cloud Function de cibler les devices dans un rayon donné.
+  /// `null` si la localisation n'est pas autorisée → la CF retombe alors sur
+  /// un ciblage par [_homeLocation].city.
+  String? _currentGeohash;
 
   // ---------------------------------------------------------------------------
   // Initialisation (appelée une fois au démarrage de l'app)
@@ -218,6 +230,10 @@ class NotificationService {
       return;
     }
 
+    // Best-effort : capture du geohash pour le ciblage proximité côté CF.
+    // N'échoue jamais le flow d'enregistrement.
+    await _refreshGeohashIfGranted();
+
     final token = await _messaging.getToken();
     if (token == null) {
       debugPrint('[FCM] getToken() a renvoyé null');
@@ -254,6 +270,26 @@ class NotificationService {
     }
   }
 
+  /// Tentative non bloquante de récupération de la position GPS pour calculer
+  /// le geohash du device. N'appelle [getCurrentLocation] que si la
+  /// permission est **déjà accordée** — on ne déclenche pas de pop-up.
+  Future<void> _refreshGeohashIfGranted() async {
+    try {
+      final access = await _location.checkAccess();
+      if (access != LocationAccess.granted) return;
+      final result = await _location.getCurrentLocation();
+      _currentGeohash = encodeGeohash(
+        result.position.lat,
+        result.position.lng,
+        precision: AppConstants.geohashPrecision,
+      );
+      debugPrint('[FCM] geohash device = $_currentGeohash');
+    } catch (_) {
+      // Pas de position → on laisse le geohash à null (la CF fallback sur
+      // homeLocation.city).
+    }
+  }
+
   Future<void> _upsert(String token) async {
     _lastToken = token;
     final device = Device(
@@ -261,6 +297,7 @@ class NotificationService {
       userId: _userId ?? '',
       platform: _platform(),
       homeLocation: _homeLocation,
+      geohash: _currentGeohash,
       fcmEnabled: true,
     );
     // Imprime le token COMPLET dans les logs en debug — utile pour tester
