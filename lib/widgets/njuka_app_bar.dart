@@ -6,7 +6,8 @@ import 'filter_sheet.dart';
 /// AppBar commune de l'app. Le bouton **filtre / recherche** n'apparaît que si
 /// [filterProvider] est fourni (pages qui listent les coupures : Liste et Carte).
 /// La navigation (Liste / Carte / Profil) est portée par la barre du bas
-/// (`MainShell`), pas par l'entête.
+/// (`MainShell`), pas par l'entête. L'accès aux Paramètres vit dans l'AppBar
+/// de Profil (cf. `profile_screen.dart`).
 class NjukaAppBar extends StatelessWidget implements PreferredSizeWidget {
   const NjukaAppBar({super.key, required this.title, this.filterProvider});
 
