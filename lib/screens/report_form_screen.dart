@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
@@ -9,7 +10,7 @@ import '../providers/report_provider.dart';
 import '../repositories/location_repository.dart';
 import '../theme/app_colors.dart';
 import 'report_detail_screen.dart';
-import '../utils/formatting.dart';
+import '../utils/l10n_helpers.dart';
 import '../utils/media.dart';
 import '../widgets/location_permission_sheet.dart';
 import '../widgets/njuka_app_bar.dart';
@@ -49,7 +50,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
     if (!mounted) return;
     if (outcome.error != null) {
       setState(() => _uploadingMedia = false);
-      _snack(_mediaErrorMessage(outcome.error!));
+      _snack(_mediaErrorMessage(context, outcome.error!));
       return;
     }
     final media = outcome.media!;
@@ -62,16 +63,19 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
       _uploadingMedia = false;
       _mediaUrl = url;
     });
-    if (url == null) _snack('Échec de l\'ajout du média.');
+    if (url == null) {
+      _snack(AppLocalizations.of(context).reportFormMediaAddFailed);
+    }
   }
 
-  String _mediaErrorMessage(MediaError error) => switch (error) {
-    MediaError.unsupportedType =>
-      'Format non supporté. Utilisez un GIF, JPEG ou PNG.',
-    MediaError.tooLarge => 'Média trop volumineux (max 8 Mo).',
-    MediaError.invalidImage =>
-      'Image illisible. Réessayez avec un autre fichier.',
-  };
+  String _mediaErrorMessage(BuildContext context, MediaError error) {
+    final l = AppLocalizations.of(context);
+    return switch (error) {
+      MediaError.unsupportedType => l.reportFormMediaUnsupported,
+      MediaError.tooLarge => l.reportFormMediaTooLarge,
+      MediaError.invalidImage => l.reportFormMediaInvalidImage,
+    };
+  }
 
   void _snack(String message) {
     ScaffoldMessenger.of(context)
@@ -86,11 +90,12 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
 
   Future<void> _submit() async {
     final provider = context.read<ReportProvider>();
+    final l = AppLocalizations.of(context);
     final access = await provider.checkLocationAccess();
     if (!mounted) return;
     switch (access) {
       case LocationAccess.serviceDisabled:
-        _snack('Activez la localisation de l\'appareil pour signaler.');
+        _snack(l.reportFormEnableLocation);
         return;
       case LocationAccess.deniedForever:
         await _showSettingsDialog(provider);
@@ -107,26 +112,24 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
   Future<bool> _showLocationPriming() => showLocationPermissionSheet(context);
 
   Future<void> _showSettingsDialog(ReportProvider provider) async {
+    final l = AppLocalizations.of(context);
     await showDialog<void>(
       context: context,
       builder:
           (ctx) => AlertDialog(
-            title: const Text('Localisation désactivée'),
-            content: const Text(
-              'La permission de localisation a été refusée. Activez-la dans les '
-              'réglages de l\'application pour pouvoir signaler une coupure.',
-            ),
+            title: Text(l.reportFormLocationDeniedTitle),
+            content: Text(l.reportFormLocationDeniedBody),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('Annuler'),
+                child: Text(l.actionCancel),
               ),
               ElevatedButton(
                 onPressed: () {
                   Navigator.of(ctx).pop();
                   provider.openLocationSettings();
                 },
-                child: const Text('Ouvrir les réglages'),
+                child: Text(l.actionOpenSettings),
               ),
             ],
           ),
@@ -134,6 +137,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
   }
 
   Future<void> _proceed(ReportProvider provider) async {
+    final l = AppLocalizations.of(context);
     final authorUsername = context.read<AuthProvider>().profile?.username;
     final outcome = await provider.prepareReport();
     if (!mounted) return;
@@ -165,7 +169,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
         final ok = await provider.confirm(nearby.id);
         if (!mounted) return;
         _finish(
-          ok ? 'Coupure confirmée. Merci !' : 'Échec de la confirmation.',
+          ok ? l.reportFormConfirmedSuccess : l.reportDetailSnackConfirmFailed,
           success: ok,
         );
         return;
@@ -181,70 +185,55 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
       authorUsername: authorUsername,
     );
     if (!mounted) return;
-    _finish(error ?? 'Coupure signalée. Merci !', success: error == null);
+    _finish(error ?? l.reportFormCreatedSuccess, success: error == null);
   }
 
   Future<_DupChoice?> _askDuplicate(Report nearby, {required bool isOwn}) {
+    final l = AppLocalizations.of(context);
     final zone =
-        nearby.location.label.isEmpty ? 'à proximité' : nearby.location.label;
-    final title =
-        isOwn ? 'Vous avez déjà signalé ici' : 'Coupure déjà signalée';
+        nearby.location.label.isEmpty
+            ? l.duplicateZoneFallback
+            : nearby.location.label;
+    final time = relativeTimeL10n(context, nearby.reportedAt);
     final body =
         isOwn
-            ? 'Vous avez déjà signalé une coupure dans cette zone :\n\n'
-                '$zone\n'
-                '${relativeTime(nearby.reportedAt)} · '
-                '${nearby.confirmationCount} confirmation'
-                '${nearby.confirmationCount > 1 ? 's' : ''}\n\n'
-                'Vous ne pouvez pas en créer une seconde tant qu\'elle est '
-                'en cours. Marquez-la rétablie depuis le détail si le '
-                'courant est revenu.'
-            : 'Une coupure est déjà signalée près d\'ici :\n\n'
-                '$zone\n'
-                '${relativeTime(nearby.reportedAt)} · '
-                '${nearby.confirmationCount} confirmation'
-                '${nearby.confirmationCount > 1 ? 's' : ''}\n\n'
-                'Voulez-vous la confirmer plutôt que d\'en créer une nouvelle ?';
+            ? l.duplicateOwnBody(zone, time, nearby.confirmationCount)
+            : l.duplicateOtherBody(zone, time, nearby.confirmationCount);
     return showDialog<_DupChoice>(
       context: context,
       builder:
           (ctx) => AlertDialog(
-            title: Text(title),
+            title: Text(isOwn ? l.duplicateOwnTitle : l.duplicateOtherTitle),
             content: Text(body),
             actions:
                 isOwn
-                    // Cas « propre coupure » : pas de doublon possible.
-                    // L'utilisateur peut seulement consulter son signalement
-                    // ou annuler.
                     ? [
                       TextButton(
                         onPressed:
                             () => Navigator.of(ctx).pop(_DupChoice.cancel),
-                        child: const Text('Annuler'),
+                        child: Text(l.actionCancel),
                       ),
                       ElevatedButton(
                         onPressed:
                             () => Navigator.of(ctx).pop(_DupChoice.viewMine),
-                        child: const Text('Voir mon signalement'),
+                        child: Text(l.duplicateViewMine),
                       ),
                     ]
-                    // Cas coupure d'un autre utilisateur : on propose de
-                    // confirmer, ou de signaler malgré tout en cas de doute.
                     : [
                       TextButton(
                         onPressed:
                             () => Navigator.of(ctx).pop(_DupChoice.cancel),
-                        child: const Text('Annuler'),
+                        child: Text(l.actionCancel),
                       ),
                       TextButton(
                         onPressed:
                             () => Navigator.of(ctx).pop(_DupChoice.anyway),
-                        child: const Text('Signaler quand même'),
+                        child: Text(l.duplicateReportAnyway),
                       ),
                       ElevatedButton(
                         onPressed:
                             () => Navigator.of(ctx).pop(_DupChoice.confirm),
-                        child: const Text('Confirmer'),
+                        child: Text(l.actionConfirm),
                       ),
                     ],
           ),
@@ -254,39 +243,46 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
   @override
   Widget build(BuildContext context) {
     final submitting = context.watch<ReportProvider>().submitting;
+    final l = AppLocalizations.of(context);
     return Scaffold(
-      appBar: const NjukaAppBar(title: 'Signaler une coupure'),
+      appBar: NjukaAppBar(title: l.reportFormTitle),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.my_location, size: 18, color: AppColors.gray),
-                  SizedBox(width: 8),
+                  const Icon(
+                    Icons.my_location,
+                    size: 18,
+                    color: AppColors.gray,
+                  ),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Votre position actuelle sera utilisée pour localiser '
-                      'la coupure.',
-                      style: TextStyle(color: AppColors.gray, fontSize: 13),
+                      l.reportFormPositionHint,
+                      style: const TextStyle(
+                        color: AppColors.gray,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
-              const Text(
-                'Description (facultatif)',
-                style: TextStyle(fontWeight: FontWeight.w600),
+              Text(
+                l.reportFormDescriptionLabel,
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
               TextField(
                 controller: _description,
                 maxLines: 3,
                 maxLength: AppConstants.maxDescriptionLength,
-                decoration: const InputDecoration(
-                  hintText: 'Ex. tout le quartier est touché depuis ce matin.',
+                decoration: InputDecoration(
+                  hintText: l.reportFormDescriptionHint,
                 ),
               ),
               const SizedBox(height: 8),
@@ -310,7 +306,9 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
                           ),
                         )
                         : const Icon(Icons.send),
-                label: Text(submitting ? 'Envoi...' : 'Signaler'),
+                label: Text(
+                  submitting ? l.reportFormSubmitting : l.actionSignal,
+                ),
               ),
             ],
           ),
@@ -336,16 +334,20 @@ class _MediaField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     if (uploading) {
-      return const Row(
+      return Row(
         children: [
-          SizedBox(
+          const SizedBox(
             height: 18,
             width: 18,
             child: CircularProgressIndicator(strokeWidth: 2),
           ),
-          SizedBox(width: 10),
-          Text('Ajout du média…', style: TextStyle(color: AppColors.gray)),
+          const SizedBox(width: 10),
+          Text(
+            l.reportFormMediaUploading,
+            style: const TextStyle(color: AppColors.gray),
+          ),
         ],
       );
     }
@@ -355,7 +357,7 @@ class _MediaField extends StatelessWidget {
         child: OutlinedButton.icon(
           onPressed: onPick,
           icon: const Icon(Icons.add_photo_alternate_outlined),
-          label: const Text('Ajouter une image'),
+          label: Text(l.reportFormAddMedia),
         ),
       );
     }

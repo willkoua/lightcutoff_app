@@ -7,3 +7,10 @@ template-arb-file: app_fr.arb
 output-localization-file: app_localizations.dart
 output-class: AppLocalizations
 nullable-getter: false
+
+# Migration hors du paquet synthétique `package:flutter_gen` (déprécié dans
+# Flutter, sera retiré). Le code généré est désormais écrit en clair dans
+# `lib/l10n/generated/` et importé via `package:lightcutoff_app/...`. Ce
+# dossier est gitignoré : il est régénéré à chaque `flutter pub get`/build.
+synthetic-package: false
+output-dir: lib/l10n/generated

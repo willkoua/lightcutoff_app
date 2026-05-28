@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
@@ -28,7 +29,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     if (!mounted) return;
     setState(() => _checking = false);
     if (!verified) {
-      _snack('Email pas encore vérifié. Vérifiez votre boîte de réception.');
+      _snack(AppLocalizations.of(context).emailVerificationNotYet);
     }
   }
 
@@ -37,19 +38,20 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     await context.read<AuthProvider>().resendVerificationEmail();
     if (!mounted) return;
     setState(() => _resending = false);
-    _snack('Email de vérification renvoyé.');
+    _snack(AppLocalizations.of(context).emailVerificationResent);
   }
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final auth = context.watch<AuthProvider>();
     final email = auth.pendingEmail ?? '';
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Vérification'),
+        title: Text(l.emailVerificationTitle),
         actions: [
           IconButton(
-            tooltip: 'Se déconnecter',
+            tooltip: l.tooltipLogout,
             icon: const Icon(Icons.logout),
             onPressed: () => context.read<AuthProvider>().logout(),
           ),
@@ -69,15 +71,17 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                   color: AppColors.primary,
                 ),
                 const SizedBox(height: 20),
-                const Text(
-                  'Vérifiez votre email',
+                Text(
+                  l.emailVerificationHeading,
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Un lien de vérification a été envoyé à\n$email.\n\n'
-                  'Cliquez sur le lien, puis revenez ici.',
+                  l.emailVerificationBody(email),
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: AppColors.gray),
                 ),
@@ -94,12 +98,12 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                               color: AppColors.dark,
                             ),
                           )
-                          : const Text('J\'ai vérifié mon email'),
+                          : Text(l.emailVerificationCheckButton),
                 ),
                 const SizedBox(height: 8),
                 TextButton(
                   onPressed: _resending ? null : _resend,
-                  child: const Text('Renvoyer l\'email'),
+                  child: Text(l.emailVerificationResendAction),
                 ),
               ],
             ),

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/report_provider.dart';
@@ -30,18 +30,20 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final reports = context.watch<ReportProvider>();
+    final l = AppLocalizations.of(context);
     return Scaffold(
-      appBar: NjukaAppBar(title: 'Coupures signalées', filterProvider: reports),
+      appBar: NjukaAppBar(title: l.homeTitle, filterProvider: reports),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _open(context, const ReportFormScreen(), reports),
         icon: const Icon(Icons.add),
-        label: Text(AppLocalizations.of(context).actionSignal),
+        label: Text(l.actionSignal),
       ),
       body: _buildList(context, reports),
     );
   }
 
   Widget _buildList(BuildContext context, ReportProvider reports) {
+    final l = AppLocalizations.of(context);
     if (reports.loading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -57,8 +59,8 @@ class HomeScreen extends StatelessWidget {
                 : Icons.check_circle_outline,
         text:
             reports.hasActiveFilters
-                ? 'Aucune coupure ne correspond à votre recherche.'
-                : 'Aucune coupure signalée pour le moment.',
+                ? l.homeEmptyWithFilters
+                : l.homeEmptyAllReports,
       );
     }
     return Column(
@@ -110,7 +112,9 @@ class HomeScreen extends StatelessWidget {
                     if (context.mounted) {
                       _snack(
                         context,
-                        ok ? 'Coupure confirmée.' : 'Échec de la confirmation.',
+                        ok
+                            ? l.reportDetailSnackConfirmed
+                            : l.reportDetailSnackConfirmFailed,
                       );
                     }
                   },
@@ -120,8 +124,8 @@ class HomeScreen extends StatelessWidget {
                       _snack(
                         context,
                         ok
-                            ? 'Merci ! Votre déclaration a été enregistrée.'
-                            : 'Échec de la déclaration.',
+                            ? l.reportDetailSnackRestoredOk
+                            : l.reportDetailSnackRestoredFailed,
                       );
                     }
                   },
@@ -143,6 +147,7 @@ class _ActiveFiltersBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Container(
       width: double.infinity,
       color: AppColors.primary.withValues(alpha: 0.12),
@@ -151,16 +156,17 @@ class _ActiveFiltersBanner extends StatelessWidget {
         children: [
           const Icon(Icons.filter_alt, size: 18, color: AppColors.primary),
           const SizedBox(width: 8),
-          Text(
-            'Filtres actifs · $count résultat${count > 1 ? 's' : ''}',
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+          Expanded(
+            child: Text(
+              l.homeActiveFilters(count),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+            ),
           ),
-          const Spacer(),
           GestureDetector(
             onTap: onClear,
-            child: const Text(
-              'Effacer',
-              style: TextStyle(
+            child: Text(
+              l.homeClearFilters,
+              style: const TextStyle(
                 color: AppColors.orange,
                 fontWeight: FontWeight.w600,
               ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 
 import '../providers/report_provider.dart';
 import 'filter_sheet.dart';
@@ -24,7 +25,7 @@ class NjukaAppBar extends StatelessWidget implements PreferredSizeWidget {
       actions: [
         if (filterProvider != null)
           IconButton(
-            tooltip: 'Filtrer / rechercher',
+            tooltip: AppLocalizations.of(context).tooltipFilter,
             icon: Badge(
               isLabelVisible: filterProvider!.hasActiveFilters,
               smallSize: 9,

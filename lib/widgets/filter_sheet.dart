@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import '../models/enums.dart';
 import '../providers/report_provider.dart';
 import '../theme/app_colors.dart';
+import '../utils/l10n_helpers.dart';
 
 /// Ouvre la fenêtre de filtres/recherche (le provider est passé explicitement
 /// car le bottom sheet est rendu au-dessus du Navigator racine).
@@ -30,11 +32,16 @@ class _FilterSheet extends StatefulWidget {
 class _FilterSheetState extends State<_FilterSheet> {
   late final TextEditingController _search;
 
-  static const _sortLabels = {
-    ReportSort.recent: 'Récentes',
-    ReportSort.active: 'Actives',
-    ReportSort.confirmed: 'Confirmées',
-  };
+  String _sortLabel(AppLocalizations l, ReportSort s) {
+    switch (s) {
+      case ReportSort.recent:
+        return l.filterSheetSortRecent;
+      case ReportSort.active:
+        return l.filterSheetSortActive;
+      case ReportSort.confirmed:
+        return l.filterSheetSortConfirmed;
+    }
+  }
 
   @override
   void initState() {
@@ -50,6 +57,7 @@ class _FilterSheetState extends State<_FilterSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final p = context.watch<ReportProvider>();
     final count = p.filteredReports.length;
 
@@ -82,9 +90,12 @@ class _FilterSheetState extends State<_FilterSheet> {
             ),
             Row(
               children: [
-                const Text(
-                  'Filtres',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                Text(
+                  l.filterSheetTitle,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const Spacer(),
                 if (p.hasActiveFilters)
@@ -93,7 +104,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                       _search.clear();
                       p.clearFilters();
                     },
-                    child: const Text('Réinitialiser'),
+                    child: Text(l.filterSheetReset),
                   ),
               ],
             ),
@@ -101,53 +112,57 @@ class _FilterSheetState extends State<_FilterSheet> {
             TextField(
               controller: _search,
               onChanged: p.setQuery,
-              decoration: const InputDecoration(
-                hintText: 'Rechercher une zone…',
-                prefixIcon: Icon(Icons.search),
+              decoration: InputDecoration(
+                hintText: l.filterSheetSearchHint,
+                prefixIcon: const Icon(Icons.search),
               ),
             ),
             const SizedBox(height: 20),
-            _label('Statut'),
+            _label(l.filterSheetStatusSection),
             Wrap(
               spacing: 8,
               children: [
                 _filter(
-                  'En cours',
+                  l.statusOngoing,
                   p.statusFilter == OutageStatus.ongoing,
                   () => p.toggleStatusFilter(OutageStatus.ongoing),
                 ),
                 _filter(
-                  'Rétabli',
+                  l.statusResolved,
                   p.statusFilter == OutageStatus.resolved,
                   () => p.toggleStatusFilter(OutageStatus.resolved),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            _label('Type'),
+            _label(l.filterSheetTypeSection),
             Wrap(
               spacing: 8,
               children: [
                 _choice(
-                  'Toutes',
+                  l.filterSheetAllTypes,
                   p.typeFilter == null,
                   () => p.setTypeFilter(null),
                 ),
                 for (final t in OutageType.values)
                   _choice(
-                    t.label,
+                    outageTypeLabel(context, t),
                     p.typeFilter == t,
                     () => p.setTypeFilter(t),
                   ),
               ],
             ),
             const SizedBox(height: 16),
-            _label('Affichage'),
+            _label(l.filterSheetDisplaySection),
             Wrap(
               spacing: 8,
               children: [
-                _filter('Mes signalements', p.onlyMine, p.toggleOnlyMine),
-                _filter('À proximité', p.nearOnly, () async {
+                _filter(
+                  l.filterSheetMyReports,
+                  p.onlyMine,
+                  p.toggleOnlyMine,
+                ),
+                _filter(l.filterSheetNearby, p.nearOnly, () async {
                   final err = await p.setNearOnly(!p.nearOnly);
                   if (err != null && context.mounted) {
                     ScaffoldMessenger.of(context)
@@ -158,18 +173,18 @@ class _FilterSheetState extends State<_FilterSheet> {
               ],
             ),
             const SizedBox(height: 16),
-            _label('Trier par'),
+            _label(l.filterSheetSortSection),
             Wrap(
               spacing: 8,
               children: [
                 for (final s in ReportSort.values)
-                  _choice(_sortLabels[s]!, p.sort == s, () => p.setSort(s)),
+                  _choice(_sortLabel(l, s), p.sort == s, () => p.setSort(s)),
               ],
             ),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text('Voir $count résultat${count > 1 ? 's' : ''}'),
+              child: Text(l.filterSheetSeeResults(count)),
             ),
           ],
         ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import '../models/geo.dart';
@@ -51,13 +52,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _pickBirthDate() async {
     FocusScope.of(context).unfocus();
+    final l = AppLocalizations.of(context);
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
       initialDate: _birthDate ?? DateTime(now.year - 25),
       firstDate: DateTime(1900),
       lastDate: now,
-      helpText: 'Date de naissance',
+      helpText: l.profileBirthDate,
     );
     if (picked != null) setState(() => _birthDate = picked);
   }
@@ -66,6 +68,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
     final auth = context.read<AuthProvider>();
+    final l = AppLocalizations.of(context);
     final ok = await auth.updateProfile(
       firstName: _firstName.text,
       lastName: _lastName.text,
@@ -82,12 +85,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('Profil mis à jour.')));
+        ..showSnackBar(SnackBar(content: Text(l.editProfileSaved)));
     } else {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          SnackBar(content: Text(auth.error ?? 'Échec de la mise à jour.')),
+          SnackBar(content: Text(auth.error ?? l.editProfileSaveFailed)),
         );
     }
   }
@@ -95,8 +98,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final busy = context.watch<AuthProvider>().busy;
+    final l = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Modifier le profil')),
+      appBar: AppBar(title: Text(l.editProfileTitle)),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -108,33 +112,41 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 TextFormField(
                   controller: _firstName,
                   textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
-                    labelText: 'Prénom',
-                    prefixIcon: Icon(Icons.person_outline),
+                  decoration: InputDecoration(
+                    labelText: l.registerFirstNameLabel,
+                    prefixIcon: const Icon(Icons.person_outline),
                   ),
-                  validator: (v) => Validators.required(v, label: 'Le prénom'),
+                  validator:
+                      (v) => l.validateRequired(
+                        v,
+                        label: l.registerFirstNameRequired,
+                      ),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _lastName,
                   textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
-                    labelText: 'Nom',
-                    prefixIcon: Icon(Icons.badge_outlined),
+                  decoration: InputDecoration(
+                    labelText: l.registerLastNameLabel,
+                    prefixIcon: const Icon(Icons.badge_outlined),
                   ),
-                  validator: (v) => Validators.required(v, label: 'Le nom'),
+                  validator:
+                      (v) => l.validateRequired(
+                        v,
+                        label: l.registerLastNameRequired,
+                      ),
                 ),
                 const SizedBox(height: 16),
                 InkWell(
                   onTap: _pickBirthDate,
                   child: InputDecorator(
-                    decoration: const InputDecoration(
-                      labelText: 'Date de naissance',
-                      prefixIcon: Icon(Icons.cake_outlined),
+                    decoration: InputDecoration(
+                      labelText: l.registerBirthDateLabel,
+                      prefixIcon: const Icon(Icons.cake_outlined),
                     ),
                     child: Text(
                       _birthDate == null
-                          ? 'Sélectionner…'
+                          ? l.actionSelect
                           : formatDate(_birthDate!),
                       style: TextStyle(
                         color: _birthDate == null ? AppColors.gray : null,
@@ -146,39 +158,39 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 TextFormField(
                   controller: _phone,
                   keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    labelText: 'Téléphone',
-                    prefixIcon: Icon(Icons.phone_outlined),
+                  decoration: InputDecoration(
+                    labelText: l.registerPhoneLabel,
+                    prefixIcon: const Icon(Icons.phone_outlined),
                   ),
-                  validator: Validators.phone,
+                  validator: l.validatePhone,
                 ),
                 const SizedBox(height: 24),
-                const Text(
-                  'Résidence',
-                  style: TextStyle(fontWeight: FontWeight.w600),
+                Text(
+                  l.editProfileResidence,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _city,
-                  decoration: const InputDecoration(
-                    labelText: 'Ville',
-                    prefixIcon: Icon(Icons.location_city_outlined),
+                  decoration: InputDecoration(
+                    labelText: l.editProfileCity,
+                    prefixIcon: const Icon(Icons.location_city_outlined),
                   ),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _region,
-                  decoration: const InputDecoration(
-                    labelText: 'Région',
-                    prefixIcon: Icon(Icons.map_outlined),
+                  decoration: InputDecoration(
+                    labelText: l.editProfileRegion,
+                    prefixIcon: const Icon(Icons.map_outlined),
                   ),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _country,
-                  decoration: const InputDecoration(
-                    labelText: 'Pays',
-                    prefixIcon: Icon(Icons.public_outlined),
+                  decoration: InputDecoration(
+                    labelText: l.editProfileCountry,
+                    prefixIcon: const Icon(Icons.public_outlined),
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -194,7 +206,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               color: AppColors.dark,
                             ),
                           )
-                          : const Text('Enregistrer'),
+                          : Text(l.actionSave),
                 ),
               ],
             ),

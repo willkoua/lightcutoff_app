@@ -33,6 +33,10 @@ migrate_working_dir/
 .pub/
 /build/
 
+# Localisations Flutter générées (synthetic-package désactivé) — régénérées
+# automatiquement à chaque `flutter pub get` / `flutter gen-l10n`.
+/lib/l10n/generated/
+
 # Symbolication related
 app.*.symbols
 

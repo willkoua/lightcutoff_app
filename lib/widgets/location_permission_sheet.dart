@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 
 import '../theme/app_colors.dart';
 
@@ -20,6 +21,7 @@ class _LocationPermissionSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.white,
@@ -64,45 +66,48 @@ class _LocationPermissionSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          const Text(
-            'Activer la localisation',
+          Text(
+            l.locationSheetTitle,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'NJUKA a besoin de votre position pour situer correctement '
-            'la coupure que vous signalez.',
+          Text(
+            l.locationSheetBody,
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.gray, fontSize: 15, height: 1.4),
+            style: const TextStyle(
+              color: AppColors.gray,
+              fontSize: 15,
+              height: 1.4,
+            ),
           ),
           const SizedBox(height: 24),
-          const _Bullet(
+          _Bullet(
             icon: Icons.place_outlined,
-            text: 'Localise précisément la coupure signalée',
+            text: l.locationSheetBullet1,
           ),
           const SizedBox(height: 14),
-          const _Bullet(
+          _Bullet(
             icon: Icons.lock_outline,
-            text: 'Utilisée uniquement pour le signalement',
+            text: l.locationSheetBullet2,
           ),
           const SizedBox(height: 14),
-          const _Bullet(
+          _Bullet(
             icon: Icons.visibility_off_outlined,
-            text: 'Jamais partagée à des tiers',
+            text: l.locationSheetBullet3,
           ),
           const SizedBox(height: 28),
           ElevatedButton.icon(
             onPressed: () => Navigator.of(context).pop(true),
             icon: const Icon(Icons.check),
-            label: const Text('Autoriser la localisation'),
+            label: Text(l.locationSheetAllowAction),
           ),
           const SizedBox(height: 4),
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text(
-              'Plus tard',
-              style: TextStyle(color: AppColors.gray),
+            child: Text(
+              l.actionLater,
+              style: const TextStyle(color: AppColors.gray),
             ),
           ),
         ],

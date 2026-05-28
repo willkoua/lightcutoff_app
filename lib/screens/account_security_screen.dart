@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
@@ -13,7 +14,7 @@ class AccountSecurityScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Sécurité')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context).securityTitle)),
       body: const SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.all(24),
@@ -55,6 +56,7 @@ class _ChangeEmailFormState extends State<_ChangeEmailForm> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _busy = true);
     final auth = context.read<AuthProvider>();
+    final l = AppLocalizations.of(context);
     final ok = await auth.changeEmail(
       newEmail: _newEmail.text,
       currentPassword: _password.text,
@@ -67,9 +69,8 @@ class _ChangeEmailFormState extends State<_ChangeEmailForm> {
         SnackBar(
           content: Text(
             ok
-                ? 'Un lien de confirmation a été envoyé à la nouvelle adresse. '
-                    'Reconnecte-toi avec le nouvel email après confirmation.'
-                : (auth.error ?? 'Échec du changement d\'email.'),
+                ? l.securityChangeEmailSuccess
+                : (auth.error ?? l.securityChangeEmailFailed),
           ),
         ),
       );
@@ -81,35 +82,36 @@ class _ChangeEmailFormState extends State<_ChangeEmailForm> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Form(
       key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            'Changer l\'email',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          Text(
+            l.securityChangeEmailHeading,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           TextFormField(
             controller: _newEmail,
             keyboardType: TextInputType.emailAddress,
             autocorrect: false,
-            decoration: const InputDecoration(
-              labelText: 'Nouvel email',
-              prefixIcon: Icon(Icons.email_outlined),
+            decoration: InputDecoration(
+              labelText: l.securityNewEmailLabel,
+              prefixIcon: const Icon(Icons.email_outlined),
             ),
-            validator: Validators.email,
+            validator: l.validateEmail,
           ),
           const SizedBox(height: 16),
           TextFormField(
             controller: _password,
             obscureText: true,
-            decoration: const InputDecoration(
-              labelText: 'Mot de passe actuel',
-              prefixIcon: Icon(Icons.lock_outline),
+            decoration: InputDecoration(
+              labelText: l.securityCurrentPasswordLabel,
+              prefixIcon: const Icon(Icons.lock_outline),
             ),
-            validator: Validators.password,
+            validator: l.validatePassword,
           ),
           const SizedBox(height: 16),
           ElevatedButton(
@@ -124,7 +126,7 @@ class _ChangeEmailFormState extends State<_ChangeEmailForm> {
                         color: AppColors.dark,
                       ),
                     )
-                    : const Text('Changer l\'email'),
+                    : Text(l.securityChangeEmailButton),
           ),
         ],
       ),
@@ -158,6 +160,7 @@ class _ChangePasswordFormState extends State<_ChangePasswordForm> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _busy = true);
     final auth = context.read<AuthProvider>();
+    final l = AppLocalizations.of(context);
     final ok = await auth.changePassword(
       newPassword: _newPassword.text,
       currentPassword: _current.text,
@@ -170,8 +173,8 @@ class _ChangePasswordFormState extends State<_ChangePasswordForm> {
         SnackBar(
           content: Text(
             ok
-                ? 'Mot de passe mis à jour.'
-                : (auth.error ?? 'Échec du changement de mot de passe.'),
+                ? l.securityChangePasswordSuccess
+                : (auth.error ?? l.securityChangePasswordFailed),
           ),
         ),
       );
@@ -184,47 +187,48 @@ class _ChangePasswordFormState extends State<_ChangePasswordForm> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Form(
       key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            'Changer le mot de passe',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          Text(
+            l.securityChangePasswordHeading,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           TextFormField(
             controller: _current,
             obscureText: true,
-            decoration: const InputDecoration(
-              labelText: 'Mot de passe actuel',
-              prefixIcon: Icon(Icons.lock_outline),
+            decoration: InputDecoration(
+              labelText: l.securityCurrentPasswordLabel,
+              prefixIcon: const Icon(Icons.lock_outline),
             ),
-            validator: Validators.password,
+            validator: l.validatePassword,
           ),
           const SizedBox(height: 16),
           TextFormField(
             controller: _newPassword,
             obscureText: true,
-            decoration: const InputDecoration(
-              labelText: 'Nouveau mot de passe',
-              prefixIcon: Icon(Icons.lock_reset_outlined),
+            decoration: InputDecoration(
+              labelText: l.securityNewPasswordLabel,
+              prefixIcon: const Icon(Icons.lock_reset_outlined),
             ),
-            validator: Validators.password,
+            validator: l.validatePassword,
           ),
           const SizedBox(height: 16),
           TextFormField(
             controller: _confirm,
             obscureText: true,
-            decoration: const InputDecoration(
-              labelText: 'Confirmer le nouveau mot de passe',
-              prefixIcon: Icon(Icons.lock_reset_outlined),
+            decoration: InputDecoration(
+              labelText: l.securityConfirmNewPasswordLabel,
+              prefixIcon: const Icon(Icons.lock_reset_outlined),
             ),
             validator:
                 (v) =>
                     v != _newPassword.text
-                        ? 'Les mots de passe diffèrent'
+                        ? l.registerPasswordsMismatch
                         : null,
           ),
           const SizedBox(height: 16),
@@ -240,7 +244,7 @@ class _ChangePasswordFormState extends State<_ChangePasswordForm> {
                         color: AppColors.dark,
                       ),
                     )
-                    : const Text('Changer le mot de passe'),
+                    : Text(l.securityChangePasswordButton),
           ),
         ],
       ),

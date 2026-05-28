@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 import 'package:provider/provider.dart';
 
-import '../models/enums.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_colors.dart';
 import '../utils/formatting.dart';
+import '../utils/l10n_helpers.dart';
 import 'account_security_screen.dart';
 import 'edit_profile_screen.dart';
 import 'settings_screen.dart';
@@ -15,14 +16,15 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final profile = context.watch<AuthProvider>().profile;
+    final l = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mon profil'),
+        title: Text(l.profileTitle),
         actions: [
           if (profile != null)
             IconButton(
-              tooltip: 'Modifier',
+              tooltip: l.profileTooltipEdit,
               icon: const Icon(Icons.edit_outlined),
               onPressed:
                   () => Navigator.of(context).push(
@@ -32,7 +34,7 @@ class ProfileScreen extends StatelessWidget {
                   ),
             ),
           IconButton(
-            tooltip: 'Paramètres',
+            tooltip: l.profileTooltipSettings,
             icon: const Icon(Icons.settings_outlined),
             onPressed:
                 () => Navigator.of(context).push(
@@ -77,39 +79,39 @@ class ProfileScreen extends StatelessWidget {
                   const SizedBox(height: 24),
                   _InfoTile(
                     icon: Icons.cake_outlined,
-                    label: 'Date de naissance',
+                    label: l.profileBirthDate,
                     value:
                         profile.birthDate != null
                             ? formatDate(profile.birthDate!)
-                            : 'Non renseignée',
+                            : l.profileBirthDateMissing,
                   ),
                   _InfoTile(
                     icon: Icons.phone_outlined,
-                    label: 'Téléphone',
+                    label: l.profilePhone,
                     value:
                         profile.phoneNumber?.isNotEmpty == true
                             ? profile.phoneNumber!
-                            : 'Non renseigné',
+                            : l.profilePhoneMissing,
                   ),
                   _InfoTile(
                     icon: Icons.place_outlined,
-                    label: 'Résidence',
+                    label: l.profileResidence,
                     value:
                         profile.homeLocation.label.isEmpty
-                            ? 'Non renseignée'
+                            ? l.profileResidenceMissing
                             : profile.homeLocation.label,
                   ),
                   _InfoTile(
                     icon: Icons.badge_outlined,
-                    label: 'Rôle',
-                    value: profile.role.label,
+                    label: l.profileRole,
+                    value: userRoleLabel(context, profile.role),
                   ),
                   _InfoTile(
                     icon: Icons.event_outlined,
-                    label: 'Membre depuis',
+                    label: l.profileMemberSince,
                     value:
                         profile.createdAt != null
-                            ? relativeTime(profile.createdAt)
+                            ? relativeTimeL10n(context, profile.createdAt)
                             : '—',
                   ),
                   const SizedBox(height: 8),
@@ -119,10 +121,13 @@ class ProfileScreen extends StatelessWidget {
                       Icons.shield_outlined,
                       color: AppColors.gray,
                     ),
-                    title: const Text('Sécurité'),
-                    subtitle: const Text(
-                      'Email et mot de passe',
-                      style: TextStyle(color: AppColors.gray, fontSize: 13),
+                    title: Text(l.profileSecurityTitle),
+                    subtitle: Text(
+                      l.profileSecuritySubtitle,
+                      style: const TextStyle(
+                        color: AppColors.gray,
+                        fontSize: 13,
+                      ),
                     ),
                     trailing: const Icon(Icons.chevron_right),
                     onTap:
@@ -136,9 +141,9 @@ class ProfileScreen extends StatelessWidget {
                   OutlinedButton.icon(
                     onPressed: () => context.read<AuthProvider>().logout(),
                     icon: const Icon(Icons.logout, color: AppColors.orange),
-                    label: const Text(
-                      'Se déconnecter',
-                      style: TextStyle(color: AppColors.orange),
+                    label: Text(
+                      l.profileLogoutButton,
+                      style: const TextStyle(color: AppColors.orange),
                     ),
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size.fromHeight(50),

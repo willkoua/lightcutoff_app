@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:latlong2/latlong.dart';
@@ -73,7 +73,7 @@ class _MapScreenState extends State<MapScreen> {
     final pos = await context.read<ReportProvider>().myPosition();
     if (!mounted) return;
     if (pos == null) {
-      _snack('Position indisponible.');
+      _snack(AppLocalizations.of(context).snackPositionUnavailable);
       return;
     }
     setState(() => _myPos = LatLng(pos.lat, pos.lng));
@@ -97,6 +97,7 @@ class _MapScreenState extends State<MapScreen> {
 
   void _openDetails(Report report) {
     final provider = context.read<ReportProvider>();
+    final l = AppLocalizations.of(context);
     showModalBottomSheet(
       context: context,
       showDragHandle: true,
@@ -108,7 +109,11 @@ class _MapScreenState extends State<MapScreen> {
               Navigator.of(sheetContext).pop();
               final ok = await provider.confirm(report.id);
               if (mounted) {
-                _snack(ok ? 'Coupure confirmée.' : 'Échec de la confirmation.');
+                _snack(
+                  ok
+                      ? l.reportDetailSnackConfirmed
+                      : l.reportDetailSnackConfirmFailed,
+                );
               }
             },
             onMarkRestored: () async {
@@ -117,8 +122,8 @@ class _MapScreenState extends State<MapScreen> {
               if (mounted) {
                 _snack(
                   ok
-                      ? 'Merci ! Votre déclaration a été enregistrée.'
-                      : 'Échec de la déclaration.',
+                      ? l.reportDetailSnackRestoredOk
+                      : l.reportDetailSnackRestoredFailed,
                 );
               }
             },
@@ -136,9 +141,10 @@ class _MapScreenState extends State<MapScreen> {
     // Recadrage automatique dès que tout est prêt.
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybeFit(points));
 
+    final l = AppLocalizations.of(context);
     return Scaffold(
       appBar: NjukaAppBar(
-        title: 'Carte des coupures',
+        title: l.mapTitle,
         filterProvider: provider,
       ),
       // FAB « Signaler » à gauche pour ne pas chevaucher la colonne de
@@ -149,7 +155,7 @@ class _MapScreenState extends State<MapScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openReportForm(provider),
         icon: const Icon(Icons.add),
-        label: Text(AppLocalizations.of(context).actionSignal),
+        label: Text(l.actionSignal),
       ),
       body: Stack(
         children: [

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 
 import '../models/enums.dart';
 import '../models/report.dart';
 import '../theme/app_colors.dart';
-import '../utils/formatting.dart';
+import '../utils/l10n_helpers.dart';
 
 class ReportCard extends StatelessWidget {
   const ReportCard({
@@ -23,9 +24,12 @@ class ReportCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final ongoing = report.status == OutageStatus.ongoing;
     final location =
-        report.location.label.isEmpty ? 'Zone inconnue' : report.location.label;
+        report.location.label.isEmpty
+            ? l.reportDetailZoneUnknown
+            : report.location.label;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -40,10 +44,13 @@ class ReportCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  _StatusChip(ongoing: ongoing, label: report.status.label),
+                  _StatusChip(
+                    ongoing: ongoing,
+                    label: outageStatusLabel(context, report.status),
+                  ),
                   const Spacer(),
                   Text(
-                    relativeTime(report.reportedAt),
+                    relativeTimeL10n(context, report.reportedAt),
                     style: const TextStyle(color: AppColors.gray, fontSize: 12),
                   ),
                 ],
@@ -67,7 +74,7 @@ class ReportCard extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                report.type.label,
+                outageTypeLabel(context, report.type),
                 style: const TextStyle(color: AppColors.gray, fontSize: 13),
               ),
               if (report.authorUsername != null &&
@@ -110,8 +117,7 @@ class ReportCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    '${report.confirmationCount} confirmation'
-                    '${report.confirmationCount > 1 ? 's' : ''}',
+                    l.reportCardConfirmationsCount(report.confirmationCount),
                     style: const TextStyle(color: AppColors.gray, fontSize: 13),
                   ),
                   if (report.restorationCount > 0) ...[
@@ -144,12 +150,12 @@ class ReportCard extends StatelessWidget {
                       TextButton.icon(
                         onPressed: onConfirm,
                         icon: const Icon(Icons.thumb_up_outlined, size: 18),
-                        label: const Text('Confirmer'),
+                        label: Text(l.reportCardConfirm),
                       ),
                     TextButton.icon(
                       onPressed: onMarkRestored,
                       icon: const Icon(Icons.lightbulb_outline, size: 18),
-                      label: const Text('Courant revenu'),
+                      label: Text(l.reportCardCourantRevenu),
                     ),
                   ],
                 ),

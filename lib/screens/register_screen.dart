@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:provider/provider.dart';
 
@@ -40,13 +41,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _pickBirthDate() async {
     FocusScope.of(context).unfocus();
+    final l = AppLocalizations.of(context);
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
       initialDate: _birthDate ?? DateTime(now.year - 25),
       firstDate: DateTime(1900),
       lastDate: now,
-      helpText: 'Date de naissance',
+      helpText: l.registerBirthDateLabel,
     );
     if (picked != null) setState(() => _birthDate = picked);
   }
@@ -54,8 +56,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
+    final l = AppLocalizations.of(context);
     if (_birthDate == null) {
-      _snack('Indiquez votre date de naissance.');
+      _snack(l.registerBirthDateMissing);
       return;
     }
     final auth = context.read<AuthProvider>();
@@ -65,7 +68,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!mounted) return;
     setState(() => _checkingUsername = false);
     if (!available) {
-      _snack('Ce pseudo est déjà pris.');
+      _snack(l.registerUsernameTaken);
       return;
     }
     final ok = await auth.register(
@@ -94,8 +97,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final busy = context.watch<AuthProvider>().busy;
+    final l = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Créer un compte')),
+      appBar: AppBar(title: Text(l.registerTitle)),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -108,33 +112,41 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   controller: _firstName,
                   textInputAction: TextInputAction.next,
                   textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
-                    labelText: 'Prénom',
-                    prefixIcon: Icon(Icons.person_outline),
+                  decoration: InputDecoration(
+                    labelText: l.registerFirstNameLabel,
+                    prefixIcon: const Icon(Icons.person_outline),
                   ),
-                  validator: (v) => Validators.required(v, label: 'Le prénom'),
+                  validator:
+                      (v) => l.validateRequired(
+                        v,
+                        label: l.registerFirstNameRequired,
+                      ),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _lastName,
                   textInputAction: TextInputAction.next,
                   textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
-                    labelText: 'Nom',
-                    prefixIcon: Icon(Icons.badge_outlined),
+                  decoration: InputDecoration(
+                    labelText: l.registerLastNameLabel,
+                    prefixIcon: const Icon(Icons.badge_outlined),
                   ),
-                  validator: (v) => Validators.required(v, label: 'Le nom'),
+                  validator:
+                      (v) => l.validateRequired(
+                        v,
+                        label: l.registerLastNameRequired,
+                      ),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _username,
                   textInputAction: TextInputAction.next,
                   autocorrect: false,
-                  decoration: const InputDecoration(
-                    labelText: 'Pseudo',
-                    prefixIcon: Icon(Icons.alternate_email),
+                  decoration: InputDecoration(
+                    labelText: l.registerUsernameLabel,
+                    prefixIcon: const Icon(Icons.alternate_email),
                   ),
-                  validator: Validators.username,
+                  validator: l.validateUsername,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -142,24 +154,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
                   autocorrect: false,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    prefixIcon: Icon(Icons.email_outlined),
+                  decoration: InputDecoration(
+                    labelText: l.registerEmailLabel,
+                    prefixIcon: const Icon(Icons.email_outlined),
                   ),
-                  validator: Validators.email,
+                  validator: l.validateEmail,
                 ),
                 const SizedBox(height: 16),
                 // Date de naissance (sélecteur).
                 InkWell(
                   onTap: _pickBirthDate,
                   child: InputDecorator(
-                    decoration: const InputDecoration(
-                      labelText: 'Date de naissance',
-                      prefixIcon: Icon(Icons.cake_outlined),
+                    decoration: InputDecoration(
+                      labelText: l.registerBirthDateLabel,
+                      prefixIcon: const Icon(Icons.cake_outlined),
                     ),
                     child: Text(
                       _birthDate == null
-                          ? 'Sélectionner…'
+                          ? l.actionSelect
                           : formatDate(_birthDate!),
                       style: TextStyle(
                         color: _birthDate == null ? AppColors.gray : null,
@@ -169,10 +181,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 16),
                 IntlPhoneField(
-                  decoration: const InputDecoration(labelText: 'Téléphone'),
+                  decoration: InputDecoration(labelText: l.registerPhoneLabel),
                   initialCountryCode: 'CM',
-                  languageCode: 'fr',
-                  invalidNumberMessage: 'Numéro invalide',
+                  languageCode: Localizations.localeOf(context).languageCode,
+                  invalidNumberMessage: l.registerPhoneInvalid,
                   onChanged: (phone) => _phoneNumber = phone.completeNumber,
                 ),
                 const SizedBox(height: 16),
@@ -181,7 +193,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   obscureText: _obscure,
                   textInputAction: TextInputAction.next,
                   decoration: InputDecoration(
-                    labelText: 'Mot de passe',
+                    labelText: l.registerPasswordLabel,
                     prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
                       icon: Icon(
@@ -192,7 +204,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       onPressed: () => setState(() => _obscure = !_obscure),
                     ),
                   ),
-                  validator: Validators.password,
+                  validator: l.validatePassword,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -200,15 +212,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   obscureText: _obscure,
                   textInputAction: TextInputAction.done,
                   onFieldSubmitted: (_) => _submit(),
-                  decoration: const InputDecoration(
-                    labelText: 'Confirmer le mot de passe',
-                    prefixIcon: Icon(Icons.lock_outline),
+                  decoration: InputDecoration(
+                    labelText: l.registerPasswordConfirmLabel,
+                    prefixIcon: const Icon(Icons.lock_outline),
                   ),
                   validator:
                       (v) =>
-                          v != _password.text
-                              ? 'Les mots de passe diffèrent'
-                              : null,
+                          v != _password.text ? l.registerPasswordsMismatch : null,
                 ),
                 const SizedBox(height: 24),
                 ElevatedButton(
@@ -223,7 +233,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               color: AppColors.dark,
                             ),
                           )
-                          : const Text('Créer mon compte'),
+                          : Text(l.registerButton),
                 ),
               ],
             ),

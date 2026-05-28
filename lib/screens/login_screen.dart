@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
@@ -44,6 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final busy = context.watch<AuthProvider>().busy;
+    final l = AppLocalizations.of(context);
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -71,21 +73,21 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    'Connexion',
+                  Text(
+                    l.loginTitle,
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.gray),
+                    style: const TextStyle(color: AppColors.gray),
                   ),
                   const SizedBox(height: 32),
                   TextFormField(
                     controller: _identifier,
                     textInputAction: TextInputAction.next,
                     autocorrect: false,
-                    decoration: const InputDecoration(
-                      labelText: 'Pseudo ou email',
-                      prefixIcon: Icon(Icons.person_outline),
+                    decoration: InputDecoration(
+                      labelText: l.loginIdentifierLabel,
+                      prefixIcon: const Icon(Icons.person_outline),
                     ),
-                    validator: Validators.identifier,
+                    validator: l.validateIdentifier,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
@@ -94,7 +96,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     textInputAction: TextInputAction.done,
                     onFieldSubmitted: (_) => _submit(),
                     decoration: InputDecoration(
-                      labelText: 'Mot de passe',
+                      labelText: l.loginPasswordLabel,
                       prefixIcon: const Icon(Icons.lock_outline),
                       suffixIcon: IconButton(
                         icon: Icon(
@@ -105,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         onPressed: () => setState(() => _obscure = !_obscure),
                       ),
                     ),
-                    validator: Validators.password,
+                    validator: l.validatePassword,
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton(
@@ -120,13 +122,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                 color: AppColors.dark,
                               ),
                             )
-                            : const Text('Se connecter'),
+                            : Text(l.loginButton),
                   ),
                   const SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text('Pas encore de compte ?'),
+                      Text(l.loginNoAccount),
                       TextButton(
                         onPressed:
                             busy
@@ -136,7 +138,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     builder: (_) => const RegisterScreen(),
                                   ),
                                 ),
-                        child: const Text('S\'inscrire'),
+                        child: Text(l.loginRegisterAction),
                       ),
                     ],
                   ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 
 import '../theme/app_colors.dart';
 
@@ -22,26 +23,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _controller = PageController();
   int _index = 0;
 
-  static const _slides = [
-    _Slide(
-      Icons.flash_off,
-      'Bienvenue sur NJUKA',
-      'Signalez et suivez les coupures de courant autour de vous, en temps réel.',
-    ),
-    _Slide(
-      Icons.how_to_reg,
-      'Une coupure, une seule fois',
-      'Si une coupure est déjà signalée près de chez vous, confirmez-la au lieu d\'en créer une nouvelle. Plus de confirmations = plus de crédibilité.',
-    ),
+  List<_Slide> _buildSlides(AppLocalizations l) => [
+    _Slide(Icons.flash_off, l.onboardingSlide1Title, l.onboardingSlide1Body),
+    _Slide(Icons.how_to_reg, l.onboardingSlide2Title, l.onboardingSlide2Body),
     _Slide(
       Icons.lightbulb_outline,
-      'Le courant est revenu ?',
-      'Dites-le ! Quand assez de voisins confirment le retour du courant, la coupure se ferme automatiquement.',
+      l.onboardingSlide3Title,
+      l.onboardingSlide3Body,
     ),
     _Slide(
       Icons.notifications_active_outlined,
-      'Alertes à proximité',
-      'Recevez une notification dès qu\'une coupure est signalée dans un rayon de 2 km autour de chez vous.',
+      l.onboardingSlide4Title,
+      l.onboardingSlide4Body,
     ),
   ];
 
@@ -51,10 +44,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     super.dispose();
   }
 
-  bool get _isLast => _index == _slides.length - 1;
-
-  void _next() {
-    if (_isLast) {
+  void _next(int slideCount) {
+    final isLast = _index == slideCount - 1;
+    if (isLast) {
       widget.onDone();
     } else {
       _controller.nextPage(
@@ -66,6 +58,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final slides = _buildSlides(l);
+    final isLast = _index == slides.length - 1;
     return Scaffold(
       backgroundColor: AppColors.dark,
       body: SafeArea(
@@ -75,19 +70,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               alignment: Alignment.centerRight,
               child: TextButton(
                 onPressed: widget.onDone,
-                child: const Text(
-                  'Passer',
-                  style: TextStyle(color: Colors.white70),
+                child: Text(
+                  l.onboardingSkip,
+                  style: const TextStyle(color: Colors.white70),
                 ),
               ),
             ),
             Expanded(
               child: PageView.builder(
                 controller: _controller,
-                itemCount: _slides.length,
+                itemCount: slides.length,
                 onPageChanged: (i) => setState(() => _index = i),
                 itemBuilder: (_, i) {
-                  final s = _slides[i];
+                  final s = slides[i];
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 32),
                     child: Column(
@@ -123,7 +118,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(
-                _slides.length,
+                slides.length,
                 (i) => AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -141,8 +136,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _next,
-                  child: Text(_isLast ? 'Commencer' : 'Suivant'),
+                  onPressed: () => _next(slides.length),
+                  child: Text(
+                    isLast ? l.onboardingStart : l.onboardingNext,
+                  ),
                 ),
               ),
             ),

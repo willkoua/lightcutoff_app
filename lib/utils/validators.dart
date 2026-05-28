@@ -1,52 +1,57 @@
-class Validators {
-  Validators._();
+import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 
-  static final _emailRegex = RegExp(r'^[\w.+-]+@[\w-]+\.[\w.-]+$');
+// Regex partagées par les validators — privées au fichier.
+final _emailRegex = RegExp(r'^[\w.+-]+@[\w-]+\.[\w.-]+$');
+final _usernameRegex = RegExp(r'^[a-z0-9_.]+$');
 
-  static String? email(String? value) {
+/// Validateurs de formulaires localisés. Utilisation :
+///   `validator: AppLocalizations.of(context).validateEmail`
+///
+/// Pour les champs `required` avec un libellé personnalisé :
+///   `validator: (v) => l.validateRequired(v, label: l.registerFirstNameRequired)`
+extension Validators on AppLocalizations {
+  String? validateEmail(String? value) {
     final v = value?.trim() ?? '';
-    if (v.isEmpty) return 'L\'email est requis';
-    if (!_emailRegex.hasMatch(v)) return 'Email invalide';
+    if (v.isEmpty) return validatorEmailRequired;
+    if (!_emailRegex.hasMatch(v)) return validatorEmailInvalid;
     return null;
   }
 
-  static String? password(String? value) {
+  String? validatePassword(String? value) {
     final v = value ?? '';
-    if (v.isEmpty) return 'Le mot de passe est requis';
-    if (v.length < 6) return 'Au moins 6 caractères';
+    if (v.isEmpty) return validatorPasswordRequired;
+    if (v.length < 6) return validatorPasswordTooShort;
     return null;
   }
 
-  static String? required(String? value, {String label = 'Ce champ'}) {
-    if ((value?.trim() ?? '').isEmpty) return '$label est requis';
-    return null;
-  }
-
-  static final _usernameRegex = RegExp(r'^[a-z0-9_.]+$');
-
-  /// Pseudo : 3-20 caractères, minuscules/chiffres/_/. (normalisé en minuscules).
-  static String? username(String? value) {
-    final v = (value ?? '').trim().toLowerCase();
-    if (v.isEmpty) return 'Le pseudo est requis';
-    if (v.length < 3) return 'Au moins 3 caractères';
-    if (v.length > 20) return 'Au plus 20 caractères';
-    if (!_usernameRegex.hasMatch(v)) {
-      return 'Lettres, chiffres, _ ou . uniquement';
+  String? validateRequired(String? value, {String? label}) {
+    if ((value?.trim() ?? '').isEmpty) {
+      return validatorRequired(label ?? validatorRequiredFieldFallback);
     }
     return null;
   }
 
-  /// Identifiant de connexion : pseudo OU email (non vide).
-  static String? identifier(String? value) {
-    if ((value?.trim() ?? '').isEmpty) return 'Pseudo ou email requis';
+  /// Pseudo : 3-20 caractères, minuscules/chiffres/_/. (normalisé en minuscules).
+  String? validateUsername(String? value) {
+    final v = (value ?? '').trim().toLowerCase();
+    if (v.isEmpty) return validatorUsernameRequired;
+    if (v.length < 3) return validatorUsernameTooShort;
+    if (v.length > 20) return validatorUsernameTooLong;
+    if (!_usernameRegex.hasMatch(v)) return validatorUsernameInvalid;
     return null;
   }
 
-  static String? phone(String? value) {
+  /// Identifiant de connexion : pseudo OU email (non vide).
+  String? validateIdentifier(String? value) {
+    if ((value?.trim() ?? '').isEmpty) return validatorIdentifierRequired;
+    return null;
+  }
+
+  String? validatePhone(String? value) {
     final v = value?.trim() ?? '';
-    if (v.isEmpty) return 'Le téléphone est requis';
+    if (v.isEmpty) return validatorPhoneRequired;
     if (v.replaceAll(RegExp(r'[\s+]'), '').length < 8) {
-      return 'Numéro invalide';
+      return validatorPhoneInvalid;
     }
     return null;
   }

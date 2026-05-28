@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import '../models/confirmation.dart';
@@ -6,7 +7,7 @@ import '../models/enums.dart';
 import '../providers/auth_provider.dart';
 import '../providers/report_provider.dart';
 import '../theme/app_colors.dart';
-import '../utils/formatting.dart';
+import '../utils/l10n_helpers.dart';
 import '../widgets/njuka_app_bar.dart';
 
 class ReportDetailScreen extends StatelessWidget {
@@ -25,21 +26,17 @@ class ReportDetailScreen extends StatelessWidget {
     ReportProvider provider,
     String reportId,
   ) async {
+    final l = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder:
           (ctx) => AlertDialog(
-            title: const Text('Supprimer ce signalement ?'),
-            content: const Text(
-              'Le signalement disparaîtra immédiatement de l\'app pour tout le '
-              'monde. Les confirmations et déclarations associées seront '
-              'définitivement supprimées sous 30 jours. Cette action est '
-              'irréversible.',
-            ),
+            title: Text(l.reportDetailDeleteDialogTitle),
+            content: Text(l.reportDetailDeleteDialogBody),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Annuler'),
+                child: Text(l.actionCancel),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.of(ctx).pop(true),
@@ -47,7 +44,7 @@ class ReportDetailScreen extends StatelessWidget {
                   backgroundColor: AppColors.orange,
                   foregroundColor: AppColors.white,
                 ),
-                child: const Text('Supprimer'),
+                child: Text(l.actionDelete),
               ),
             ],
           ),
@@ -57,23 +54,24 @@ class ReportDetailScreen extends StatelessWidget {
     final ok = await provider.archive(reportId);
     if (!context.mounted) return;
     if (ok) {
-      _snack(context, 'Signalement supprimé.');
+      _snack(context, l.reportDetailDeleted);
       // On revient à la liste — l'écran de détail n'a plus de sens.
       Navigator.of(context).pop();
     } else {
-      _snack(context, 'Échec de la suppression.');
+      _snack(context, l.reportDetailDeleteFailed);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final provider = context.watch<ReportProvider>();
     final report = provider.reportById(reportId);
 
     if (report == null) {
-      return const Scaffold(
-        appBar: NjukaAppBar(title: 'Coupure'),
-        body: Center(child: Text('Coupure introuvable.')),
+      return Scaffold(
+        appBar: NjukaAppBar(title: l.reportDetailTitleShort),
+        body: Center(child: Text(l.reportDetailNotFound)),
       );
     }
 
@@ -85,22 +83,28 @@ class ReportDetailScreen extends StatelessWidget {
     final canViewTimeline = isAuthor || isAdmin;
 
     return Scaffold(
-      appBar: const NjukaAppBar(title: 'Détail de la coupure'),
+      appBar: NjukaAppBar(title: l.reportDetailTitle),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          _StatusChip(ongoing: ongoing, label: report.status.label),
+          _StatusChip(
+            ongoing: ongoing,
+            label: outageStatusLabel(context, report.status),
+          ),
           const SizedBox(height: 16),
           _InfoRow(
             icon: Icons.place_outlined,
             text:
                 report.location.label.isEmpty
-                    ? 'Zone inconnue'
+                    ? l.reportDetailZoneUnknown
                     : report.location.label,
             bold: true,
           ),
           const SizedBox(height: 8),
-          _InfoRow(icon: Icons.bolt_outlined, text: report.type.label),
+          _InfoRow(
+            icon: Icons.bolt_outlined,
+            text: outageTypeLabel(context, report.type),
+          ),
           if (report.authorUsername != null &&
               report.authorUsername!.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -112,13 +116,17 @@ class ReportDetailScreen extends StatelessWidget {
           const SizedBox(height: 8),
           _InfoRow(
             icon: Icons.schedule,
-            text: 'Signalée ${relativeTime(report.reportedAt)}',
+            text: l.reportDetailReportedAt(
+              relativeTimeL10n(context, report.reportedAt),
+            ),
           ),
           if (!ongoing && report.resolvedAt != null) ...[
             const SizedBox(height: 8),
             _InfoRow(
               icon: Icons.check_circle_outline,
-              text: 'Rétablie ${relativeTime(report.resolvedAt)}',
+              text: l.reportDetailResolvedAt(
+                relativeTimeL10n(context, report.resolvedAt),
+              ),
             ),
           ],
           if (report.description != null) ...[
@@ -161,13 +169,13 @@ class ReportDetailScreen extends StatelessWidget {
                     _snack(
                       context,
                       ok
-                          ? 'Coupure confirmée.'
-                          : 'Échec de la confirmation.',
+                          ? l.reportDetailSnackConfirmed
+                          : l.reportDetailSnackConfirmFailed,
                     );
                   }
                 },
                 icon: const Icon(Icons.thumb_up_outlined),
-                label: const Text('Confirmer cette coupure'),
+                label: Text(l.reportDetailConfirmButton),
               ),
             if (!isAuthor) const SizedBox(height: 8),
             OutlinedButton.icon(
@@ -177,13 +185,13 @@ class ReportDetailScreen extends StatelessWidget {
                   _snack(
                     context,
                     ok
-                        ? 'Merci ! Votre déclaration a été enregistrée.'
-                        : 'Échec de la déclaration.',
+                        ? l.reportDetailSnackRestoredOk
+                        : l.reportDetailSnackRestoredFailed,
                   );
                 }
               },
               icon: const Icon(Icons.lightbulb_outline),
-              label: const Text('Le courant est revenu chez moi'),
+              label: Text(l.reportDetailMarkRestoredButton),
             ),
           ],
           // Compteur public de rétablissements (sans détails individuels).
@@ -197,11 +205,14 @@ class ReportDetailScreen extends StatelessWidget {
                   color: AppColors.resolved,
                 ),
                 const SizedBox(width: 6),
-                Text(
-                  '${report.restorationCount} personne'
-                  '${report.restorationCount > 1 ? 's' : ''} '
-                  'ont annoncé le retour du courant',
-                  style: const TextStyle(color: AppColors.gray, fontSize: 13),
+                Expanded(
+                  child: Text(
+                    l.reportDetailRestorationCount(report.restorationCount),
+                    style: const TextStyle(
+                      color: AppColors.gray,
+                      fontSize: 13,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -218,9 +229,9 @@ class ReportDetailScreen extends StatelessWidget {
                 Icons.delete_outline,
                 color: AppColors.orange,
               ),
-              label: const Text(
-                'Supprimer ce signalement',
-                style: TextStyle(color: AppColors.orange),
+              label: Text(
+                l.reportDetailDeleteButton,
+                style: const TextStyle(color: AppColors.orange),
               ),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: AppColors.orange),
@@ -231,9 +242,9 @@ class ReportDetailScreen extends StatelessWidget {
           const SizedBox(height: 24),
           const Divider(),
           const SizedBox(height: 8),
-          const Text(
-            'Confirmations',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          Text(
+            l.reportDetailConfirmationsSection,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           if (canViewTimeline)
@@ -257,6 +268,7 @@ class _CountOnly extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -265,15 +277,15 @@ class _CountOnly extends StatelessWidget {
             const Icon(Icons.how_to_reg, size: 22, color: AppColors.primary),
             const SizedBox(width: 8),
             Text(
-              '$count confirmation${count > 1 ? 's' : ''}',
+              l.reportDetailConfirmationsCount(count),
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
           ],
         ),
         const SizedBox(height: 6),
-        const Text(
-          'Le détail des confirmations est privé.',
-          style: TextStyle(color: AppColors.gray, fontSize: 13),
+        Text(
+          l.reportDetailConfirmationsPrivate,
+          style: const TextStyle(color: AppColors.gray, fontSize: 13),
         ),
       ],
     );
@@ -293,6 +305,7 @@ class _ConfirmationTimeline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return StreamBuilder<List<Confirmation>>(
       stream: stream,
       builder: (context, snapshot) {
@@ -304,9 +317,9 @@ class _ConfirmationTimeline extends StatelessWidget {
         }
         final confirmations = snapshot.data ?? [];
         if (confirmations.isEmpty) {
-          return const Text(
-            'Aucune confirmation pour le moment.',
-            style: TextStyle(color: AppColors.gray),
+          return Text(
+            l.reportDetailNoConfirmations,
+            style: const TextStyle(color: AppColors.gray),
           );
         }
 
@@ -325,11 +338,14 @@ class _ConfirmationTimeline extends StatelessWidget {
           children: [
             Row(
               children: [
-                _StatPill(value: '${confirmations.length}', label: 'au total'),
+                _StatPill(
+                  value: '${confirmations.length}',
+                  label: l.reportDetailStatPillTotal,
+                ),
                 const SizedBox(width: 12),
                 _StatPill(
                   value: '$recent',
-                  label: 'dernière heure',
+                  label: l.reportDetailStatPillRecent,
                   highlight: recent > 0,
                 ),
               ],
@@ -348,12 +364,14 @@ class _ConfirmationTimeline extends StatelessWidget {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        c.userId == currentUid ? 'Vous' : 'Un utilisateur',
+                        c.userId == currentUid
+                            ? l.reportDetailConfirmedByYou
+                            : l.reportDetailConfirmedByOther,
                         style: const TextStyle(fontWeight: FontWeight.w500),
                       ),
                     ),
                     Text(
-                      relativeTime(c.createdAt),
+                      relativeTimeL10n(context, c.createdAt),
                       style: const TextStyle(
                         color: AppColors.gray,
                         fontSize: 12,
