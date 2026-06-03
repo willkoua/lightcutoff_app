@@ -116,8 +116,14 @@
       - Note : confirmer/restaurer (transactions) restent KO offline → contextualisés par le bandeau.
       - ⚠️ `connectivity_plus 7.x` exige compileSdk 36 + AGP 8.9.1 → resté en 6.x pour ne pas bumper le toolchain.
       - Palier 2 (différé) : confirmer/restaurer offline via `FieldValue.increment` (compromis anti-double-vote).
-- [ ] **Couverture de tests** : services Firebase peu couverts ; pas de widget tests des écrans clés
-      (home, map, report_form) ni de tests d'intégration sur émulateur.
+- [~] **Couverture de tests** (global ~25 % lignes côté Dart) :
+      - [x] **P1 — Cloud Functions** ✅ : logique pure extraite (`functions/src/logic.ts`) +
+            tests `node:test`/`tsx` (`logic.test.ts`, 10 cas : seuil d'auto-résolution,
+            `shouldResolve`, `buildBody`). `npm test` dans `functions/`.
+      - [ ] P2 — gains rapides Dart : validators (branches manquantes), `connectivity_provider`,
+            `l10n_helpers`, models edge cases, +branches `report_provider`/`auth_provider`.
+      - [ ] P3 — intégration émulateur : flux créer→confirmer→restaurer→auto-résoudre (services à 0 %).
+      - [ ] Widget tests des écrans clés (home/map/report_form) — ROI faible tant que pas publié.
 - [ ] Vue opérateur/admin → **hors périmètre** (déportée vers un futur projet web séparé).
 
 ---

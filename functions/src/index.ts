@@ -23,6 +23,7 @@ import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { logger } from "firebase-functions";
 import { geohashQueryBounds } from "geofire-common";
+import { buildBody, resolutionThreshold, shouldResolve } from "./logic";
 
 admin.initializeApp();
 
@@ -31,12 +32,6 @@ const BATCH_SIZE = 500;
 const OUTAGE_CHANNEL_ID = "njuka_outage_alerts";
 const STALE_DEVICE_AGE_DAYS = 90;
 const ARCHIVED_RETENTION_DAYS = 30;
-
-// Auto-résolution crowd-sourcée : un report passe à `resolved` quand
-// restorationCount >= max(RESTORATION_MIN_VOTES, confirmationCount * RESTORATION_RATIO).
-// Doit rester aligné avec `AppConstants.restorationMinVotes` / `restorationRatio` côté Dart.
-const RESTORATION_MIN_VOTES = 3;
-const RESTORATION_RATIO = 0.5;
 
 interface GeoPoint {
   lat: number;
@@ -255,22 +250,17 @@ export const onRestorationCreated = onDocumentCreated(
       confirmationCount?: number;
       restorationCount?: number;
     };
-    if (report.status === "resolved") return; // déjà fermé
-    if (report.archivedAt) return; // archivé : pas d'auto-résolution
-
     const confirmations = report.confirmationCount ?? 0;
     const restorations = report.restorationCount ?? 0;
-    const threshold = Math.max(
-      RESTORATION_MIN_VOTES,
-      Math.ceil(confirmations * RESTORATION_RATIO)
-    );
+    const threshold = resolutionThreshold(confirmations);
 
     logger.info(
       `onRestorationCreated: report=${reportId} restorations=${restorations} ` +
         `confirmations=${confirmations} threshold=${threshold}`
     );
 
-    if (restorations < threshold) return;
+    // Décision (statut/archivage/seuil) centralisée et testée dans ./logic.
+    if (!shouldResolve(report)) return;
 
     await reportRef.update({
       status: "resolved",
@@ -359,15 +349,3 @@ export const purgeStaleDevices = onSchedule(
     logger.info(`purgeStaleDevices: ${stale.size} device(s) supprimé(s).`);
   }
 );
-
-/** Construit le corps de la notif à partir de la zone du report. */
-function buildBody(area: GeoArea | undefined): string {
-  if (!area) return "Une coupure vient d'être signalée près de chez vous.";
-  const parts = [area.neighborhood, area.city].filter(
-    (s): s is string => !!s && s.length > 0
-  );
-  if (parts.length === 0) {
-    return "Une coupure vient d'être signalée près de chez vous.";
-  }
-  return `${parts.join(", ")} · à l'instant`;
-}
