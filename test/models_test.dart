@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lightcutoff_app/models/app_user.dart';
 import 'package:lightcutoff_app/models/device.dart';
@@ -5,6 +6,13 @@ import 'package:lightcutoff_app/models/enums.dart';
 import 'package:lightcutoff_app/models/geo.dart';
 import 'package:lightcutoff_app/models/report.dart';
 import 'package:lightcutoff_app/models/restoration.dart';
+import 'package:mocktail/mocktail.dart';
+
+// DocumentSnapshot est `sealed` côté cloud_firestore : on l'implémente quand
+// même pour le mock de test (mocktail) — usage volontaire et localisé.
+// ignore: subtype_of_sealed_class
+class _FakeReportDoc extends Mock
+    implements DocumentSnapshot<Map<String, dynamic>> {}
 
 void main() {
   group('Enums.fromName', () {
@@ -96,6 +104,52 @@ void main() {
       expect(map['restorationCount'], 0);
       expect(map['resolvedAt'], isNull);
       expect(map['archivedAt'], isNull);
+    });
+  });
+
+  group('Report.fromDoc', () {
+    test('parse les champs métier', () {
+      final doc = _FakeReportDoc();
+      when(() => doc.id).thenReturn('rid');
+      when(() => doc.data()).thenReturn({
+        'userId': 'u1',
+        'status': 'resolved',
+        'type': 'scheduled',
+        'position': {'lat': 3.8, 'lng': 11.5},
+        'location': {'city': 'Yaoundé'},
+        'confirmationCount': 4,
+        'restorationCount': 2,
+        'geohash': 's2x9c',
+        'authorUsername': 'willk',
+        'description': 'coupure',
+      });
+
+      final r = Report.fromDoc(doc);
+      expect(r.id, 'rid');
+      expect(r.userId, 'u1');
+      expect(r.status, OutageStatus.resolved);
+      expect(r.type, OutageType.scheduled);
+      expect(r.position.lat, 3.8);
+      expect(r.location.city, 'Yaoundé');
+      expect(r.confirmationCount, 4);
+      expect(r.restorationCount, 2);
+      expect(r.geohash, 's2x9c');
+      expect(r.authorUsername, 'willk');
+      expect(r.description, 'coupure');
+    });
+
+    test('document vide -> valeurs par défaut', () {
+      final doc = _FakeReportDoc();
+      when(() => doc.id).thenReturn('empty');
+      when(() => doc.data()).thenReturn(null);
+
+      final r = Report.fromDoc(doc);
+      expect(r.userId, '');
+      expect(r.status, OutageStatus.ongoing); // défaut
+      expect(r.type, OutageType.unplanned); // défaut
+      expect(r.confirmationCount, 0);
+      expect(r.restorationCount, 0);
+      expect(r.geohash, isNull);
     });
   });
 

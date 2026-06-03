@@ -130,6 +130,44 @@ void main() {
     });
   });
 
+  group('changement email / mot de passe', () {
+    test('changePassword succès → pas d\'erreur', () async {
+      when(
+        () => service.changePassword(
+          newPassword: any(named: 'newPassword'),
+          currentPassword: any(named: 'currentPassword'),
+        ),
+      ).thenAnswer((_) async {});
+
+      final provider = build();
+      final ok = await provider.changePassword(
+        newPassword: 'secret2',
+        currentPassword: 'old',
+      );
+
+      expect(ok, isTrue);
+      expect(provider.error, isNull);
+    });
+
+    test('changeEmail mappe requires-recent-login', () async {
+      when(
+        () => service.changeEmail(
+          newEmail: any(named: 'newEmail'),
+          currentPassword: any(named: 'currentPassword'),
+        ),
+      ).thenThrow(FirebaseAuthException(code: 'requires-recent-login'));
+
+      final provider = build();
+      final ok = await provider.changeEmail(
+        newEmail: 'x@y.com',
+        currentPassword: 'old',
+      );
+
+      expect(ok, isFalse);
+      expect(provider.error, AppError.requiresRecentLogin);
+    });
+  });
+
   test('login réussi -> pas d\'erreur', () async {
     when(
       () => service.signInWithIdentifier(

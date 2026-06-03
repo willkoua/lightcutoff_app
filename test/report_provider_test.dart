@@ -117,6 +117,36 @@ void main() {
     verify(() => service.resolveReport('r1')).called(1);
   });
 
+  test('markRestored délègue au service (auteur inclus)', () async {
+    when(() => service.markRestored('r1', 'u1')).thenAnswer((_) async {});
+    final provider = build();
+    expect(await provider.markRestored('r1'), isTrue);
+    verify(() => service.markRestored('r1', 'u1')).called(1);
+  });
+
+  test('archive : l\'auteur peut archiver son report', () async {
+    when(() => service.watchReports(limit: any(named: 'limit'))).thenAnswer(
+      (_) => Stream<List<Report>>.value([_report(id: 'mine', userId: 'u1')]),
+    );
+    when(() => service.archiveReport('mine')).thenAnswer((_) async {});
+    final provider = build();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(await provider.archive('mine'), isTrue);
+    verify(() => service.archiveReport('mine')).called(1);
+  });
+
+  test('archive : refuse le report d\'un autre', () async {
+    when(() => service.watchReports(limit: any(named: 'limit'))).thenAnswer(
+      (_) => Stream<List<Report>>.value([_report(id: 'other', userId: 'x')]),
+    );
+    final provider = build();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(await provider.archive('other'), isFalse);
+    verifyNever(() => service.archiveReport(any()));
+  });
+
   test('isAuthor distingue l\'auteur', () {
     final provider = build();
     expect(provider.isAuthor(_report(userId: 'u1')), isTrue);

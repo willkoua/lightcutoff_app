@@ -120,8 +120,9 @@
       - [x] **P1 — Cloud Functions** ✅ : logique pure extraite (`functions/src/logic.ts`) +
             tests `node:test`/`tsx` (`logic.test.ts`, 10 cas : seuil d'auto-résolution,
             `shouldResolve`, `buildBody`). `npm test` dans `functions/`.
-      - [ ] P2 — gains rapides Dart : validators (branches manquantes), `connectivity_provider`,
-            `l10n_helpers`, models edge cases, +branches `report_provider`/`auth_provider`.
+      - [x] **P2 — gains rapides Dart** ✅ : validators 100 %, `l10n_helpers` 100 %, `Report.fromDoc` 97 %,
+            `connectivity_provider` 73 %, +branches `report_provider` (archive/markRestored) et
+            `auth_provider` (changeEmail/changePassword). 95 tests, global 25 %→33 %.
       - [ ] P3 — intégration émulateur : flux créer→confirmer→restaurer→auto-résoudre (services à 0 %).
       - [ ] Widget tests des écrans clés (home/map/report_form) — ROI faible tant que pas publié.
 - [ ] Vue opérateur/admin → **hors périmètre** (déportée vers un futur projet web séparé).
