@@ -79,18 +79,29 @@
 - [ ] **Fournisseur de tuiles carte à clé** : on tape directement `tile.openstreetmap.org`
       (sans clé) → fragile en prod (politique d'usage OSM, pas de SLA). Passer à un fournisseur à clé
       (MapTiler/Stadia/Thunderforest).
-- [~] **Firebase App Check** — client intégré ✅ (`firebase_app_check`, `activate()` dans
-      `main.dart` : Play Integrity / AppAttest+DeviceCheck / debug provider en dev).
-      **Reste MANUEL (console/natif)** :
-      1. ⚠️ **Repasser l'enforcement OFF** le temps que la nouvelle version soit adoptée
-         (sinon les utilisateurs des anciens builds sont bloqués).
-      2. Enregistrer le **debug token** (imprimé dans les logs au 1er run debug) :
-         Firebase → App Check → app → « Gérer les jetons de debug ».
-      3. Uploader la **clé privée DeviceCheck (.p8)** en console (repli iOS < 14).
-      4. Lier l'app à **Play Integrity** (Play Console / SHA-256) pour le release Android.
-      5. `cd ios && pod install` avant le prochain build iOS.
-      6. Réactiver l'enforcement **par produit** une fois le trafic « vérifié » visible
-         dans les métriques.
+- [~] **Firebase App Check** — client intégré ✅ (commit `c056703` : `firebase_app_check`,
+      `activate()` dans `main.dart` : Play Integrity / AppAttest+DeviceCheck / debug provider).
+      Enforcement console = **« Non appliqué » partout** (vérifié sur screenshot) → aucun outage.
+
+      **À FAIRE MAINTENANT (cheap, sans Apple) — ✅ TERMINÉ :**
+      - [x] App **Android** enregistrée dans App Check (Play Integrity + SHA-256 debug
+            `5A:F9:…:8B:10`).
+      - [x] **Debug token** capturé sur le Samsung S916W (via logcat `DebugAppCheckProvider`)
+            et enregistré en console (« Gérer les jetons de débogage »). Token = secret, hors Git.
+            ⚠️ régénéré si réinstall/effacement des données → à ré-enregistrer.
+      - [x] **Enforcement laissé OFF** (volontaire).
+
+      **DIFFÉRÉ — lot « iOS / Apple » (bloqué sur accès Apple Developer, même blocant qu'APNs) :**
+      - [ ] Enregistrer l'**app iOS** (App Attest) + uploader la **clé DeviceCheck `.p8`**.
+      - [ ] `cd ios && pod install` avant le build iOS ; tester App Attest sur **appareil réel**.
+
+      **JOUR DE PUBLICATION (Play Store) :**
+      - [ ] Keystore release + signing config (cf. TODO signing) → SHA-256 de l'upload key.
+      - [ ] Play Console → activer **Play App Signing** → récupérer la **SHA-256 de la clé Google**
+            → l'ajouter dans App Check (sinon Play Integrity rejette les installs Store).
+      - [ ] Trafic « vérifié » majoritaire dans les métriques → enforcement en « Appliqué »
+            **par produit** (Firestore, Storage, RTDB, Auth). Rappel : enforcement global par
+            produit → Android ET iOS doivent être prêts avant d'enforcer.
 
 ### 🟡 Améliorations (post-MVP)
 - [ ] **Photo de profil (avatar)** : champ `photoURL` présent dans le modèle, mais **aucune UI**
