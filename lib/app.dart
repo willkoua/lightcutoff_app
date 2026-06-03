@@ -3,10 +3,12 @@ import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import 'providers/auth_provider.dart';
+import 'providers/connectivity_provider.dart';
 import 'providers/locale_provider.dart';
 import 'screens/onboarding_gate.dart';
 import 'theme/app_theme.dart';
 import 'utils/nav_key.dart';
+import 'widgets/offline_banner.dart';
 
 class NjukaApp extends StatelessWidget {
   const NjukaApp({super.key});
@@ -17,6 +19,7 @@ class NjukaApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
+        ChangeNotifierProvider(create: (_) => ConnectivityProvider()),
       ],
       child: Consumer<LocaleProvider>(
         builder: (context, localeProvider, _) {
@@ -33,6 +36,12 @@ class NjukaApp extends StatelessWidget {
             locale: localeProvider.locale,
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
+            // Superpose un bandeau « Hors ligne » global au-dessus de toutes les
+            // routes (le builder s'exécute sous Localizations/MediaQuery, donc
+            // AppLocalizations + le ConnectivityProvider y sont accessibles).
+            builder:
+                (context, child) =>
+                    OfflineBanner(child: child ?? const SizedBox.shrink()),
             home: const OnboardingGate(),
           );
         },

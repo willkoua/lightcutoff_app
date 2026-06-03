@@ -106,7 +106,16 @@
 ### 🟡 Améliorations (post-MVP)
 - [ ] **Photo de profil (avatar)** : champ `photoURL` présent dans le modèle, mais **aucune UI**
       pour choisir/uploader, et les règles Storage ne couvrent que `report_media/` (pas les avatars).
-- [ ] **Mode hors-ligne assumé** : activer la persistance Firestore offline + indicateur de connexion.
+- [x] **Mode hors-ligne — Palier 1 ✅** : dégradation gracieuse + communication.
+      - [x] `main.dart` : persistance Firestore **explicite** (`Settings`, cache illimité).
+      - [x] `connectivity_plus` (^6.1.0, compat. toolchain) + `ConnectivityProvider` (`isOffline`).
+      - [x] `app.dart` : **bandeau global « Hors ligne »** (`MaterialApp.builder` → `OfflineBanner`).
+      - [x] ARB FR/EN : message du bandeau + message média offline.
+      - [x] Form signalement : **garde média** hors ligne (l'upload Storage ne queue pas).
+      - [x] Vérifié sur Samsung S916W (adb network off → bandeau OK + cache visible ; on → disparaît) ; `analyze` clean ; 70 tests.
+      - Note : confirmer/restaurer (transactions) restent KO offline → contextualisés par le bandeau.
+      - ⚠️ `connectivity_plus 7.x` exige compileSdk 36 + AGP 8.9.1 → resté en 6.x pour ne pas bumper le toolchain.
+      - Palier 2 (différé) : confirmer/restaurer offline via `FieldValue.increment` (compromis anti-double-vote).
 - [ ] **Couverture de tests** : services Firebase peu couverts ; pas de widget tests des écrans clés
       (home, map, report_form) ni de tests d'intégration sur émulateur.
 - [ ] Vue opérateur/admin → **hors périmètre** (déportée vers un futur projet web séparé).

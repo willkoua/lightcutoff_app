@@ -53,6 +53,15 @@ Future<void> main() async {
             : const AppleAppAttestWithDeviceCheckFallbackProvider(),
   );
 
+  // Persistance hors-ligne Firestore : activée par défaut sur mobile, rendue
+  // explicite ici pour documenter l'intention (lectures servies depuis le cache
+  // et écritures simples mises en file quand le réseau manque). Doit être défini
+  // avant tout usage de Firestore.
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: true,
+    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+  );
+
   // Crash reporting : collecte active uniquement hors debug.
   final crashlytics = FirebaseCrashlytics.instance;
   await crashlytics.setCrashlyticsCollectionEnabled(!kDebugMode);

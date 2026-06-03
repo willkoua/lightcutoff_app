@@ -226,5 +226,7 @@
   "errorLocationPermissionDenied": "Location permission denied.",
   "errorLocationNotFound": "Couldn't find your location. Try again outdoors or check your GPS.",
   "errorLocationUnavailable": "Location unavailable. Please try again.",
-  "errorGeneric": "Something went wrong. Please try again."
+  "errorGeneric": "Something went wrong. Please try again.",
+  "offlineBannerMessage": "Offline — changes will sync when you reconnect.",
+  "reportFormMediaOffline": "Adding media is unavailable offline."
 }

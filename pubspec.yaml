@@ -60,6 +60,7 @@ dependencies:
   image_picker: ^1.2.1
   image: ^4.8.0
   firebase_app_check: ^0.4.4+2
+  connectivity_plus: ^6.1.0
 
 dev_dependencies:
   flutter_test:

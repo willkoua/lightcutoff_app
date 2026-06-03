@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../config/app_constants.dart';
 import '../models/report.dart';
 import '../providers/auth_provider.dart';
+import '../providers/connectivity_provider.dart';
 import '../providers/report_provider.dart';
 import '../repositories/location_repository.dart';
 import '../theme/app_colors.dart';
@@ -37,6 +38,11 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
   }
 
   Future<void> _pickMedia() async {
+    // L'upload Storage ne se met pas en file hors ligne → on bloque proprement.
+    if (context.read<ConnectivityProvider>().isOffline) {
+      _snack(AppLocalizations.of(context).reportFormMediaOffline);
+      return;
+    }
     final provider = context.read<ReportProvider>();
     final file = await _picker.pickMedia();
     if (file == null || !mounted) return;

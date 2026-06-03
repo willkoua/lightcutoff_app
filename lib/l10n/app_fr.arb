@@ -270,6 +270,9 @@
   "errorLocationPermissionDenied": "Permission de localisation refusée.",
   "errorLocationNotFound": "Position introuvable. Réessayez en extérieur ou vérifiez votre GPS.",
   "errorLocationUnavailable": "Localisation impossible. Réessayez.",
-  "errorGeneric": "Une erreur est survenue. Réessayez."
+  "errorGeneric": "Une erreur est survenue. Réessayez.",
+
+  "offlineBannerMessage": "Hors ligne — les changements seront synchronisés à la reconnexion.",
+  "reportFormMediaOffline": "Ajout de média indisponible hors ligne."
 }
 
