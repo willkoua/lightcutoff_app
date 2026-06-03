@@ -28,10 +28,11 @@ class ReportService implements ReportRepository {
         .limit(limit)
         .snapshots()
         .map(
-          (snap) => snap.docs
-              .map(Report.fromDoc)
-              .where((r) => r.archivedAt == null)
-              .toList(),
+          (snap) =>
+              snap.docs
+                  .map(Report.fromDoc)
+                  .where((r) => r.archivedAt == null)
+                  .toList(),
         );
   }
 

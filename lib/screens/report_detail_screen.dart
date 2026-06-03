@@ -208,10 +208,7 @@ class ReportDetailScreen extends StatelessWidget {
                 Expanded(
                   child: Text(
                     l.reportDetailRestorationCount(report.restorationCount),
-                    style: const TextStyle(
-                      color: AppColors.gray,
-                      fontSize: 13,
-                    ),
+                    style: const TextStyle(color: AppColors.gray, fontSize: 13),
                   ),
                 ),
               ],
@@ -225,10 +222,7 @@ class ReportDetailScreen extends StatelessWidget {
             const SizedBox(height: 16),
             OutlinedButton.icon(
               onPressed: () => _confirmAndArchive(context, provider, report.id),
-              icon: const Icon(
-                Icons.delete_outline,
-                color: AppColors.orange,
-              ),
+              icon: const Icon(Icons.delete_outline, color: AppColors.orange),
               label: Text(
                 l.reportDetailDeleteButton,
                 style: const TextStyle(color: AppColors.orange),

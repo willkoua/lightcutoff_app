@@ -98,10 +98,11 @@ class NotificationService {
 
     // 2. Crée le channel Android (sans channel, Android 8+ n'affiche rien).
     if (!kIsWeb && Platform.isAndroid) {
-      final androidPlugin = _localNotifications
-          .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin
-          >();
+      final androidPlugin =
+          _localNotifications
+              .resolvePlatformSpecificImplementation<
+                AndroidFlutterLocalNotificationsPlugin
+              >();
       await androidPlugin?.createNotificationChannel(
         const AndroidNotificationChannel(
           AppConstants.fcmOutageChannelId,

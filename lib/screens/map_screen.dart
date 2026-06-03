@@ -143,10 +143,7 @@ class _MapScreenState extends State<MapScreen> {
 
     final l = AppLocalizations.of(context);
     return Scaffold(
-      appBar: NjukaAppBar(
-        title: l.mapTitle,
-        filterProvider: provider,
-      ),
+      appBar: NjukaAppBar(title: l.mapTitle, filterProvider: provider),
       // FAB « Signaler » à gauche pour ne pas chevaucher la colonne de
       // boutons zoom/recenter à droite. Réutilise le formulaire commun ; la
       // position du report sera la GPS actuelle de l'utilisateur (cohérent

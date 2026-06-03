@@ -68,8 +68,10 @@ void main() {
     });
 
     test('octets invalides : null', () {
-      expect(resizeStaticImage(Uint8List.fromList([0, 1, 2]), png: false),
-          isNull);
+      expect(
+        resizeStaticImage(Uint8List.fromList([0, 1, 2]), png: false),
+        isNull,
+      );
     });
   });
 }

@@ -38,9 +38,7 @@ class ProfileScreen extends StatelessWidget {
             icon: const Icon(Icons.settings_outlined),
             onPressed:
                 () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const SettingsScreen(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
                 ),
           ),
         ],

@@ -39,7 +39,9 @@ class _MainShellState extends State<MainShell> {
     _pendingReportId.addListener(_consumePendingReport);
     // Cas « app lancée DEPUIS la notif » : la valeur peut déjà être présente
     // avant que le listener ne soit attaché.
-    WidgetsBinding.instance.addPostFrameCallback((_) => _consumePendingReport());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _consumePendingReport(),
+    );
   }
 
   @override
@@ -59,10 +61,11 @@ class _MainShellState extends State<MainShell> {
     final reportProvider = context.read<ReportProvider>();
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => ChangeNotifierProvider<ReportProvider>.value(
-          value: reportProvider,
-          child: ReportDetailScreen(reportId: reportId),
-        ),
+        builder:
+            (_) => ChangeNotifierProvider<ReportProvider>.value(
+              value: reportProvider,
+              child: ReportDetailScreen(reportId: reportId),
+            ),
       ),
     );
   }

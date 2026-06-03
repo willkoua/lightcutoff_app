@@ -14,10 +14,7 @@ void main() {
     });
 
     test('déterministe', () {
-      expect(
-        encodeGeohash(3.848, 11.502),
-        encodeGeohash(3.848, 11.502),
-      );
+      expect(encodeGeohash(3.848, 11.502), encodeGeohash(3.848, 11.502));
     });
 
     test('un préfixe plus court est partagé par les positions proches', () {

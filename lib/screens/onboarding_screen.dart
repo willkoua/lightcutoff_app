@@ -137,9 +137,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () => _next(slides.length),
-                  child: Text(
-                    isLast ? l.onboardingStart : l.onboardingNext,
-                  ),
+                  child: Text(isLast ? l.onboardingStart : l.onboardingNext),
                 ),
               ),
             ),
