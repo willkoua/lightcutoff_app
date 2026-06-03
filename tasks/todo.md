@@ -123,12 +123,14 @@
       - [x] **P2 — gains rapides Dart** ✅ : validators 100 %, `l10n_helpers` 100 %, `Report.fromDoc` 97 %,
             `connectivity_provider` 73 %, +branches `report_provider` (archive/markRestored) et
             `auth_provider` (changeEmail/changePassword). 95 tests, global 25 %→33 %.
-      - [~] **P3 — services via `fake_cloud_firestore`** (pivot vs émulateur : CI-friendly, non-flaky,
-            pas d'appareil) : `report_service` 0→76 % (transactions vote-unique, geohash, archive),
-            `device_service` 0→93 % (upsert idempotent). 107 tests, global 33→37,5 %.
-            Reste : `auth_service` (firebase_auth_mocks), `storage_service` (firebase_storage_mocks).
-            `location_service`/`notification_service` = wrappers plugins natifs (GPS/FCM) → intégration
-            sur appareil, peu de logique, ROI faible.
+      - [x] **P3 — services via fakes** (pivot vs émulateur : CI-friendly, non-flaky, pas d'appareil) :
+            `report_service` 0→76 % (transactions vote-unique, geohash, archive),
+            `device_service` 0→93 % (upsert idempotent),
+            `auth_service` 0→49,5 % (pseudo→email, compte désactivé, register) via
+            `fake_cloud_firestore` + `firebase_auth_mocks`. 114 tests, global 25→41,6 %.
+            Restent à 0 % (volontaire) : `location_service`/`notification_service` (wrappers plugins
+            natifs GPS/FCM, peu de logique) ; `storage_service` (thin wrapper). auth_service :
+            changeEmail/Password non couverts (exigent des mocks de ré-authentification).
       - [ ] Widget tests des écrans clés (home/map/report_form) — ROI faible tant que pas publié.
 - [ ] Vue opérateur/admin → **hors périmètre** (déportée vers un futur projet web séparé).
 
