@@ -79,7 +79,18 @@
 - [ ] **Fournisseur de tuiles carte à clé** : on tape directement `tile.openstreetmap.org`
       (sans clé) → fragile en prod (politique d'usage OSM, pas de SLA). Passer à un fournisseur à clé
       (MapTiler/Stadia/Thunderforest).
-- [ ] **Firebase App Check** (anti-abus / anti-bot sur Firestore & Functions) : non configuré.
+- [~] **Firebase App Check** — client intégré ✅ (`firebase_app_check`, `activate()` dans
+      `main.dart` : Play Integrity / AppAttest+DeviceCheck / debug provider en dev).
+      **Reste MANUEL (console/natif)** :
+      1. ⚠️ **Repasser l'enforcement OFF** le temps que la nouvelle version soit adoptée
+         (sinon les utilisateurs des anciens builds sont bloqués).
+      2. Enregistrer le **debug token** (imprimé dans les logs au 1er run debug) :
+         Firebase → App Check → app → « Gérer les jetons de debug ».
+      3. Uploader la **clé privée DeviceCheck (.p8)** en console (repli iOS < 14).
+      4. Lier l'app à **Play Integrity** (Play Console / SHA-256) pour le release Android.
+      5. `cd ios && pod install` avant le prochain build iOS.
+      6. Réactiver l'enforcement **par produit** une fois le trafic « vérifié » visible
+         dans les métriques.
 
 ### 🟡 Améliorations (post-MVP)
 - [ ] **Photo de profil (avatar)** : champ `photoURL` présent dans le modèle, mais **aucune UI**

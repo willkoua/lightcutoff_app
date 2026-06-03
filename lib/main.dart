@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
@@ -28,6 +29,29 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // App Check : atteste que les requêtes viennent bien de l'app authentique
+  // (anti-abus sur Firestore / Storage / Auth / Functions). Doit être activé
+  // juste après l'init Firebase, AVANT toute autre utilisation d'un produit
+  // Firebase (Firestore via NotificationService, etc.).
+  //
+  // - Debug : provider `debug` → un jeton de debug est imprimé dans les logs
+  //   au 1er lancement ; l'enregistrer dans Firebase Console → App Check →
+  //   « Gérer les jetons de debug » (sinon les requêtes sont rejetées quand
+  //   l'enforcement est actif).
+  // - Release : Play Integrity (Android) ; App Attest avec repli DeviceCheck
+  //   (iOS) — le repli est indispensable car le plancher est iOS 13 alors
+  //   qu'App Attest exige iOS 14+.
+  await FirebaseAppCheck.instance.activate(
+    providerAndroid:
+        kDebugMode
+            ? const AndroidDebugProvider()
+            : const AndroidPlayIntegrityProvider(),
+    providerApple:
+        kDebugMode
+            ? const AppleDebugProvider()
+            : const AppleAppAttestWithDeviceCheckFallbackProvider(),
+  );
 
   // Crash reporting : collecte active uniquement hors debug.
   final crashlytics = FirebaseCrashlytics.instance;
