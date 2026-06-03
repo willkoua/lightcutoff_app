@@ -142,7 +142,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
     final outcome = await provider.prepareReport();
     if (!mounted) return;
     if (outcome.error != null) {
-      _snack(outcome.error!);
+      _snack(appErrorLabel(context, outcome.error!));
       return;
     }
     final draft = outcome.draft!;
@@ -185,7 +185,12 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
       authorUsername: authorUsername,
     );
     if (!mounted) return;
-    _finish(error ?? l.reportFormCreatedSuccess, success: error == null);
+    _finish(
+      error != null
+          ? appErrorLabel(context, error)
+          : l.reportFormCreatedSuccess,
+      success: error == null,
+    );
   }
 
   Future<_DupChoice?> _askDuplicate(Report nearby, {required bool isOwn}) {

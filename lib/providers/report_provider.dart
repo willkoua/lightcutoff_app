@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../config/app_constants.dart';
+import '../models/app_error.dart';
 import '../models/confirmation.dart';
 import '../models/enums.dart';
 import '../models/geo.dart';
@@ -30,7 +31,7 @@ class ReportDraft {
 
 /// Résultat de la préparation d'un signalement.
 class PrepareOutcome {
-  final String? error;
+  final AppError? error;
   final ReportDraft? draft;
 
   /// Coupure « en cours » la plus proche dans le rayon, sinon null.
@@ -88,7 +89,7 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
   bool _loading = true;
   bool _loadingMore = false;
   bool _hasMore = true;
-  String? _error;
+  AppError? _error;
   bool _submitting = false;
 
   /// Écoute les coupures dans la limite courante. Re-souscrit à chaque
@@ -107,7 +108,7 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
           },
           onError: (Object e, StackTrace st) {
             CrashReporter.recordError(e, st, reason: 'watchReports');
-            _error = 'Impossible de charger les coupures.';
+            _error = AppError.reportsLoadFailed;
             _loading = false;
             _loadingMore = false;
             notifyListeners();
@@ -154,7 +155,7 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
   bool get loading => _loading;
   bool get loadingMore => _loadingMore;
   bool get hasMore => _hasMore;
-  String? get error => _error;
+  AppError? get error => _error;
   bool get submitting => _submitting;
 
   String get query => _query;
@@ -233,9 +234,9 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
-  /// Active/désactive le filtre de proximité. Retourne un message d'erreur
+  /// Active/désactive le filtre de proximité. Retourne un [AppError]
   /// si la position n'a pas pu être obtenue.
-  Future<String?> setNearOnly(bool value) async {
+  Future<AppError?> setNearOnly(bool value) async {
     if (!value) {
       _nearTimer?.cancel();
       _nearOnly = false;
@@ -258,10 +259,10 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
       return null;
     } on LocationException catch (e) {
       _resetNear();
-      return e.message;
+      return e.code;
     } catch (_) {
       _resetNear();
-      return 'Localisation impossible.';
+      return AppError.locationUnavailable;
     }
   }
 
@@ -319,9 +320,7 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// `homeLocation.city` côté Cloud Function.
   void _refreshDeviceGeohashFrom(GeoPosition position) {
     try {
-      unawaited(
-        NotificationService.instance.refreshGeohashFrom(position),
-      );
+      unawaited(NotificationService.instance.refreshGeohashFrom(position));
     } catch (_) {
       /* ignore */
     }
@@ -382,13 +381,13 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
       _service.watchConfirmations(reportId);
 
   /// Crée un signalement à la position courante. Retourne null si OK,
-  /// sinon un message d'erreur.
-  Future<String?> submitReport({
+  /// sinon un [AppError].
+  Future<AppError?> submitReport({
     String? description,
     String? authorUsername,
   }) async {
     final uid = _uid;
-    if (uid == null) return 'Vous devez être connecté.';
+    if (uid == null) return AppError.notLoggedIn;
 
     _submitting = true;
     notifyListeners();
@@ -418,9 +417,9 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
       _refreshDeviceGeohashFrom(loc.position);
       return null;
     } on LocationException catch (e) {
-      return e.message;
+      return e.code;
     } catch (_) {
-      return 'Échec du signalement. Réessayez.';
+      return AppError.reportSubmitFailed;
     } finally {
       _submitting = false;
       notifyListeners();
@@ -471,7 +470,7 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// Récupère la position et cherche un éventuel doublon proche.
   Future<PrepareOutcome> prepareReport() async {
     if (_uid == null) {
-      return const PrepareOutcome(error: 'Vous devez être connecté.');
+      return const PrepareOutcome(error: AppError.notLoggedIn);
     }
     _submitting = true;
     notifyListeners();
@@ -483,9 +482,9 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
         nearby: findNearbyOngoing(loc.position),
       );
     } on LocationException catch (e) {
-      return PrepareOutcome(error: e.message);
+      return PrepareOutcome(error: e.code);
     } catch (_) {
-      return const PrepareOutcome(error: 'Localisation impossible. Réessayez.');
+      return const PrepareOutcome(error: AppError.locationUnavailable);
     } finally {
       _submitting = false;
       notifyListeners();
@@ -513,14 +512,14 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   /// Crée le signalement à partir d'une localisation déjà résolue.
-  Future<String?> createFromDraft(
+  Future<AppError?> createFromDraft(
     ReportDraft draft, {
     String? description,
     String? mediaUrl,
     String? authorUsername,
   }) async {
     final uid = _uid;
-    if (uid == null) return 'Vous devez être connecté.';
+    if (uid == null) return AppError.notLoggedIn;
     _submitting = true;
     notifyListeners();
     try {
@@ -546,7 +545,7 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
       _refreshDeviceGeohashFrom(draft.position);
       return null;
     } catch (_) {
-      return 'Échec du signalement. Réessayez.';
+      return AppError.reportSubmitFailed;
     } finally {
       _submitting = false;
       notifyListeners();

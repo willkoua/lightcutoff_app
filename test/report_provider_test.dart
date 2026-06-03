@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lightcutoff_app/config/app_constants.dart';
+import 'package:lightcutoff_app/models/app_error.dart';
 import 'package:lightcutoff_app/models/enums.dart';
 import 'package:lightcutoff_app/models/geo.dart';
 import 'package:lightcutoff_app/models/report.dart';
@@ -81,24 +82,23 @@ void main() {
     final error = await provider.submitReport();
 
     expect(error, isNull);
-    final captured =
-        verify(() => service.createReport(captureAny())).captured;
+    final captured = verify(() => service.createReport(captureAny())).captured;
     final report = captured.single as Report;
     expect(report.geohash, isNotNull);
     expect(report.geohash!.length, AppConstants.geohashPrecision);
   });
 
   test(
-    'submitReport renvoie le message en cas d\'erreur de localisation',
+    'submitReport renvoie le code d\'erreur en cas d\'erreur de localisation',
     () async {
       when(
         () => location.getCurrentLocation(),
-      ).thenThrow(const LocationException('Position introuvable.'));
+      ).thenThrow(const LocationException(AppError.locationNotFound));
 
       final provider = build();
       final error = await provider.submitReport();
 
-      expect(error, 'Position introuvable.');
+      expect(error, AppError.locationNotFound);
       verifyNever(() => service.createReport(any()));
     },
   );
@@ -151,16 +151,14 @@ void main() {
     });
 
     test('lot incomplet -> hasMore faux', () async {
-      when(() => service.watchReports(limit: any(named: 'limit'))).thenAnswer(
-        (_) => Stream<List<Report>>.value([_report(id: 'a')]),
-      );
+      when(
+        () => service.watchReports(limit: any(named: 'limit')),
+      ).thenAnswer((_) => Stream<List<Report>>.value([_report(id: 'a')]));
       final provider = build();
       await Future<void>.delayed(Duration.zero);
       expect(provider.hasMore, isFalse);
       provider.loadMore(); // sans effet (rien à charger)
-      verify(
-        () => service.watchReports(limit: any(named: 'limit')),
-      ).called(1);
+      verify(() => service.watchReports(limit: any(named: 'limit'))).called(1);
     });
 
     test('loadMore re-souscrit avec une fenêtre élargie', () async {
@@ -311,15 +309,15 @@ void main() {
       ).called(1);
     });
 
-    test('erreur de localisation -> filtre désactivé + message', () async {
+    test('erreur de localisation -> filtre désactivé + code', () async {
       when(
         () => location.getCurrentLocation(),
-      ).thenThrow(const LocationException('Position introuvable.'));
+      ).thenThrow(const LocationException(AppError.locationNotFound));
 
       final provider = build();
       final err = await provider.setNearOnly(true);
 
-      expect(err, 'Position introuvable.');
+      expect(err, AppError.locationNotFound);
       expect(provider.nearOnly, isFalse);
       verifyNever(
         () => service.reportsWithinRadius(

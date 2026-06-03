@@ -1,8 +1,12 @@
+import '../models/app_error.dart';
 import '../models/geo.dart';
 
+/// Erreur de localisation portant un [AppError] (code), traduit en message
+/// utilisateur côté UI via `appErrorLabel`. La couche service n'ayant pas de
+/// `BuildContext`, elle ne produit jamais de texte localisé directement.
 class LocationException implements Exception {
-  final String message;
-  const LocationException(this.message);
+  final AppError code;
+  const LocationException(this.code);
 }
 
 /// État d'accès à la localisation, indépendant de l'implémentation.

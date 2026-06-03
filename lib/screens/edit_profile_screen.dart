@@ -6,6 +6,7 @@ import '../models/geo.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_colors.dart';
 import '../utils/formatting.dart';
+import '../utils/l10n_helpers.dart';
 import '../utils/validators.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -90,7 +91,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          SnackBar(content: Text(auth.error ?? l.editProfileSaveFailed)),
+          SnackBar(
+            content: Text(
+              auth.error != null
+                  ? appErrorLabel(context, auth.error!)
+                  : l.editProfileSaveFailed,
+            ),
+          ),
         );
     }
   }

@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lightcutoff_app/models/app_error.dart';
 import 'package:lightcutoff_app/models/geo.dart';
 import 'package:lightcutoff_app/providers/auth_provider.dart';
 import 'package:lightcutoff_app/repositories/auth_repository.dart';
@@ -53,7 +54,7 @@ void main() {
       final ok = await provider.login(identifier: 'pseudo', password: 'x');
 
       expect(ok, isFalse);
-      expect(provider.error, 'Email ou mot de passe incorrect.');
+      expect(provider.error, AppError.wrongCredentials);
     });
 
     test('compte désactivé', () async {
@@ -68,7 +69,7 @@ void main() {
       final ok = await provider.login(identifier: 'a@b.com', password: 'x');
 
       expect(ok, isFalse);
-      expect(provider.error, 'Ce compte a été désactivé.');
+      expect(provider.error, AppError.accountDisabled);
     });
 
     test('email déjà utilisé (register)', () async {
@@ -99,7 +100,7 @@ void main() {
       );
 
       expect(ok, isFalse);
-      expect(provider.error, 'Cet email est déjà utilisé.');
+      expect(provider.error, AppError.emailInUse);
     });
 
     test('pseudo déjà pris (register)', () async {
@@ -125,7 +126,7 @@ void main() {
       );
 
       expect(ok, isFalse);
-      expect(provider.error, 'Ce pseudo est déjà pris.');
+      expect(provider.error, AppError.usernameInUse);
     });
   });
 

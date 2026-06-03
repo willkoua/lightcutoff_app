@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../providers/report_provider.dart';
 import '../theme/app_colors.dart';
+import '../utils/l10n_helpers.dart';
 import '../widgets/njuka_app_bar.dart';
 import '../widgets/report_card.dart';
 import 'report_detail_screen.dart';
@@ -48,7 +49,10 @@ class HomeScreen extends StatelessWidget {
       return const Center(child: CircularProgressIndicator());
     }
     if (reports.error != null) {
-      return _Message(icon: Icons.error_outline, text: reports.error!);
+      return _Message(
+        icon: Icons.error_outline,
+        text: appErrorLabel(context, reports.error!),
+      );
     }
     final list = reports.filteredReports;
     if (list.isEmpty) {

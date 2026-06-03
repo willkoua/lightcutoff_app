@@ -251,6 +251,25 @@
   "relativeMonths": "il y a {n} mois",
   "@relativeMonths": { "placeholders": { "n": {"type": "int"} } },
   "relativeYears": "il y a {n} an(s)",
-  "@relativeYears": { "placeholders": { "n": {"type": "int"} } }
+  "@relativeYears": { "placeholders": { "n": {"type": "int"} } },
+
+  "errorInvalidEmail": "Email invalide.",
+  "errorWrongCredentials": "Email ou mot de passe incorrect.",
+  "errorEmailInUse": "Cet email est déjà utilisé.",
+  "errorUsernameInUse": "Ce pseudo est déjà pris.",
+  "errorWeakPassword": "Mot de passe trop faible.",
+  "errorRequiresRecentLogin": "Reconnecte-toi pour effectuer cette action sensible.",
+  "errorNetworkRequestFailed": "Pas de connexion réseau.",
+  "errorAccountDisabled": "Ce compte a été désactivé.",
+  "errorAuthFailed": "Échec de l'authentification.",
+  "errorProfileUpdateFailed": "Échec de la mise à jour du profil.",
+  "errorNotLoggedIn": "Vous devez être connecté.",
+  "errorReportSubmitFailed": "Échec du signalement. Réessayez.",
+  "errorReportsLoadFailed": "Impossible de charger les coupures.",
+  "errorLocationServicesDisabled": "La localisation est désactivée. Activez-la pour signaler une coupure.",
+  "errorLocationPermissionDenied": "Permission de localisation refusée.",
+  "errorLocationNotFound": "Position introuvable. Réessayez en extérieur ou vérifiez votre GPS.",
+  "errorLocationUnavailable": "Localisation impossible. Réessayez.",
+  "errorGeneric": "Une erreur est survenue. Réessayez."
 }
 

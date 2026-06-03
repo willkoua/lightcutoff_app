@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
 import '../theme/app_colors.dart';
+import '../utils/l10n_helpers.dart';
 import '../utils/validators.dart';
 
 /// Écran « Sécurité » : changement d'email et de mot de passe.
@@ -70,7 +71,9 @@ class _ChangeEmailFormState extends State<_ChangeEmailForm> {
           content: Text(
             ok
                 ? l.securityChangeEmailSuccess
-                : (auth.error ?? l.securityChangeEmailFailed),
+                : (auth.error != null
+                    ? appErrorLabel(context, auth.error!)
+                    : l.securityChangeEmailFailed),
           ),
         ),
       );
@@ -174,7 +177,9 @@ class _ChangePasswordFormState extends State<_ChangePasswordForm> {
           content: Text(
             ok
                 ? l.securityChangePasswordSuccess
-                : (auth.error ?? l.securityChangePasswordFailed),
+                : (auth.error != null
+                    ? appErrorLabel(context, auth.error!)
+                    : l.securityChangePasswordFailed),
           ),
         ),
       );
@@ -227,9 +232,7 @@ class _ChangePasswordFormState extends State<_ChangePasswordForm> {
             ),
             validator:
                 (v) =>
-                    v != _newPassword.text
-                        ? l.registerPasswordsMismatch
-                        : null,
+                    v != _newPassword.text ? l.registerPasswordsMismatch : null,
           ),
           const SizedBox(height: 16),
           ElevatedButton(

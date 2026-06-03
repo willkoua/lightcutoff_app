@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
+import '../models/app_error.dart';
 import '../models/app_user.dart';
 import '../models/geo.dart';
 import '../repositories/auth_repository.dart';
@@ -33,12 +34,12 @@ class AuthProvider extends ChangeNotifier {
   AuthStatus _status = AuthStatus.unknown;
   AppUser? _profile;
   bool _busy = false;
-  String? _error;
+  AppError? _error;
 
   AuthStatus get status => _status;
   AppUser? get profile => _profile;
   bool get busy => _busy;
-  String? get error => _error;
+  AppError? get error => _error;
 
   Future<void> _onAuthStateChanged(User? user) async {
     CrashReporter.setUser(user?.uid);
@@ -181,7 +182,7 @@ class AuthProvider extends ChangeNotifier {
       }
       return true;
     } catch (_) {
-      _error = 'Échec de la mise à jour du profil.';
+      _error = AppError.profileUpdateFailed;
       return false;
     } finally {
       _busy = false;
@@ -204,14 +205,14 @@ class AuthProvider extends ChangeNotifier {
       await action();
       return true;
     } on AccountDisabledException {
-      _error = 'Ce compte a été désactivé.';
+      _error = AppError.accountDisabled;
       return false;
     } on FirebaseAuthException catch (e) {
-      _error = _messageFor(e);
+      _error = _codeFor(e);
       return false;
     } catch (e, st) {
       CrashReporter.recordError(e, st, reason: 'auth action');
-      _error = 'Une erreur est survenue. Réessayez.';
+      _error = AppError.generic;
       return false;
     } finally {
       _busy = false;
@@ -219,28 +220,28 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  String _messageFor(FirebaseAuthException e) {
+  AppError _codeFor(FirebaseAuthException e) {
     switch (e.code) {
       case 'invalid-email':
-        return 'Email invalide.';
+        return AppError.invalidEmail;
       case 'user-disabled':
-        return 'Ce compte a été désactivé.';
+        return AppError.accountDisabled;
       case 'user-not-found':
       case 'wrong-password':
       case 'invalid-credential':
-        return 'Email ou mot de passe incorrect.';
+        return AppError.wrongCredentials;
       case 'email-already-in-use':
-        return 'Cet email est déjà utilisé.';
+        return AppError.emailInUse;
       case 'username-already-in-use':
-        return 'Ce pseudo est déjà pris.';
+        return AppError.usernameInUse;
       case 'weak-password':
-        return 'Mot de passe trop faible.';
+        return AppError.weakPassword;
       case 'requires-recent-login':
-        return 'Reconnecte-toi pour effectuer cette action sensible.';
+        return AppError.requiresRecentLogin;
       case 'network-request-failed':
-        return 'Pas de connexion réseau.';
+        return AppError.networkRequestFailed;
       default:
-        return 'Échec de l\'authentification.';
+        return AppError.authFailed;
     }
   }
 

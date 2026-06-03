@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_colors.dart';
 import '../utils/formatting.dart';
+import '../utils/l10n_helpers.dart';
 import '../utils/validators.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -84,7 +85,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (ok) {
       Navigator.of(context).pop();
     } else if (auth.error != null) {
-      _snack(auth.error!);
+      _snack(appErrorLabel(context, auth.error!));
     }
   }
 
@@ -218,7 +219,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   validator:
                       (v) =>
-                          v != _password.text ? l.registerPasswordsMismatch : null,
+                          v != _password.text
+                              ? l.registerPasswordsMismatch
+                              : null,
                 ),
                 const SizedBox(height: 24),
                 ElevatedButton(

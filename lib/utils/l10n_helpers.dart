@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 
+import '../models/app_error.dart';
 import '../models/enums.dart';
 
 /// Variante localisée de `formatting.dart#relativeTime`. Garde la même logique
@@ -43,5 +44,32 @@ String userRoleLabel(BuildContext context, UserRole role) {
     UserRole.citizen => l.roleCitizen,
     UserRole.operator => l.roleOperator,
     UserRole.admin => l.roleAdmin,
+  };
+}
+
+/// Message utilisateur localisé pour un [AppError] remonté par la couche
+/// données (providers / services). Centralise la traduction des erreurs hors
+/// `BuildContext`.
+String appErrorLabel(BuildContext context, AppError error) {
+  final l = AppLocalizations.of(context);
+  return switch (error) {
+    AppError.invalidEmail => l.errorInvalidEmail,
+    AppError.wrongCredentials => l.errorWrongCredentials,
+    AppError.emailInUse => l.errorEmailInUse,
+    AppError.usernameInUse => l.errorUsernameInUse,
+    AppError.weakPassword => l.errorWeakPassword,
+    AppError.requiresRecentLogin => l.errorRequiresRecentLogin,
+    AppError.networkRequestFailed => l.errorNetworkRequestFailed,
+    AppError.accountDisabled => l.errorAccountDisabled,
+    AppError.authFailed => l.errorAuthFailed,
+    AppError.profileUpdateFailed => l.errorProfileUpdateFailed,
+    AppError.notLoggedIn => l.errorNotLoggedIn,
+    AppError.reportSubmitFailed => l.errorReportSubmitFailed,
+    AppError.reportsLoadFailed => l.errorReportsLoadFailed,
+    AppError.locationServicesDisabled => l.errorLocationServicesDisabled,
+    AppError.locationPermissionDenied => l.errorLocationPermissionDenied,
+    AppError.locationNotFound => l.errorLocationNotFound,
+    AppError.locationUnavailable => l.errorLocationUnavailable,
+    AppError.generic => l.errorGeneric,
   };
 }

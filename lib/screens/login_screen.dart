@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
 import '../theme/app_colors.dart';
+import '../utils/l10n_helpers.dart';
 import '../utils/validators.dart';
 import 'register_screen.dart';
 
@@ -38,7 +39,9 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!ok && mounted && auth.error != null) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(auth.error!)));
+        ..showSnackBar(
+          SnackBar(content: Text(appErrorLabel(context, auth.error!))),
+        );
     }
   }
 

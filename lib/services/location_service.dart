@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 
+import '../models/app_error.dart';
 import '../models/geo.dart';
 import '../repositories/location_repository.dart';
 
@@ -35,9 +36,7 @@ class LocationService implements LocationRepository {
   @override
   Future<LocationResult> getCurrentLocation() async {
     if (!await Geolocator.isLocationServiceEnabled()) {
-      throw const LocationException(
-        'La localisation est désactivée. Activez-la pour signaler une coupure.',
-      );
+      throw const LocationException(AppError.locationServicesDisabled);
     }
 
     var permission = await Geolocator.checkPermission();
@@ -46,7 +45,7 @@ class LocationService implements LocationRepository {
     }
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
-      throw const LocationException('Permission de localisation refusée.');
+      throw const LocationException(AppError.locationPermissionDenied);
     }
 
     final pos = await _resolvePosition();
@@ -76,10 +75,7 @@ class LocationService implements LocationRepository {
     final last = await Geolocator.getLastKnownPosition();
     if (last != null) return last;
 
-    throw const LocationException(
-      'Position introuvable. Définissez une position dans l\'émulateur '
-      '(menu ··· → Location) ou réessayez en extérieur.',
-    );
+    throw const LocationException(AppError.locationNotFound);
   }
 
   Future<GeoArea> _reverseGeocode(double lat, double lng) async {

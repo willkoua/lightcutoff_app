@@ -157,17 +157,15 @@ class _FilterSheetState extends State<_FilterSheet> {
             Wrap(
               spacing: 8,
               children: [
-                _filter(
-                  l.filterSheetMyReports,
-                  p.onlyMine,
-                  p.toggleOnlyMine,
-                ),
+                _filter(l.filterSheetMyReports, p.onlyMine, p.toggleOnlyMine),
                 _filter(l.filterSheetNearby, p.nearOnly, () async {
                   final err = await p.setNearOnly(!p.nearOnly);
                   if (err != null && context.mounted) {
                     ScaffoldMessenger.of(context)
                       ..hideCurrentSnackBar()
-                      ..showSnackBar(SnackBar(content: Text(err)));
+                      ..showSnackBar(
+                        SnackBar(content: Text(appErrorLabel(context, err))),
+                      );
                   }
                 }),
               ],
