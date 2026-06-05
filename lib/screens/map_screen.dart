@@ -4,7 +4,9 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../config/app_config.dart';
 import '../models/enums.dart';
 import '../models/report.dart';
 import '../providers/report_provider.dart';
@@ -46,6 +48,15 @@ class _MapScreenState extends State<MapScreen> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  /// Ouvre un lien d'attribution (échec ignoré : non critique pour la carte).
+  Future<void> _openUrl(String url) async {
+    try {
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    } catch (_) {
+      /* ignore */
+    }
   }
 
   /// Recadre une fois la carte prête et les coupures chargées.
@@ -172,11 +183,23 @@ class _MapScreenState extends State<MapScreen> {
               ),
             ),
             children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.njuka.app',
-                maxZoom: 19,
-              ),
+              // Fond de carte : tuiles Stadia Maps si une clé est fournie
+              // (--dart-define=STADIA_API_KEY=…), sinon repli OSM brut en dev.
+              if (AppConfig.useStadiaTiles)
+                TileLayer(
+                  urlTemplate:
+                      'https://tiles.stadiamaps.com/tiles/alidade_smooth/'
+                      '{z}/{x}/{y}.png?api_key={apiKey}',
+                  additionalOptions: {'apiKey': AppConfig.stadiaApiKey},
+                  userAgentPackageName: 'com.njuka.app',
+                  maxZoom: 20,
+                )
+              else
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.njuka.app',
+                  maxZoom: 19,
+                ),
               MarkerClusterLayerWidget(
                 options: MarkerClusterLayerOptions(
                   maxClusterRadius: 48,
@@ -241,6 +264,27 @@ class _MapScreenState extends State<MapScreen> {
                     ),
                   ],
                 ),
+              // Attribution obligatoire (licence ODbL d'OpenStreetMap + Stadia).
+              RichAttributionWidget(
+                attributions: [
+                  if (AppConfig.useStadiaTiles)
+                    TextSourceAttribution(
+                      'Stadia Maps',
+                      onTap: () => _openUrl('https://stadiamaps.com/'),
+                    ),
+                  if (AppConfig.useStadiaTiles)
+                    TextSourceAttribution(
+                      'OpenMapTiles',
+                      onTap: () => _openUrl('https://openmaptiles.org/'),
+                    ),
+                  TextSourceAttribution(
+                    'OpenStreetMap contributors',
+                    onTap:
+                        () =>
+                            _openUrl('https://www.openstreetmap.org/copyright'),
+                  ),
+                ],
+              ),
             ],
           ),
           Positioned(

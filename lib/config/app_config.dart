@@ -34,4 +34,22 @@ class AppConfig {
   static const int firestorePort = 8080;
   static const int databasePort = 9000;
   static const int storagePort = 9199;
+
+  // --- Carte (tuiles) ---
+
+  /// Clé API Stadia Maps pour les tuiles de la carte. Fournie au build via
+  ///   flutter run/build --dart-define=STADIA_API_KEY=xxxxxxxx
+  /// Vide par défaut → la carte retombe sur les tuiles OpenStreetMap brutes
+  /// (acceptable en dev uniquement ; à NE PAS publier sans clé Stadia).
+  ///
+  /// Note sécurité : une clé de tuiles est côté client, donc jamais totalement
+  /// secrète. La protection réelle = la restreindre (propriété / plafond) dans
+  /// le tableau de bord Stadia Maps.
+  static const String stadiaApiKey = String.fromEnvironment(
+    'STADIA_API_KEY',
+    defaultValue: '',
+  );
+
+  /// `true` quand une clé Stadia est fournie → tuiles Stadia ; sinon OSM (dev).
+  static bool get useStadiaTiles => stadiaApiKey.isNotEmpty;
 }

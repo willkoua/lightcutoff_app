@@ -84,9 +84,14 @@
       (`auth_provider`, `report_provider`, `location_service`/`LocationException`), traduit
       côté UI via `appErrorLabel(context, code)` (`l10n_helpers.dart`). 18 clés `errorXxx`
       ajoutées FR/EN. Tous les SnackBars d'erreur sont désormais localisés. 70 tests verts.
-- [ ] **Fournisseur de tuiles carte à clé** : on tape directement `tile.openstreetmap.org`
-      (sans clé) → fragile en prod (politique d'usage OSM, pas de SLA). Passer à un fournisseur à clé
-      (MapTiler/Stadia/Thunderforest).
+- [~] **Fournisseur de tuiles carte à clé** → **Stadia Maps** :
+      - [x] Code branché : `TileLayer` Stadia (`alidade_smooth`) si `--dart-define=STADIA_API_KEY=…`,
+            **repli OSM** sinon (dev/CI) ; **attribution** ajoutée (Stadia + OpenMapTiles + OSM, obligatoire).
+            `AppConfig.stadiaApiKey` / `useStadiaTiles`. analyze clean, 114 tests OK.
+      - [ ] **À FAIRE (toi)** : créer un compte Stadia Maps → générer une **clé API** → la **restreindre**
+            (propriété mobile / plafond) dans le dashboard.
+      - [ ] Builder avec la clé : `flutter run/build --dart-define=STADIA_API_KEY=xxxx`
+            (et la passer en **secret CI** pour les builds release).
 - [~] **Firebase App Check** — client intégré ✅ (commit `c056703` : `firebase_app_check`,
       `activate()` dans `main.dart` : Play Integrity / AppAttest+DeviceCheck / debug provider).
       Enforcement console = **« Non appliqué » partout** (vérifié sur screenshot) → aucun outage.
