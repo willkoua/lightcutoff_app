@@ -228,5 +228,8 @@
   "errorLocationUnavailable": "Location unavailable. Please try again.",
   "errorGeneric": "Something went wrong. Please try again.",
   "offlineBannerMessage": "Offline — changes will sync when you reconnect.",
-  "reportFormMediaOffline": "Adding media is unavailable offline."
+  "reportFormMediaOffline": "Adding media is unavailable offline.",
+  "settingsSectionLegal": "Legal",
+  "settingsPrivacyPolicy": "Privacy policy",
+  "settingsLinkOpenFailed": "Couldn't open the link."
 }

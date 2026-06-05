@@ -273,6 +273,10 @@
   "errorGeneric": "Une erreur est survenue. Réessayez.",
 
   "offlineBannerMessage": "Hors ligne — les changements seront synchronisés à la reconnexion.",
-  "reportFormMediaOffline": "Ajout de média indisponible hors ligne."
+  "reportFormMediaOffline": "Ajout de média indisponible hors ligne.",
+
+  "settingsSectionLegal": "Légal",
+  "settingsPrivacyPolicy": "Politique de confidentialité",
+  "settingsLinkOpenFailed": "Impossible d'ouvrir le lien."
 }
 

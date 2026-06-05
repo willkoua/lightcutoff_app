@@ -80,4 +80,11 @@ class AppConstants {
   /// purge définitive par le cron `purgeArchivedReports`. Au-delà : hard
   /// delete (récursif, sous-collections incluses).
   static const int archivedRetentionDays = 30;
+
+  // --- Liens légaux ---
+
+  /// URL publique de la politique de confidentialité (Firebase Hosting).
+  /// Source : `public/privacy.html`. Exigée par les stores + lien in-app.
+  static const String privacyPolicyUrl =
+      'https://lightcutoff-dev.web.app/privacy';
 }

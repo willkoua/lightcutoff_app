@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../config/app_constants.dart';
 import '../providers/locale_provider.dart';
 import '../services/notification_service.dart';
 import '../theme/app_colors.dart';
@@ -27,6 +29,8 @@ class SettingsScreen extends StatelessWidget {
           const _NotificationsToggle(),
           _SectionHeader(l.settingsSectionHelp),
           const _ReplayOnboardingTile(),
+          _SectionHeader(l.settingsSectionLegal),
+          const _PrivacyPolicyTile(),
           // Sélecteur de langue : utile aux devs / QA pour tester FR↔EN sans
           // changer la langue du téléphone. Caché en build release.
           if (!kReleaseMode) ...[
@@ -56,6 +60,41 @@ class _SectionHeader extends StatelessWidget {
           letterSpacing: 0.8,
         ),
       ),
+    );
+  }
+}
+
+/// Ouvre la politique de confidentialité hébergée (Firebase Hosting) dans le
+/// navigateur. URL centralisée dans [AppConstants.privacyPolicyUrl].
+class _PrivacyPolicyTile extends StatelessWidget {
+  const _PrivacyPolicyTile();
+
+  Future<void> _open(BuildContext context) async {
+    final l = AppLocalizations.of(context);
+    var ok = false;
+    try {
+      ok = await launchUrl(
+        Uri.parse(AppConstants.privacyPolicyUrl),
+        mode: LaunchMode.externalApplication,
+      );
+    } catch (_) {
+      ok = false;
+    }
+    if (!ok && context.mounted) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(l.settingsLinkOpenFailed)));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return ListTile(
+      leading: const Icon(Icons.privacy_tip_outlined),
+      title: Text(l.settingsPrivacyPolicy),
+      trailing: const Icon(Icons.open_in_new, size: 18),
+      onTap: () => _open(context),
     );
   }
 }

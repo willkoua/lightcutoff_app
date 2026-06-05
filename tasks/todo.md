@@ -67,7 +67,14 @@
       *Différé : en attente de l'accès Apple Developer.*
 - [ ] **Signing release Android** : `build.gradle.kts` signe encore avec les **clés debug**
       (`TODO` ligne 43-45) → **impossible de publier sur le Play Store**. Créer un keystore + config release.
-- [ ] **Pages légales** (Politique de confidentialité / CGU / À propos) : exigées par les stores.
+- [~] **Pages légales** :
+      - [x] **Politique de confidentialité** bilingue FR/EN (`public/privacy.html`), fidèle aux données
+            réelles (compte, géoloc, FCM, médias, Crashlytics, App Check) + hébergement **Firebase Hosting**
+            (`firebase.json`) + lien in-app (Paramètres → Légal, via `url_launcher`).
+      - [ ] **À FAIRE avant publication** : remplir les placeholders `[ÉDITEUR]` / `[date]` dans
+            `public/privacy.html`, faire **relire par un juriste** (RGPD), puis déployer
+            (`firebase deploy --only hosting` avec Node ≥20) → URL `https://lightcutoff-dev.web.app/privacy`.
+      - [ ] CGU / Mentions légales : différées (non strictement requises pour publier).
       *Différé explicitement (« pas maintenant »).*
 
 ### 🟠 Important (qualité / robustesse)
