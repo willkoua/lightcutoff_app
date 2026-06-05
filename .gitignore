@@ -56,6 +56,14 @@ database-debug.log
 ui-debug.log
 pubsub-debug.log
 
+# Firebase Hosting deploy cache
+/.firebase/
+
+# Signature release Android — secrets, JAMAIS versionnés (voir aussi android/.gitignore)
+/android/key.properties
+/android/app/*.jks
+/android/app/*.keystore
+
 # Test coverage artifacts
 /coverage/
 

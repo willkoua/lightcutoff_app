@@ -65,8 +65,13 @@
 ### 🔴 Bloquants pour une mise en production / store
 - [ ] **iOS APNs** : aucun fichier `.entitlements`, clé APNs absente → **les push ne marchent pas sur iOS**.
       *Différé : en attente de l'accès Apple Developer.*
-- [ ] **Signing release Android** : `build.gradle.kts` signe encore avec les **clés debug**
-      (`TODO` ligne 43-45) → **impossible de publier sur le Play Store**. Créer un keystore + config release.
+- [x] **Signing release Android** ✅ : keystore `android/app/njuka-release.jks` (CN=Bogal Consulting,
+      valide jusqu'en 2053, alias `njuka`) + `android/key.properties` (gitignorés). `build.gradle.kts`
+      câblé (signingConfig release, **repli debug** si key.properties absent → CI/autres machines OK).
+      AAB release **signé vérifié** (`jarsigner` → CN=Bogal Consulting). Upload key SHA-256
+      `48:F3:2F:23:…:67:0A`.
+      ⚠️ **Mot de passe + `.jks` à sauvegarder hors machine** (perte = MAJ impossible sans Play App Signing).
+      Build de publication : `flutter build appbundle --release --dart-define=STADIA_API_KEY=…`.
 - [~] **Pages légales** :
       - [x] **Politique de confidentialité** bilingue FR/EN (`public/privacy.html`), fidèle aux données
             réelles (compte, géoloc, FCM, médias, Crashlytics, App Check) + hébergement **Firebase Hosting**
