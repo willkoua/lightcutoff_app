@@ -71,9 +71,10 @@
       - [x] **Politique de confidentialité** bilingue FR/EN (`public/privacy.html`), fidèle aux données
             réelles (compte, géoloc, FCM, médias, Crashlytics, App Check) + hébergement **Firebase Hosting**
             (`firebase.json`) + lien in-app (Paramètres → Légal, via `url_launcher`).
-      - [ ] **À FAIRE avant publication** : remplir les placeholders `[ÉDITEUR]` / `[date]` dans
-            `public/privacy.html`, faire **relire par un juriste** (RGPD), puis déployer
-            (`firebase deploy --only hosting` avec Node ≥20) → URL `https://lightcutoff-dev.web.app/privacy`.
+      - [x] **Déployée** sur Firebase Hosting → live à `https://lightcutoff-dev.web.app/privacy` (HTTP 200).
+      - [ ] **AVANT soumission store** : remplir les placeholders `[ÉDITEUR]` / `[date]` dans
+            `public/privacy.html` + **relire par un juriste** (RGPD), puis re-déployer
+            (`firebase deploy --only hosting` avec Node ≥20).
       - [ ] CGU / Mentions légales : différées (non strictement requises pour publier).
       *Différé explicitement (« pas maintenant »).*
 
