@@ -265,7 +265,9 @@ class _MapScreenState extends State<MapScreen> {
                   ],
                 ),
               // Attribution obligatoire (licence ODbL d'OpenStreetMap + Stadia).
+              // On masque le logo flutter_map (non requis, non cliquable).
               RichAttributionWidget(
+                showFlutterMapAttribution: false,
                 attributions: [
                   if (AppConfig.useStadiaTiles)
                     TextSourceAttribution(
