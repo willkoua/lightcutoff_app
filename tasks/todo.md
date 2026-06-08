@@ -81,6 +81,11 @@
             `public/privacy.html` + **relire par un juriste** (RGPD), puis re-déployer
             (`firebase deploy --only hosting` avec Node ≥20).
       - [ ] CGU / Mentions légales : différées (non strictement requises pour publier).
+- [x] **Suppression de compte (RGPD / exigence stores)** : Cloud Function callable `deleteAccount`
+      (anonymise les signalements ; supprime profil/pseudo/devices/médias/compte Auth) +
+      UI `Profil → Paramètres → Compte → Supprimer mon compte` (ré-auth mot de passe) +
+      page web `https://lightcutoff-dev.web.app/account-deletion` pour le Data Safety.
+      Fonction + hosting **déployés**. analyze clean, 114 tests verts, functions 10/10.
       *Différé explicitement (« pas maintenant »).*
 
 ### 🟠 Important (qualité / robustesse)

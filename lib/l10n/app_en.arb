@@ -231,5 +231,11 @@
   "reportFormMediaOffline": "Adding media is unavailable offline.",
   "settingsSectionLegal": "Legal",
   "settingsPrivacyPolicy": "Privacy policy",
-  "settingsLinkOpenFailed": "Couldn't open the link."
+  "settingsLinkOpenFailed": "Couldn't open the link.",
+  "settingsSectionAccount": "Account",
+  "settingsDeleteAccount": "Delete my account",
+  "deleteAccountTitle": "Delete account?",
+  "deleteAccountBody": "This is permanent. Your profile, devices and media will be deleted, and your reports anonymized. Enter your password to confirm.",
+  "deleteAccountPasswordLabel": "Password",
+  "deleteAccountConfirm": "Delete permanently"
 }

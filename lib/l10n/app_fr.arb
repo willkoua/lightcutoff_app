@@ -277,6 +277,13 @@
 
   "settingsSectionLegal": "Légal",
   "settingsPrivacyPolicy": "Politique de confidentialité",
-  "settingsLinkOpenFailed": "Impossible d'ouvrir le lien."
+  "settingsLinkOpenFailed": "Impossible d'ouvrir le lien.",
+
+  "settingsSectionAccount": "Compte",
+  "settingsDeleteAccount": "Supprimer mon compte",
+  "deleteAccountTitle": "Supprimer le compte ?",
+  "deleteAccountBody": "Action définitive. Ton profil, tes appareils et tes médias seront supprimés, et tes signalements anonymisés. Saisis ton mot de passe pour confirmer.",
+  "deleteAccountPasswordLabel": "Mot de passe",
+  "deleteAccountConfirm": "Supprimer définitivement"
 }
 

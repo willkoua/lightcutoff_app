@@ -6,9 +6,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../config/app_constants.dart';
+import '../providers/auth_provider.dart';
 import '../providers/locale_provider.dart';
 import '../services/notification_service.dart';
 import '../theme/app_colors.dart';
+import '../utils/l10n_helpers.dart';
 import 'onboarding_gate.dart';
 import 'onboarding_screen.dart';
 
@@ -37,6 +39,8 @@ class SettingsScreen extends StatelessWidget {
             _SectionHeader(l.settingsSectionLanguageDebug),
             const _LanguagePickerTile(),
           ],
+          _SectionHeader(l.settingsSectionAccount),
+          const _DeleteAccountTile(),
         ],
       ),
     );
@@ -256,6 +260,127 @@ class _NotificationsToggleState extends State<_NotificationsToggle> {
       ),
       value: _enabled ?? true,
       onChanged: (_enabled == null || _busy) ? null : _toggle,
+    );
+  }
+}
+
+/// Tuile destructive « Supprimer mon compte » (RGPD / exigence stores).
+class _DeleteAccountTile extends StatelessWidget {
+  const _DeleteAccountTile();
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return ListTile(
+      leading: const Icon(
+        Icons.delete_forever_outlined,
+        color: AppColors.orange,
+      ),
+      title: Text(
+        l.settingsDeleteAccount,
+        style: const TextStyle(color: AppColors.orange),
+      ),
+      onTap:
+          () => showDialog<void>(
+            context: context,
+            builder: (_) => const _DeleteAccountDialog(),
+          ),
+    );
+  }
+}
+
+/// Confirmation de suppression : explication + mot de passe (ré-auth). Au
+/// succès, on dépile jusqu'à la racine (l'AuthGate affiche alors l'écran de
+/// connexion, le compte étant supprimé).
+class _DeleteAccountDialog extends StatefulWidget {
+  const _DeleteAccountDialog();
+
+  @override
+  State<_DeleteAccountDialog> createState() => _DeleteAccountDialogState();
+}
+
+class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
+  final _password = TextEditingController();
+  bool _busy = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _password.dispose();
+    super.dispose();
+  }
+
+  Future<void> _confirm() async {
+    final l = AppLocalizations.of(context);
+    if (_password.text.isEmpty) {
+      setState(() => _error = l.validatorPasswordRequired);
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    final auth = context.read<AuthProvider>();
+    final ok = await auth.deleteAccount(currentPassword: _password.text);
+    if (!mounted) return;
+    if (ok) {
+      // Compte supprimé + déconnecté : on retire Paramètres + ce dialog ;
+      // l'AuthGate (route racine) bascule sur la connexion.
+      Navigator.of(context).popUntil((r) => r.isFirst);
+    } else {
+      setState(() {
+        _busy = false;
+        _error =
+            auth.error != null
+                ? appErrorLabel(context, auth.error!)
+                : l.errorGeneric;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(l.deleteAccountTitle),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l.deleteAccountBody),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _password,
+            obscureText: true,
+            autofocus: true,
+            decoration: InputDecoration(
+              labelText: l.deleteAccountPasswordLabel,
+              errorText: _error,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _busy ? null : () => Navigator.of(context).pop(),
+          child: Text(l.actionCancel),
+        ),
+        ElevatedButton(
+          onPressed: _busy ? null : _confirm,
+          style: ElevatedButton.styleFrom(backgroundColor: AppColors.orange),
+          child:
+              _busy
+                  ? const SizedBox(
+                    height: 18,
+                    width: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.white,
+                    ),
+                  )
+                  : Text(l.deleteAccountConfirm),
+        ),
+      ],
     );
   }
 }

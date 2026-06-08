@@ -21,6 +21,7 @@
 import * as admin from "firebase-admin";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions";
 import { geohashQueryBounds } from "geofire-common";
 import { buildBody, resolutionThreshold, shouldResolve } from "./logic";
@@ -349,3 +350,90 @@ export const purgeStaleDevices = onSchedule(
     logger.info(`purgeStaleDevices: ${stale.size} device(s) supprimé(s).`);
   }
 );
+
+/**
+ * Suppression de compte (RGPD / exigence stores). Callable, appelée par
+ * l'utilisateur authentifié après ré-authentification côté client.
+ *
+ * Stratégie « Option B » :
+ *  - **Signalements** de l'utilisateur → **anonymisés** (on retire `userId`,
+ *    `authorUsername` et `mediaUrl`) : la coupure reste un repère communautaire
+ *    mais ne porte plus de donnée personnelle.
+ *  - **Profil**, **index pseudo**, **devices** (tokens FCM), **médias Storage**
+ *    et **compte Auth** → **supprimés**.
+ *
+ * Le compte Auth est supprimé en DERNIER : si le nettoyage des données échoue,
+ * l'utilisateur reste connecté et peut réessayer (pas de données orphelines
+ * sans propriétaire).
+ */
+export const deleteAccount = onCall(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) {
+    throw new HttpsError("unauthenticated", "Authentification requise.");
+  }
+  const db = admin.firestore();
+  logger.info(`deleteAccount: début pour ${uid}`);
+
+  const commitInChunks = async (
+    docs: FirebaseFirestore.QueryDocumentSnapshot[],
+    apply: (
+      batch: FirebaseFirestore.WriteBatch,
+      ref: FirebaseFirestore.DocumentReference
+    ) => void
+  ) => {
+    for (let i = 0; i < docs.length; i += 500) {
+      const batch = db.batch();
+      docs.slice(i, i + 500).forEach((d) => apply(batch, d.ref));
+      await batch.commit();
+    }
+  };
+
+  // 1. Anonymiser les signalements de l'utilisateur (Option B).
+  const reports = await db
+    .collection("reports")
+    .where("userId", "==", uid)
+    .get();
+  await commitInChunks(reports.docs, (batch, ref) =>
+    batch.update(ref, {
+      userId: "",
+      authorUsername: null,
+      mediaUrl: null,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    })
+  );
+  logger.info(`deleteAccount: ${reports.size} signalement(s) anonymisé(s).`);
+
+  // 2. Supprimer les devices (tokens FCM) de l'utilisateur.
+  const devices = await db
+    .collection("devices")
+    .where("userId", "==", uid)
+    .get();
+  await commitInChunks(devices.docs, (batch, ref) => batch.delete(ref));
+
+  // 3. Supprimer l'index pseudo (résolu depuis le doc user).
+  const userSnap = await db.collection("users").doc(uid).get();
+  const username = userSnap.data()?.username as string | undefined;
+  if (username) {
+    await db
+      .collection("usernames")
+      .doc(username)
+      .delete()
+      .catch((e) => logger.warn("deleteAccount: échec delete username", e));
+  }
+
+  // 4. Supprimer le profil.
+  await db.collection("users").doc(uid).delete();
+
+  // 5. Supprimer les médias Storage de l'utilisateur.
+  await admin
+    .storage()
+    .bucket()
+    .deleteFiles({ prefix: `report_media/${uid}/` })
+    .catch((e) => logger.warn("deleteAccount: échec delete médias", e));
+
+  // 6. Supprimer le compte Auth (en dernier).
+  await admin.auth().deleteUser(uid);
+  logger.info(`deleteAccount: compte ${uid} supprimé.`);
+
+  return { ok: true };
+});

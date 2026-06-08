@@ -62,6 +62,10 @@ Section **« Configurer votre application »** :
       - Identifiants (pseudo) · Diagnostics (Crashlytics)
       - Chiffré en transit : oui · Suppression de compte possible : oui
 - [ ] **Politique de confidentialité** : coller `https://lightcutoff-dev.web.app/privacy`
+- [ ] **Suppression de compte** (Data Safety → « Demander la suppression des données ») :
+      URL = `https://lightcutoff-dev.web.app/account-deletion` (suppression in-app +
+      e-mail de secours). En plus du lien web, l'app propose la suppression dans
+      **Profil → Paramètres → Compte → Supprimer mon compte**.
 - [ ] Applications gouvernementales / fonctions financières : **Non**.
 
 ---

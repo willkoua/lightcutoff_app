@@ -149,6 +149,13 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> logout() => _service.signOut();
 
+  /// Suppression définitive du compte. Au succès, la déconnexion serveur fait
+  /// basculer [status] sur `unauthenticated` via le listener d'auth (l'AuthGate
+  /// renvoie alors vers l'écran de connexion).
+  Future<bool> deleteAccount({required String currentPassword}) {
+    return _run(() => _service.deleteAccount(currentPassword: currentPassword));
+  }
+
   /// Met à jour le profil puis rafraîchit l'utilisateur courant.
   Future<bool> updateProfile({
     required String firstName,

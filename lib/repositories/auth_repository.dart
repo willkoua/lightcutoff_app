@@ -59,5 +59,11 @@ abstract class AuthRepository {
     required String currentPassword,
   });
 
+  /// Suppression définitive du compte (RGPD / exigence stores). Ré-authentifie
+  /// avec [currentPassword], déclenche le nettoyage serveur (Cloud Function
+  /// `deleteAccount` : anonymise les signalements, supprime profil/devices/
+  /// médias/compte Auth), puis déconnecte.
+  Future<void> deleteAccount({required String currentPassword});
+
   Future<void> signOut();
 }

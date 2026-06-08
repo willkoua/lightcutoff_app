@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/app_user.dart';
@@ -177,6 +178,19 @@ class AuthService implements AuthRepository {
     if (user == null) return;
     await _reauthenticate(user, currentPassword);
     await user.updatePassword(newPassword);
+  }
+
+  @override
+  Future<void> deleteAccount({required String currentPassword}) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    // Sécurité : on exige le mot de passe (action sensible et définitive).
+    await _reauthenticate(user, currentPassword);
+    // Nettoyage serveur (anonymisation des signalements + suppression
+    // profil/devices/médias/compte Auth) via la Cloud Function callable.
+    await FirebaseFunctions.instance.httpsCallable('deleteAccount').call();
+    // Le compte Auth est supprimé côté serveur ; on purge la session locale.
+    await _auth.signOut();
   }
 
   Future<void> _reauthenticate(User user, String currentPassword) async {
