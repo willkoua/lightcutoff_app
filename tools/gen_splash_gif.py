@@ -29,7 +29,7 @@ for i in range(N):
     glow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     gd = ImageDraw.Draw(glow)
     r = 60 + 70 * t
-    alpha = int(50 + 150 * t)
+    alpha = int(25 + 75 * t)
     gd.ellipse(
         [W / 2 - r, H / 2 - r, W / 2 + r, H / 2 + r], fill=AMBER + (alpha,)
     )
