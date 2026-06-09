@@ -58,10 +58,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
     final l = AppLocalizations.of(context);
-    if (_birthDate == null) {
-      _snack(l.registerBirthDateMissing);
-      return;
-    }
+    // Date de naissance et téléphone sont optionnels.
     final auth = context.read<AuthProvider>();
     // Vérifie l'unicité du pseudo avant de créer le compte.
     setState(() => _checkingUsername = true);
@@ -78,7 +75,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       username: _username.text,
       email: _email.text,
       password: _password.text,
-      phoneNumber: _phoneNumber,
+      phoneNumber: _phoneNumber.isEmpty ? null : _phoneNumber,
       birthDate: _birthDate,
     );
     if (!mounted) return;
@@ -186,7 +183,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   initialCountryCode: 'CM',
                   languageCode: Localizations.localeOf(context).languageCode,
                   invalidNumberMessage: l.registerPhoneInvalid,
-                  onChanged: (phone) => _phoneNumber = phone.completeNumber,
+                  // Optionnel (tant que la connexion par numéro n'existe pas) :
+                  // vide accepté ; le format n'est vérifié que si un numéro est
+                  // réellement saisi.
+                  disableLengthCheck: true,
+                  validator: (phone) {
+                    if (phone == null || phone.number.trim().isEmpty) {
+                      return null;
+                    }
+                    try {
+                      return phone.isValidNumber()
+                          ? null
+                          : l.registerPhoneInvalid;
+                    } catch (_) {
+                      return l.registerPhoneInvalid;
+                    }
+                  },
+                  onChanged:
+                      (phone) =>
+                          _phoneNumber =
+                              phone.number.trim().isEmpty
+                                  ? ''
+                                  : phone.completeNumber,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
