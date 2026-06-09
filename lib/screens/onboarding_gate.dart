@@ -27,10 +27,17 @@ class _OnboardingGateState extends State<OnboardingGate> {
     _load();
   }
 
+  /// Durée minimale d'affichage du splash animé au démarrage, pour qu'il soit
+  /// visible même quand la session se résout instantanément.
+  static const _minSplash = Duration(milliseconds: 1500);
+
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
+    final seen = prefs.getBool(OnboardingGate.prefKey) ?? false;
+    // Laisse le halo du splash respirer un minimum avant d'enchaîner.
+    await Future<void>.delayed(_minSplash);
     if (!mounted) return;
-    setState(() => _seen = prefs.getBool(OnboardingGate.prefKey) ?? false);
+    setState(() => _seen = seen);
   }
 
   Future<void> _finish() async {
