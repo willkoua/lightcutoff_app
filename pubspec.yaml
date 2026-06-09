@@ -95,8 +95,12 @@ flutter:
   # régénéré à chaque `flutter pub get` / build.
   generate: true
 
+  # Logo NJUKA utilisé en runtime par le splash Flutter (continuité visuelle
+  # avec le splash natif, qui pointe sur la même image).
+  assets:
+    - assets/splash/njuka_splash.png
+
   # To add assets to your application, add an assets section, like this:
-  # assets:
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 

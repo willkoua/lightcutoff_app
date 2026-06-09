@@ -37,12 +37,13 @@ class _SplashScreenState extends State<SplashScreen>
     final l = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.dark,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Ampoule entourée d'un halo ambre qui clignote/pulse.
-            AnimatedBuilder(
+      body: Stack(
+        children: [
+          // Ampoule = MÊME image que le splash natif (`njuka_splash.png`),
+          // centrée sur l'écran → la transition natif → Flutter est invisible,
+          // seul le halo s'allume.
+          Center(
+            child: AnimatedBuilder(
               animation: _pulse,
               builder: (context, child) {
                 final t = _pulse.value; // 0 → 1
@@ -62,31 +63,40 @@ class _SplashScreenState extends State<SplashScreen>
                   child: child,
                 );
               },
-              child: const Icon(
-                Icons.lightbulb,
-                size: 72,
-                color: AppColors.primary,
+              child: Image.asset(
+                'assets/splash/njuka_splash.png',
+                width: 140,
+                height: 140,
               ),
             ),
-            const SizedBox(height: 16),
-            Text(
-              l.appName,
-              style: const TextStyle(
-                color: AppColors.white,
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 2,
-              ),
+          ),
+          // Nom + slogan + indicateur, sous l'ampoule (n'affecte pas la
+          // position de l'ampoule, qui reste centrée comme le splash natif).
+          Align(
+            alignment: const Alignment(0, 0.5),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  l.appName,
+                  style: const TextStyle(
+                    color: AppColors.white,
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  l.splashTagline,
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+                const SizedBox(height: 28),
+                const CircularProgressIndicator(color: AppColors.primary),
+              ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              l.splashTagline,
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
-            ),
-            const SizedBox(height: 32),
-            const CircularProgressIndicator(color: AppColors.primary),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
