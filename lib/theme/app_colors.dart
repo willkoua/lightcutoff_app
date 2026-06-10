@@ -18,4 +18,8 @@ class AppColors {
   // Statuts de coupure
   static const Color ongoing = orange; // coupure en cours
   static const Color resolved = Color(0xFF2E9E5B); // rétabli
+
+  // Coupures officielles planifiées (Eneo) — bleu « info », distinct de l'ambre
+  // des signalements communautaires.
+  static const Color planned = Color(0xFF1B6EF3);
 }

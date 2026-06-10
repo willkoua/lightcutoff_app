@@ -284,6 +284,16 @@
   "deleteAccountTitle": "Supprimer le compte ?",
   "deleteAccountBody": "Action définitive. Ton profil, tes appareils et tes médias seront supprimés, et tes signalements anonymisés. Saisis ton mot de passe pour confirmer.",
   "deleteAccountPasswordLabel": "Mot de passe",
-  "deleteAccountConfirm": "Supprimer définitivement"
+  "deleteAccountConfirm": "Supprimer définitivement",
+  "officialOutagesTitle": "Coupures planifiées",
+  "officialOutagesSearchHint": "Rechercher un quartier",
+  "officialOutagesAllRegions": "Toutes les régions",
+  "officialOutagesEmpty": "Aucune coupure planifiée",
+  "officialOutagesError": "Échec du chargement des coupures planifiées",
+  "officialOutagesPlannedBadge": "Travaux planifiés · Eneo",
+  "homeSegmentAll": "Toutes",
+  "homeSegmentReports": "Signalements",
+  "homeSegmentPlanned": "Programmées",
+  "homeSectionUpcoming": "À venir · Eneo"
 }
 

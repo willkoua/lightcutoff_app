@@ -237,5 +237,15 @@
   "deleteAccountTitle": "Delete account?",
   "deleteAccountBody": "This is permanent. Your profile, devices and media will be deleted, and your reports anonymized. Enter your password to confirm.",
   "deleteAccountPasswordLabel": "Password",
-  "deleteAccountConfirm": "Delete permanently"
+  "deleteAccountConfirm": "Delete permanently",
+  "officialOutagesTitle": "Planned outages",
+  "officialOutagesSearchHint": "Search a neighborhood",
+  "officialOutagesAllRegions": "All regions",
+  "officialOutagesEmpty": "No planned outages",
+  "officialOutagesError": "Failed to load planned outages",
+  "officialOutagesPlannedBadge": "Planned works · Eneo",
+  "homeSegmentAll": "All",
+  "homeSegmentReports": "Reports",
+  "homeSegmentPlanned": "Planned",
+  "homeSectionUpcoming": "Upcoming · Eneo"
 }

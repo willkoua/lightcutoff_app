@@ -10,10 +10,18 @@ import 'filter_sheet.dart';
 /// (`MainShell`), pas par l'entête. L'accès aux Paramètres vit dans l'AppBar
 /// de Profil (cf. `profile_screen.dart`).
 class NjukaAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const NjukaAppBar({super.key, required this.title, this.filterProvider});
+  const NjukaAppBar({
+    super.key,
+    required this.title,
+    this.filterProvider,
+    this.extraActions = const [],
+  });
 
   final String title;
   final ReportProvider? filterProvider;
+
+  /// Actions ajoutées avant le bouton filtre (ex. accès « Coupures planifiées »).
+  final List<Widget> extraActions;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -23,6 +31,7 @@ class NjukaAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       title: Text(title),
       actions: [
+        ...extraActions,
         if (filterProvider != null)
           IconButton(
             tooltip: AppLocalizations.of(context).tooltipFilter,
