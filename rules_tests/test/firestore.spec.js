@@ -301,3 +301,25 @@ describe("Firestore — usernames (index pseudo)", () => {
     );
   });
 });
+
+describe("Firestore — official_outages", () => {
+  it("lecture autorisée pour un utilisateur connecté", async () => {
+    await seed((db) =>
+      setDoc(doc(db, "official_outages/o1"), { provider: "eneo", ville: "DOUALA" }),
+    );
+    await assertSucceeds(getDoc(doc(as("alice"), "official_outages/o1")));
+  });
+
+  it("écriture client interdite (création, mise à jour, suppression)", async () => {
+    await assertFails(
+      setDoc(doc(as("alice"), "official_outages/o1"), { provider: "eneo" }),
+    );
+    await seed((db) =>
+      setDoc(doc(db, "official_outages/o2"), { provider: "eneo" }),
+    );
+    await assertFails(
+      updateDoc(doc(as("alice"), "official_outages/o2"), { ville: "X" }),
+    );
+    await assertFails(deleteDoc(doc(as("alice"), "official_outages/o2")));
+  });
+});

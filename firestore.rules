@@ -113,5 +113,14 @@ service cloud.firestore {
                     && request.resource.data.userId == request.auth.uid;
       allow delete: if isOwner(resource.data.userId);
     }
+
+    // Coupures planifiées importées des fournisseurs officiels (ex. Eneo).
+    // Lecture pour tout utilisateur connecté. **Écriture interdite côté
+    // client** : la collection est alimentée uniquement par la Cloud Function
+    // d'ingestion via l'Admin SDK (qui contourne ces règles).
+    match /official_outages/{outageId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
   }
 }

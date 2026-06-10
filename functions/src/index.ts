@@ -25,6 +25,7 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions";
 import { geohashQueryBounds } from "geofire-common";
 import { buildBody, resolutionThreshold, shouldResolve } from "./logic";
+import { EneoAdapter } from "./sources/eneo";
 
 admin.initializeApp();
 
@@ -437,3 +438,106 @@ export const deleteAccount = onCall(async (request) => {
 
   return { ok: true };
 });
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Ingestion des coupures officielles planifiées (Eneo + futurs fournisseurs).
+ * Couche distincte des signalements communautaires (planifié ≠ délestage
+ * vécu). Alimente `official_outages/` via l'Admin SDK uniquement.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+const OFFICIAL_OUTAGES_COLLECTION = "official_outages";
+
+/** Date du jour au format YYYY-MM-DD dans le fuseau Africa/Douala. */
+function todayInDouala(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Africa/Douala",
+  }).format(new Date());
+}
+
+/**
+ * Récupère le programme Eneo, normalise, upsert dans `official_outages/`
+ * (idempotent via `rawHash`), puis purge les entrées dont la date est passée.
+ * Partagé par le cron et le déclencheur HTTP de test.
+ */
+export async function runEneoIngestion(): Promise<{
+  upserted: number;
+  pruned: number;
+}> {
+  const db = admin.firestore();
+  const adapter = new EneoAdapter();
+  const raw = await adapter.fetch();
+  const outages = adapter.normalize(raw);
+  logger.info(
+    `ingestEneoOutages: ${raw.length} brut(s) → ${outages.length} normalisé(s)`
+  );
+
+  // Upsert par lots de [BATCH_SIZE] (merge → conserve fetchedAt cohérent).
+  let upserted = 0;
+  for (let i = 0; i < outages.length; i += BATCH_SIZE) {
+    const slice = outages.slice(i, i + BATCH_SIZE);
+    const batch = db.batch();
+    for (const o of slice) {
+      const ref = db
+        .collection(OFFICIAL_OUTAGES_COLLECTION)
+        .doc(o.rawHash);
+      batch.set(
+        ref,
+        {
+          provider: o.provider,
+          country: o.country,
+          region: o.region,
+          ville: o.ville,
+          quartier: o.quartier,
+          reason: o.reason,
+          progDate: o.progDate,
+          startTime: o.startTime,
+          endTime: o.endTime,
+          startsAt: admin.firestore.Timestamp.fromDate(o.startsAt),
+          endsAt: admin.firestore.Timestamp.fromDate(o.endsAt),
+          sourceUrl: o.sourceUrl,
+          fetchedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+    }
+    await batch.commit();
+    upserted += slice.length;
+  }
+
+  // Purge des entrées passées (progDate < aujourd'hui, fuseau Douala).
+  const today = todayInDouala();
+  const stale = await db
+    .collection(OFFICIAL_OUTAGES_COLLECTION)
+    .where("progDate", "<", today)
+    .get();
+  let pruned = 0;
+  for (let i = 0; i < stale.docs.length; i += BATCH_SIZE) {
+    const slice = stale.docs.slice(i, i + BATCH_SIZE);
+    const batch = db.batch();
+    slice.forEach((d) => batch.delete(d.ref));
+    await batch.commit();
+    pruned += slice.length;
+  }
+
+  logger.info(
+    `ingestEneoOutages: ${upserted} upsert(s), ${pruned} purgé(s) (cutoff ${today}).`
+  );
+  return { upserted, pruned };
+}
+
+/** Cron quotidien : importe le programme officiel Eneo. */
+export const ingestEneoOutages = onSchedule(
+  {
+    schedule: "every 24 hours",
+    timeZone: "Africa/Douala",
+    retryCount: 0,
+  },
+  async () => {
+    await runEneoIngestion();
+  }
+);
+
+// Test manuel en émulateur : pas de déclencheur HTTP — le worker HTTPS de
+// l'émulateur firebase-tools plante avec firebase-functions v7. On lance
+// l'ingestion en direct via `functions/scripts/seedEneo.cjs` sous
+// `firebase emulators:exec --only firestore` (voir tasks/TESTS-MANUELS.md).
