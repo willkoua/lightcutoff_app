@@ -89,7 +89,7 @@ class _SplashScreenState extends State<SplashScreen>
                 const SizedBox(height: 8),
                 Text(
                   l.splashTagline,
-                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                  style: const TextStyle(color: AppColors.primary, fontSize: 14),
                 ),
                 const SizedBox(height: 28),
                 const CircularProgressIndicator(color: AppColors.primary),
