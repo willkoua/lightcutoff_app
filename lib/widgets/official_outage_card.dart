@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
+import 'package:provider/provider.dart';
 
 import '../models/official_outage.dart';
+import '../providers/auth_provider.dart';
 import '../theme/app_colors.dart';
 
 /// Carte d'une coupure **officielle planifiée**. Style bleu « planifié », visuellement
@@ -123,8 +125,47 @@ class OfficialOutageCard extends StatelessWidget {
                 style: const TextStyle(color: AppColors.gray, fontSize: 13),
               ),
             ],
+            const SizedBox(height: 2),
+            Align(
+              alignment: Alignment.centerRight,
+              child: _FollowButton(outageKey: outage.followKey),
+            ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Bouton « Suivre ce quartier » → alerte avant les coupures planifiées.
+class _FollowButton extends StatelessWidget {
+  const _FollowButton({required this.outageKey});
+
+  final String outageKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final following = context.select<AuthProvider, bool>(
+      (a) => a.isFollowingQuartier(outageKey),
+    );
+    final color = following ? AppColors.planned : AppColors.gray;
+    return TextButton.icon(
+      onPressed:
+          () => context.read<AuthProvider>().toggleFollowQuartier(outageKey),
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        minimumSize: const Size(0, 36),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      icon: Icon(
+        following ? Icons.notifications_active : Icons.notifications_none,
+        size: 18,
+        color: color,
+      ),
+      label: Text(
+        following ? l.officialOutageFollowing : l.officialOutageFollow,
+        style: TextStyle(color: color, fontWeight: FontWeight.w600),
       ),
     );
   }

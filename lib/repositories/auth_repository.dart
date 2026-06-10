@@ -47,6 +47,14 @@ abstract class AuthRepository {
     GeoArea? homeLocation,
   });
 
+  /// Suit / ne suit plus un quartier (pour les alertes de coupures planifiées).
+  /// `key` = clé normalisée `REGION|VILLE|QUARTIER` (`OfficialOutage.followKey`).
+  Future<void> setQuartierFollowed({
+    required String uid,
+    required String key,
+    required bool followed,
+  });
+
   /// Change l'email (ré-authentification + email de confirmation à la nouvelle
   /// adresse ; l'email effectif change après que l'utilisateur clique le lien).
   Future<void> changeEmail({

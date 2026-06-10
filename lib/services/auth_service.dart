@@ -157,6 +157,21 @@ class AuthService implements AuthRepository {
   }
 
   @override
+  Future<void> setQuartierFollowed({
+    required String uid,
+    required String key,
+    required bool followed,
+  }) async {
+    await _users.doc(uid).update({
+      'followedQuartiers':
+          followed
+              ? FieldValue.arrayUnion([key])
+              : FieldValue.arrayRemove([key]),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  @override
   Future<void> changeEmail({
     required String newEmail,
     required String currentPassword,

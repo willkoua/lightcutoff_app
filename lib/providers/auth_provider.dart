@@ -197,6 +197,21 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Vrai si l'utilisateur suit ce quartier (clé `REGION|VILLE|QUARTIER`).
+  bool isFollowingQuartier(String key) =>
+      _profile?.followedQuartiers.contains(key) ?? false;
+
+  /// Suit / ne suit plus un quartier (alertes coupures planifiées) puis
+  /// rafraîchit le profil local.
+  Future<void> toggleFollowQuartier(String key) async {
+    final uid = _service.currentUser?.uid;
+    if (uid == null) return;
+    final following = isFollowingQuartier(key);
+    await _service.setQuartierFollowed(uid: uid, key: key, followed: !following);
+    _profile = await _service.fetchProfile(uid);
+    notifyListeners();
+  }
+
   void clearError() {
     if (_error != null) {
       _error = null;

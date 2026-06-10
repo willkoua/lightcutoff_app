@@ -62,6 +62,16 @@ describe("Firestore — users", () => {
     await seed((db) => setDoc(doc(db, "users/alice"), { displayName: "Alice" }));
     await assertFails(deleteDoc(doc(as("alice"), "users/alice")));
   });
+
+  it("peut mettre à jour ses quartiers suivis", async () => {
+    await seed((db) => setDoc(doc(db, "users/alice"), { firstName: "Alice" }));
+    await assertSucceeds(
+      updateDoc(doc(as("alice"), "users/alice"), {
+        followedQuartiers: ["LITTORAL|DOUALA|YASSA"],
+        updatedAt: serverTimestamp(),
+      }),
+    );
+  });
 });
 
 describe("Firestore — reports", () => {

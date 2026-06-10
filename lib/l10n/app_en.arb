@@ -244,8 +244,8 @@
   "officialOutagesEmpty": "No planned outages",
   "officialOutagesError": "Failed to load planned outages",
   "officialOutagesPlannedBadge": "Planned works · Eneo",
-  "homeSegmentAll": "All",
   "homeSegmentReports": "Reports",
   "homeSegmentPlanned": "Planned",
-  "homeSectionUpcoming": "Upcoming · Eneo"
+  "officialOutageFollow": "Follow this area",
+  "officialOutageFollowing": "Following"
 }

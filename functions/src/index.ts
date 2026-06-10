@@ -24,7 +24,12 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions";
 import { geohashQueryBounds } from "geofire-common";
-import { buildBody, resolutionThreshold, shouldResolve } from "./logic";
+import {
+  buildBody,
+  plannedAlertBody,
+  resolutionThreshold,
+  shouldResolve,
+} from "./logic";
 import { EneoAdapter } from "./sources/eneo";
 
 admin.initializeApp();
@@ -541,3 +546,108 @@ export const ingestEneoOutages = onSchedule(
 // l'émulateur firebase-tools plante avec firebase-functions v7. On lance
 // l'ingestion en direct via `functions/scripts/seedEneo.cjs` sous
 // `firebase emulators:exec --only firestore` (voir tasks/TESTS-MANUELS.md).
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Alerte push : prévient les utilisateurs qui SUIVENT un quartier (clé
+ * `REGION|VILLE|QUARTIER`, champ `users.followedQuartiers`) la veille d'une
+ * coupure planifiée. Réutilise FCM. Tourne le soir (Africa/Douala).
+ * ────────────────────────────────────────────────────────────────────────── */
+
+/** Date YYYY-MM-DD à +[days] jours, dans le fuseau Africa/Douala. */
+function dateInDoualaPlusDays(days: number): string {
+  const shifted = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Africa/Douala",
+  }).format(shifted);
+}
+
+async function runFollowedOutageAlerts(): Promise<{
+  quartiers: number;
+  sent: number;
+}> {
+  const db = admin.firestore();
+  const target = dateInDoualaPlusDays(1); // demain
+  const snap = await db
+    .collection(OFFICIAL_OUTAGES_COLLECTION)
+    .where("progDate", "==", target)
+    .get();
+  if (snap.empty) {
+    logger.info(`alertFollowedOutages: aucune coupure planifiée le ${target}`);
+    return { quartiers: 0, sent: 0 };
+  }
+
+  // Regroupe par clé de quartier (une alerte par quartier).
+  const byKey = new Map<
+    string,
+    { quartier: string; startTime?: string; endTime?: string }
+  >();
+  for (const d of snap.docs) {
+    const o = d.data();
+    const key = `${o.region}|${o.ville}|${o.quartier}`;
+    if (!byKey.has(key)) {
+      byKey.set(key, {
+        quartier: o.quartier,
+        startTime: o.startTime,
+        endTime: o.endTime,
+      });
+    }
+  }
+
+  let sent = 0;
+  for (const [key, info] of byKey) {
+    const usersSnap = await db
+      .collection("users")
+      .where("followedQuartiers", "array-contains", key)
+      .get();
+    if (usersSnap.empty) continue;
+    const uids = usersSnap.docs.map((d) => d.id);
+
+    // Tokens des devices de ces utilisateurs (paquets de 10 — limite `in`).
+    const tokens: string[] = [];
+    for (let i = 0; i < uids.length; i += 10) {
+      const chunk = uids.slice(i, i + 10);
+      const devSnap = await db
+        .collection("devices")
+        .where("userId", "in", chunk)
+        .get();
+      devSnap.docs.forEach((d) => {
+        const data = d.data() as DeviceDoc;
+        if (data.fcmEnabled === false) return;
+        tokens.push(d.id);
+      });
+    }
+    if (tokens.length === 0) continue;
+
+    const body = plannedAlertBody(info);
+    for (let i = 0; i < tokens.length; i += BATCH_SIZE) {
+      const batch = tokens.slice(i, i + BATCH_SIZE);
+      const resp = await admin.messaging().sendEachForMulticast({
+        tokens: batch,
+        notification: { title: "Coupure planifiée demain", body },
+        data: { type: "planned_outage", followKey: key },
+        android: {
+          priority: "high",
+          notification: { channelId: OUTAGE_CHANNEL_ID, priority: "high" },
+        },
+      });
+      sent += resp.successCount;
+    }
+  }
+
+  logger.info(
+    `alertFollowedOutages (${target}): ${sent} notif(s) sur ${byKey.size} quartier(s) suivi(s).`
+  );
+  return { quartiers: byKey.size, sent };
+}
+
+/** Cron quotidien (soir) : alerte les abonnés des coupures planifiées du lendemain. */
+export const alertFollowedOutages = onSchedule(
+  {
+    schedule: "0 19 * * *",
+    timeZone: "Africa/Douala",
+    retryCount: 0,
+  },
+  async () => {
+    await runFollowedOutageAlerts();
+  }
+);

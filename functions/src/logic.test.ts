@@ -1,6 +1,29 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildBody, resolutionThreshold, shouldResolve } from "./logic";
+import {
+  buildBody,
+  plannedAlertBody,
+  resolutionThreshold,
+  shouldResolve,
+} from "./logic";
+
+test("plannedAlertBody : quartier + créneau", () => {
+  assert.equal(
+    plannedAlertBody({ quartier: "Bonamoussadi", startTime: "06:00", endTime: "18:00" }),
+    "Coupure planifiée demain à Bonamoussadi de 06:00 à 18:00.",
+  );
+});
+
+test("plannedAlertBody : quartier vide -> repli", () => {
+  assert.match(plannedAlertBody({}), /votre quartier/);
+});
+
+test("plannedAlertBody : sans créneau", () => {
+  assert.equal(
+    plannedAlertBody({ quartier: "Yassa" }),
+    "Coupure planifiée demain à Yassa.",
+  );
+});
 
 test("resolutionThreshold : plancher à 3 quand peu de confirmations", () => {
   assert.equal(resolutionThreshold(0), 3);

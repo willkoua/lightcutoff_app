@@ -33,6 +33,7 @@ service cloud.firestore {
                     && request.resource.data.diff(resource.data).affectedKeys()
                        .hasOnly(['firstName', 'lastName', 'birthDate',
                                  'phoneNumber', 'photoURL', 'homeLocation',
+                                 'followedQuartiers',
                                  'email', 'updatedAt']);
       allow delete: if false;
     }

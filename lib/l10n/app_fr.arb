@@ -291,9 +291,9 @@
   "officialOutagesEmpty": "Aucune coupure planifiée",
   "officialOutagesError": "Échec du chargement des coupures planifiées",
   "officialOutagesPlannedBadge": "Travaux planifiés · Eneo",
-  "homeSegmentAll": "Toutes",
   "homeSegmentReports": "Signalements",
   "homeSegmentPlanned": "Programmées",
-  "homeSectionUpcoming": "À venir · Eneo"
+  "officialOutageFollow": "Suivre ce quartier",
+  "officialOutageFollowing": "Quartier suivi"
 }
 

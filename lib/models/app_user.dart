@@ -12,6 +12,10 @@ class AppUser {
   final String? phoneNumber;
   final String? photoURL;
   final GeoArea homeLocation;
+
+  /// Quartiers suivis pour les alertes de coupures planifiées. Clés normalisées
+  /// `REGION|VILLE|QUARTIER` (cf. `OfficialOutage.followKey`).
+  final List<String> followedQuartiers;
   final UserRole role;
   final AccountStatus status;
   final DateTime? disabledAt;
@@ -28,6 +32,7 @@ class AppUser {
     this.phoneNumber,
     this.photoURL,
     this.homeLocation = const GeoArea(),
+    this.followedQuartiers = const [],
     this.role = UserRole.citizen,
     this.status = AccountStatus.active,
     this.disabledAt,
@@ -54,6 +59,8 @@ class AppUser {
       homeLocation: GeoArea.fromMap(
         map['homeLocation'] as Map<String, dynamic>?,
       ),
+      followedQuartiers:
+          (map['followedQuartiers'] as List?)?.cast<String>() ?? const [],
       role: UserRole.fromName(map['role'] as String?),
       status: AccountStatus.fromName(map['status'] as String?),
       disabledAt: (map['disabledAt'] as Timestamp?)?.toDate(),

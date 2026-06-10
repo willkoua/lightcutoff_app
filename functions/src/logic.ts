@@ -62,3 +62,21 @@ export function buildBody(area?: NotifArea): string {
   if (parts.length === 0) return fallback;
   return `${parts.join(", ")} · à l'instant`;
 }
+
+/** Entrée pour composer le corps d'une alerte de coupure planifiée. */
+export interface PlannedAlertInput {
+  quartier?: string;
+  startTime?: string; // HH:MM local
+  endTime?: string;
+}
+
+/**
+ * Corps de la notification « coupure planifiée demain » (FR). Pur et testable.
+ */
+export function plannedAlertBody(input: PlannedAlertInput): string {
+  const q = (input.quartier ?? "").trim() || "votre quartier";
+  const s = (input.startTime ?? "").trim();
+  const e = (input.endTime ?? "").trim();
+  const window = s && e ? ` de ${s} à ${e}` : "";
+  return `Coupure planifiée demain à ${q}${window}.`;
+}

@@ -32,6 +32,9 @@ class OfficialOutage {
     this.endsAt,
   });
 
+  /// Clé de suivi d'un quartier (alignée avec la Cloud Function d'alerte).
+  String get followKey => '$region|$ville|$quartier';
+
   factory OfficialOutage.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final map = doc.data() ?? {};
     return OfficialOutage(
