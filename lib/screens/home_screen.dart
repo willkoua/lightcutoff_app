@@ -8,14 +8,13 @@ import '../providers/report_provider.dart';
 import '../theme/app_colors.dart';
 import '../utils/l10n_helpers.dart';
 import '../widgets/njuka_app_bar.dart';
-import '../widgets/official_outage_card.dart';
 import '../widgets/official_outages_view.dart';
 import '../widgets/report_card.dart';
 import 'report_detail_screen.dart';
 import 'report_form_screen.dart';
 
-/// Segment de la Liste : tout / signalements communautaires / coupures planifiées.
-enum HomeSegment { all, reports, planned }
+/// Segment de la Liste : signalements communautaires / coupures planifiées.
+enum HomeSegment { reports, planned }
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -100,11 +99,6 @@ class _HomeScreenState extends State<HomeScreen> {
         return ChangeNotifierProvider.value(
           value: _ensureOutages(),
           child: const OfficialOutagesView(),
-        );
-      case HomeSegment.all:
-        return ChangeNotifierProvider.value(
-          value: _ensureOutages(),
-          child: _AllView(reports: reports, card: _reportCard),
         );
     }
   }
@@ -226,7 +220,6 @@ class _SegmentedControl extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final labels = {
-      HomeSegment.all: l.homeSegmentAll,
       HomeSegment.reports: l.homeSegmentReports,
       HomeSegment.planned: l.homeSegmentPlanned,
     };
@@ -262,98 +255,6 @@ class _SegmentedControl extends StatelessWidget {
                 ),
               ),
             ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Segment « Toutes » : section « En cours » (signalements) puis « À venir » (Eneo).
-class _AllView extends StatelessWidget {
-  const _AllView({required this.reports, required this.card});
-
-  final ReportProvider reports;
-  final Widget Function(BuildContext, ReportProvider, Report) card;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    final outages = context.watch<OfficialOutageProvider>();
-    final ongoing = reports.filteredReports;
-    final planned = outages.filtered;
-
-    return RefreshIndicator(
-      onRefresh: () async {
-        await Future.wait([reports.refresh(), outages.load()]);
-      },
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(top: 4, bottom: 88),
-        children: [
-          _SectionHeader(
-            icon: Icons.flash_on,
-            color: AppColors.ongoing,
-            label: l.statusOngoing,
-          ),
-          if (ongoing.isEmpty)
-            _hint(l.homeEmptyAllReports)
-          else
-            for (final r in ongoing) card(context, reports, r),
-          _SectionHeader(
-            icon: Icons.engineering_outlined,
-            color: AppColors.planned,
-            label: l.homeSectionUpcoming,
-          ),
-          if (outages.loading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 20),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else if (planned.isEmpty)
-            _hint(l.officialOutagesEmpty)
-          else
-            for (final o in planned) OfficialOutageCard(outage: o),
-        ],
-      ),
-    );
-  }
-
-  Widget _hint(String text) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-    child: Text(text, style: const TextStyle(color: AppColors.gray)),
-  );
-}
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({
-    required this.icon,
-    required this.color,
-    required this.label,
-  });
-
-  final IconData icon;
-  final Color color;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: color),
-          const SizedBox(width: 6),
-          Text(
-            label.toUpperCase(),
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(child: Divider(color: color.withValues(alpha: 0.25))),
         ],
       ),
     );
