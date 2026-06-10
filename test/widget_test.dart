@@ -1,25 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:lightcutoff_app/screens/splash_screen.dart';
 
 void main() {
-  testWidgets('Splash screen affiche le nom de l\'app', (tester) async {
-    await tester.pumpWidget(
-      const MaterialApp(
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        locale: Locale('fr'),
-        home: SplashScreen(),
-      ),
-    );
-    // L'extension d'AppLocalizations charge en async ; on pompe quelques frames
-    // pour la laisser s'installer sans utiliser pumpAndSettle (qui boucle à
-    // cause du CircularProgressIndicator du splash).
+  testWidgets('Splash screen affiche le logo NJUKA', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: SplashScreen()));
+    // Le halo est animé en boucle : on pompe quelques frames sans
+    // pumpAndSettle (qui bouclerait à l'infini sur l'animation).
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('NJUKA'), findsOneWidget);
+    // Le splash affiche le logo (ampoule) centré.
+    expect(find.byType(Image), findsOneWidget);
   });
 }
