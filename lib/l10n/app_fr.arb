@@ -344,6 +344,9 @@
   "homeSegmentPlanned": "Programmées",
   "officialOutageFollow": "Suivre ce quartier",
   "officialOutageFollowing": "Quartier suivi",
+  "confirmFollowTitle": "Suivre ce quartier ?",
+  "confirmFollowBody": "Tu recevras une alerte la veille des coupures planifiées dans ce quartier.",
+  "confirmFollowAction": "Suivre",
   "settingsSectionProviderDebug": "Pays / compagnie (debug)",
   "providerAuto": "Auto (détecté)"
 }

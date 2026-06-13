@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../models/official_outage.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_colors.dart';
+import 'confirm_dialog.dart';
 
 /// Carte d'une coupure **officielle planifiée**. Style bleu « planifié », visuellement
 /// distinct des `ReportCard` (ambre) des signalements communautaires.
@@ -151,8 +152,19 @@ class _FollowButton extends StatelessWidget {
     );
     final color = following ? AppColors.planned : AppColors.gray;
     return TextButton.icon(
-      onPressed:
-          () => context.read<AuthProvider>().toggleFollowQuartier(outageKey),
+      onPressed: () async {
+        // Confirmation seulement au moment de S'ABONNER (le retrait est direct).
+        if (!following) {
+          final ok = await showConfirmDialog(
+            context,
+            title: l.confirmFollowTitle,
+            message: l.confirmFollowBody,
+            confirmLabel: l.confirmFollowAction,
+          );
+          if (!ok || !context.mounted) return;
+        }
+        context.read<AuthProvider>().toggleFollowQuartier(outageKey);
+      },
       style: TextButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 8),
         minimumSize: const Size(0, 36),
