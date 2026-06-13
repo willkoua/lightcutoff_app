@@ -301,6 +301,9 @@
   "confirmFollowTitle": "Follow this area?",
   "confirmFollowBody": "You'll get an alert the day before planned outages in this area.",
   "confirmFollowAction": "Follow",
+  "confirmFollowTitle": "Follow this area?",
+  "confirmFollowBody": "You'll get an alert the day before planned outages in this area.",
+  "confirmFollowAction": "Follow",
   "settingsSectionProviderDebug": "Country / company (debug)",
   "providerAuto": "Auto (detected)"
 }
