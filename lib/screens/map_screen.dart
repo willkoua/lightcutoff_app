@@ -76,6 +76,19 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
+  /// Force le chargement des tuiles de la vue initiale. Sans un premier
+  /// évènement caméra, flutter_map peut rester gris jusqu'à ce que l'utilisateur
+  /// interagisse — surtout quand il n'y a aucun signalement à cadrer
+  /// ([_maybeFit] ne déplace alors pas la caméra). Un « move » sur place, après
+  /// la mise en page, déclenche le recalcul des tuiles.
+  void _primeTiles() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_mapReady) return;
+      final cam = _controller.camera;
+      _controller.move(cam.center, cam.zoom);
+    });
+  }
+
   Future<void> _recenterOnMe() async {
     if (_myPos != null) {
       _controller.move(_myPos!, 15);
@@ -179,6 +192,7 @@ class _MapScreenState extends State<MapScreen> {
               onMapReady: () {
                 _mapReady = true;
                 _maybeFit(points);
+                _primeTiles();
               },
               interactionOptions: const InteractionOptions(
                 flags: InteractiveFlag.all,
