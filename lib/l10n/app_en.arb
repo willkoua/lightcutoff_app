@@ -179,6 +179,8 @@
   "reportDetailConfirmedByOther": "A user",
   "reportCardConfirm": "Confirm",
   "reportCardCourantRevenu": "Power back",
+  "reportVoteConfirmedByYou": "You confirmed",
+  "reportVoteRestoredByYou": "You reported the power's back",
   "reportCardConfirmationsCount": "{count, plural, =1{1 confirmation} other{{count} confirmations}}",
   "homeTitle": "Reported outages",
   "homeEmptyAllReports": "No outage reported yet.",

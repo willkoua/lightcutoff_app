@@ -197,6 +197,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return ReportCard(
       report: report,
       isAuthor: reports.isAuthor(report),
+      alreadyConfirmed: reports.iConfirmed(report.id),
+      alreadyRestored: reports.iRestored(report.id),
       onTap:
           () => _open(
             context,

@@ -93,6 +93,36 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
   AppError? _error;
   bool _submitting = false;
 
+  /// IDs des reports que l'utilisateur courant a déjà confirmés / dont il a déjà
+  /// signalé le retour du courant. Alimentés optimistiquement à l'action et
+  /// hydratés à l'ouverture du détail ([hydrateMyVotes]) pour survivre à un
+  /// redémarrage. Permettent d'afficher clairement « tu as déjà voté ».
+  final Set<String> _myConfirmedIds = {};
+  final Set<String> _myRestoredIds = {};
+
+  bool iConfirmed(String reportId) => _myConfirmedIds.contains(reportId);
+  bool iRestored(String reportId) => _myRestoredIds.contains(reportId);
+
+  /// Vérifie côté serveur si l'utilisateur a déjà confirmé / signalé le retour
+  /// pour [reportId] et met à jour l'état local. Idempotent ; sans effet hors
+  /// connexion ou en cas d'erreur (l'état optimiste reste la source).
+  Future<void> hydrateMyVotes(String reportId) async {
+    final uid = _uid;
+    if (uid == null) return;
+    try {
+      final results = await Future.wait([
+        _service.hasConfirmed(reportId, uid),
+        _service.hasRestored(reportId, uid),
+      ]);
+      var changed = false;
+      if (results[0] && _myConfirmedIds.add(reportId)) changed = true;
+      if (results[1] && _myRestoredIds.add(reportId)) changed = true;
+      if (changed) notifyListeners();
+    } catch (_) {
+      // Lecture best-effort : on garde l'état optimiste existant.
+    }
+  }
+
   /// Écoute les coupures dans la limite courante. Re-souscrit à chaque
   /// [loadMore] avec une fenêtre élargie (on conserve le temps réel).
   void _subscribe() {
@@ -561,9 +591,11 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (reportById(reportId)?.userId == uid) return false;
     try {
       await _service.confirmReport(reportId, uid);
+      _myConfirmedIds.add(reportId);
       AnalyticsService.instance.logReportConfirmed();
       // En mode proximité (requête ponctuelle), on resynchronise tout de suite.
       if (_nearOnly) await _refreshNear();
+      notifyListeners();
       return true;
     } catch (_) {
       return false;
@@ -608,8 +640,10 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (uid == null) return false;
     try {
       await _service.markRestored(reportId, uid);
+      _myRestoredIds.add(reportId);
       AnalyticsService.instance.logReportRestored();
       if (_nearOnly) await _refreshNear();
+      notifyListeners();
       return true;
     } catch (_) {
       return false;

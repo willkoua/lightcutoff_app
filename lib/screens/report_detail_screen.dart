@@ -10,10 +10,27 @@ import '../theme/app_colors.dart';
 import '../utils/l10n_helpers.dart';
 import '../widgets/njuka_app_bar.dart';
 
-class ReportDetailScreen extends StatelessWidget {
+class ReportDetailScreen extends StatefulWidget {
   const ReportDetailScreen({super.key, required this.reportId});
 
   final String reportId;
+
+  @override
+  State<ReportDetailScreen> createState() => _ReportDetailScreenState();
+}
+
+class _ReportDetailScreenState extends State<ReportDetailScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Hydrate l'état « j'ai déjà voté » depuis le serveur (survit à un
+    // redémarrage), après le 1er frame pour disposer du provider.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<ReportProvider>().hydrateMyVotes(widget.reportId);
+      }
+    });
+  }
 
   void _snack(BuildContext context, String message) {
     ScaffoldMessenger.of(context)
@@ -66,7 +83,7 @@ class ReportDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final provider = context.watch<ReportProvider>();
-    final report = provider.reportById(reportId);
+    final report = provider.reportById(widget.reportId);
 
     if (report == null) {
       return Scaffold(
@@ -162,37 +179,43 @@ class ReportDetailScreen extends StatelessWidget {
           //     le seuil de rétablissements est franchi.
           if (ongoing) ...[
             if (!isAuthor)
-              ElevatedButton.icon(
+              if (provider.iConfirmed(report.id))
+                const _VotedBanner(labelKey: _Vote.confirmed)
+              else
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    final ok = await provider.confirm(report.id);
+                    if (context.mounted) {
+                      _snack(
+                        context,
+                        ok
+                            ? l.reportDetailSnackConfirmed
+                            : l.reportDetailSnackConfirmFailed,
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.thumb_up_outlined),
+                  label: Text(l.reportDetailConfirmButton),
+                ),
+            if (!isAuthor) const SizedBox(height: 8),
+            if (provider.iRestored(report.id))
+              const _VotedBanner(labelKey: _Vote.restored)
+            else
+              OutlinedButton.icon(
                 onPressed: () async {
-                  final ok = await provider.confirm(report.id);
+                  final ok = await provider.markRestored(report.id);
                   if (context.mounted) {
                     _snack(
                       context,
                       ok
-                          ? l.reportDetailSnackConfirmed
-                          : l.reportDetailSnackConfirmFailed,
+                          ? l.reportDetailSnackRestoredOk
+                          : l.reportDetailSnackRestoredFailed,
                     );
                   }
                 },
-                icon: const Icon(Icons.thumb_up_outlined),
-                label: Text(l.reportDetailConfirmButton),
+                icon: const Icon(Icons.lightbulb_outline),
+                label: Text(l.reportDetailMarkRestoredButton),
               ),
-            if (!isAuthor) const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: () async {
-                final ok = await provider.markRestored(report.id);
-                if (context.mounted) {
-                  _snack(
-                    context,
-                    ok
-                        ? l.reportDetailSnackRestoredOk
-                        : l.reportDetailSnackRestoredFailed,
-                  );
-                }
-              },
-              icon: const Icon(Icons.lightbulb_outline),
-              label: Text(l.reportDetailMarkRestoredButton),
-            ),
           ],
           // Compteur public de rétablissements (sans détails individuels).
           if (report.restorationCount > 0) ...[
@@ -243,9 +266,9 @@ class ReportDetailScreen extends StatelessWidget {
           const SizedBox(height: 12),
           if (canViewTimeline)
             _ConfirmationTimeline(
-              reportId: reportId,
+              reportId: widget.reportId,
               currentUid: provider.currentUid,
-              stream: provider.watchConfirmations(reportId),
+              stream: provider.watchConfirmations(widget.reportId),
             )
           else
             _CountOnly(count: report.confirmationCount),
@@ -443,6 +466,48 @@ class _InfoRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+enum _Vote { confirmed, restored }
+
+/// Bandeau passif (pleine largeur) confirmant que l'utilisateur a déjà voté —
+/// remplace le bouton d'action correspondant pour un retour visuel clair.
+class _VotedBanner extends StatelessWidget {
+  const _VotedBanner({required this.labelKey});
+
+  final _Vote labelKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final label =
+        labelKey == _Vote.confirmed
+            ? l.reportVoteConfirmedByYou
+            : l.reportVoteRestoredByYou;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: BoxDecoration(
+        color: AppColors.resolved.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.resolved.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.check_circle, size: 20, color: AppColors.resolved),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.resolved,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

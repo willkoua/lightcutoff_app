@@ -201,6 +201,8 @@
 
   "reportCardConfirm": "Confirmer",
   "reportCardCourantRevenu": "Courant revenu",
+  "reportVoteConfirmedByYou": "Tu as confirmé",
+  "reportVoteRestoredByYou": "Tu as signalé le retour",
   "reportCardConfirmationsCount": "{count, plural, =1{1 confirmation} other{{count} confirmations}}",
   "@reportCardConfirmationsCount": { "placeholders": { "count": {"type": "int"} } },
 

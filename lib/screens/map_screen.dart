@@ -116,6 +116,8 @@ class _MapScreenState extends State<MapScreen> {
           (sheetContext) => ReportCard(
             report: report,
             isAuthor: provider.isAuthor(report),
+            alreadyConfirmed: provider.iConfirmed(report.id),
+            alreadyRestored: provider.iRestored(report.id),
             onConfirm: () async {
               Navigator.of(sheetContext).pop();
               final ok = await provider.confirm(report.id);

@@ -13,6 +13,8 @@ class ReportCard extends StatelessWidget {
     required this.isAuthor,
     required this.onConfirm,
     required this.onMarkRestored,
+    this.alreadyConfirmed = false,
+    this.alreadyRestored = false,
     this.onTap,
   });
 
@@ -20,6 +22,14 @@ class ReportCard extends StatelessWidget {
   final bool isAuthor;
   final VoidCallback onConfirm;
   final VoidCallback onMarkRestored;
+
+  /// L'utilisateur courant a déjà confirmé cette coupure (→ indicateur au lieu
+  /// du bouton).
+  final bool alreadyConfirmed;
+
+  /// L'utilisateur courant a déjà signalé le retour du courant.
+  final bool alreadyRestored;
+
   final VoidCallback? onTap;
 
   @override
@@ -145,24 +155,62 @@ class ReportCard extends StatelessWidget {
                 Wrap(
                   alignment: WrapAlignment.end,
                   spacing: 4,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     if (!isAuthor)
+                      if (alreadyConfirmed)
+                        _VotedChip(label: l.reportVoteConfirmedByYou)
+                      else
+                        TextButton.icon(
+                          onPressed: onConfirm,
+                          icon: const Icon(Icons.thumb_up_outlined, size: 18),
+                          label: Text(l.reportCardConfirm),
+                        ),
+                    if (alreadyRestored)
+                      _VotedChip(label: l.reportVoteRestoredByYou)
+                    else
                       TextButton.icon(
-                        onPressed: onConfirm,
-                        icon: const Icon(Icons.thumb_up_outlined, size: 18),
-                        label: Text(l.reportCardConfirm),
+                        onPressed: onMarkRestored,
+                        icon: const Icon(Icons.lightbulb_outline, size: 18),
+                        label: Text(l.reportCardCourantRevenu),
                       ),
-                    TextButton.icon(
-                      onPressed: onMarkRestored,
-                      icon: const Icon(Icons.lightbulb_outline, size: 18),
-                      label: Text(l.reportCardCourantRevenu),
-                    ),
                   ],
                 ),
               ],
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Indicateur passif « tu as déjà voté » (confirmé / retour signalé), affiché à
+/// la place du bouton d'action correspondant.
+class _VotedChip extends StatelessWidget {
+  const _VotedChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.check_circle, size: 18, color: AppColors.resolved),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.resolved,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }
