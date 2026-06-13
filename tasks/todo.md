@@ -3,6 +3,11 @@
 > Audit basé sur le **code réel** (pas sur CONTEXT.md, qui date du 22 mai et est en
 > retard sur les faits). Vérifié le 2026-06-03. `flutter analyze` clean, **70 tests verts**.
 
+> 🚀 **2026-06-13 — `1.1.0+4` déployé en TEST INTERNE Play Store** (env staging `lightcutoff-dev`).
+> Inclut tous les correctifs récents (crash minify, carte centrée/affichée, popups de validation,
+> indicateur « déjà voté », onglets stats, profil sans rôle, proximité par défaut, sécurité
+> compteurs durcie, analytics). Prochain jalon : **retours testeurs + 1ères données analytics**.
+
 ---
 
 ## ✅ FAIT (vérifié dans le code)
