@@ -29,6 +29,7 @@ import {
   plannedAlertBody,
   resolutionThreshold,
   shouldResolve,
+  effectiveMinVotes,
 } from "./logic";
 import { EneoAdapter } from "./sources/eneo";
 
@@ -259,7 +260,7 @@ export const onRestorationCreated = onDocumentCreated(
     };
     const confirmations = report.confirmationCount ?? 0;
     const restorations = report.restorationCount ?? 0;
-    const threshold = resolutionThreshold(confirmations);
+    const threshold = resolutionThreshold(confirmations, effectiveMinVotes());
 
     logger.info(
       `onRestorationCreated: report=${reportId} restorations=${restorations} ` +

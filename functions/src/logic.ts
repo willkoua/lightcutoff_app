@@ -12,6 +12,19 @@
 export const RESTORATION_MIN_VOTES = 3;
 export const RESTORATION_RATIO = 0.5;
 
+/**
+ * Plancher de votes **effectif**, surchargeable par la variable d'environnement
+ * `RESTORATION_MIN_VOTES` (fixée par projet via `functions/.env.<projet>`).
+ * Sert à abaisser temporairement le seuil en staging pour tester le flux à un
+ * seul compte, **sans toucher le défaut prod-sûr de 3** ni les tests purs
+ * (env non défini → renvoie [RESTORATION_MIN_VOTES]).
+ */
+export function effectiveMinVotes(): number {
+  const raw = process.env.RESTORATION_MIN_VOTES;
+  const n = raw ? Number.parseInt(raw, 10) : NaN;
+  return Number.isFinite(n) && n >= 1 ? n : RESTORATION_MIN_VOTES;
+}
+
 /** Zone lisible utilisée pour composer le corps de la notification. */
 export interface NotifArea {
   neighborhood?: string;
@@ -49,7 +62,7 @@ export function shouldResolve(report: ResolutionInput): boolean {
   if (report.archivedAt) return false;
   const confirmations = report.confirmationCount ?? 0;
   const restorations = report.restorationCount ?? 0;
-  return restorations >= resolutionThreshold(confirmations);
+  return restorations >= resolutionThreshold(confirmations, effectiveMinVotes());
 }
 
 /** Construit le corps de la notif à partir de la zone du report. */
