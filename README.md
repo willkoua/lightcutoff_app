@@ -30,16 +30,18 @@ Sans `APP_ENV` → `staging` (comportement historique) ; `USE_EMULATOR=true` →
 |---------|-------|
 | Authentification | login pseudo **ou** email, inscription (pseudo unique), vérif. email obligatoire, changement email/mdp, **suppression de compte RGPD** |
 | Signalements | géoloc + reverse-geocoding, liste temps réel **paginée**, filtres/tri/recherche, anti-doublon 500 m, médias photo/GIF |
-| Crowd | **confirmations** & **« courant revenu »** (1 vote/user, transactionnel), **auto-résolution** par seuil, archivage soft-delete + purge 30 j |
+| Crowd | **confirmations** & **« courant revenu »** (1 vote/user, transactionnel, **indicateur « tu as déjà voté »**), **auto-résolution** par seuil, archivage soft-delete + purge 30 j |
+| Statistiques | écran perso **« mes coupures »** + **« ma zone »** (compte, durées, répartition heure/jour) — agrégats anonymes |
+| Mesure | **Firebase Analytics** (funnel : inscription, signalement, confirmation… + screen views), collecte coupée en dev |
 | Coupures officielles | **programme Eneo ingéré quotidiennement** (Cloud Function) → segment « Programmées » (recherche quartier + filtre région), **suivre un quartier** + alerte push la veille |
 | Multi-pays | fournisseur résolu automatiquement (profil → locale → défaut), registre extensible ([`lib/config/electricity_providers.dart`](lib/config/electricity_providers.dart)) |
 | Carte | `flutter_map` + tuiles Stadia Maps (repli OSM) + clustering |
 | Notifications | FCM (foreground/background/app tuée + navigation), préférence opt-out |
 | i18n | **FR / EN** complet (UI + erreurs), ARB + `flutter gen-l10n` |
 | Hors-ligne | persistance Firestore + bandeau global « Hors ligne » |
-| Qualité | App Check, Crashlytics, règles Firestore/Storage **testées**, CI 3 jobs, 123 tests Dart + 21 tests functions + 28 tests de règles |
+| Qualité | App Check, Crashlytics, règles Firestore/Storage **testées** (compteurs durcis : +1 lié au vote), CI 3 jobs, 134 tests Dart + 21 tests functions + 31 tests de règles |
 
-Pistes restantes : APNs iOS (gelé — accès Apple Developer), statistiques utilisateur, prédiction de délestage, photo de profil.
+Pistes restantes : APNs iOS (gelé — accès Apple Developer), prédiction de délestage, photo de profil.
 
 ---
 

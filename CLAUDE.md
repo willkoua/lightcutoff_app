@@ -76,7 +76,10 @@ NjukaApp (MultiProvider: AuthProvider + LocaleProvider)
 ### Key providers
 
 - **`AuthProvider`** — wraps `AuthRepository`, drives `AuthGate`. Calls `NotificationService.registerForUser` / `unregister` on auth state changes.
-- **`ReportProvider`** — owns the real-time Firestore stream (`watchReports`), filters/sort state, proximity queries, and all report mutations (confirm, restore, archive). Also implements `WidgetsBindingObserver` to pause/resume the proximity refresh timer when the app goes to background.
+- **`ReportProvider`** — owns the real-time Firestore stream (`watchReports`), filters/sort state, proximity queries, and all report mutations (confirm, restore, archive). Also implements `WidgetsBindingObserver` to pause/resume the proximity refresh timer when the app goes to background. Tracks the current user's own votes (`iConfirmed`/`iRestored`, set optimistically on action and hydrated from the server via `hydrateMyVotes`) so the UI shows "you already voted".
+- **`StatsProvider`** — personal statistics (Profile → Stats): "my outages" (`reportsByAuthor`) and "my area" (`reportsWithinRadius`). Aggregation logic is a pure, tested function in `lib/utils/outage_stats.dart`.
+
+Cross-cutting services accessed as singletons (not via repositories, like `NotificationService`): `AnalyticsService.instance` (Firebase Analytics — funnel events + `navigatorObservers` screen views; **collection disabled in dev**, never throws into a user flow).
 
 ### Proximity filtering
 
@@ -150,13 +153,14 @@ final l = await AppLocalizations.delegate.load(const Locale('fr'));
 - **Android** Kotlin plugin `2.1.0` (required by `geolocator`)
 - **iOS** `platform :ios, '13.0'` (required by Firebase SDKs)
 - Debug builds only: cleartext HTTP to emulators is allowed via `android/app/src/debug/res/xml/network_security_config.xml`
+- ⚠️ **R8 minification is intentionally OFF for release** (`isMinifyEnabled = false` / `isShrinkResources = false` in `android/app/build.gradle.kts`). With it on (and no `keep` rules), R8 stripped a Firebase plugin's reflection-based registration → **NPE in `FlutterActivity.onCreate`, release crashes on startup** (debug was fine). Do **not** re-enable minify without adding tested ProGuard rules and verifying release launch on a device.
 
 ## Data model highlights
 
 See `SCHEMA.md` for the full Firestore schema. Key points for code work:
 
 - **Report soft-delete**: `archivedAt != null` means deleted — filter it in every query. Hard-purge runs via Cloud Function cron after 30 days.
-- **Confirmations / Restorations**: subcollections of `reports/{id}`, document ID = `uid` (one vote per user). Counter on the parent doc is incremented in a Firestore transaction.
+- **Confirmations / Restorations**: subcollections of `reports/{id}`, document ID = `uid` (one vote per user). Counter on the parent doc is incremented **client-side in the same atomic transaction** that creates the vote doc. ⚠️ **Security invariant** (`firestore.rules`): a non-author may change a counter only by **+1** *and* only while creating their own vote doc in the same commit (`bumpsCounterByOne` + `castsVote` via `exists`/`existsAfter`). If you ever move the increment elsewhere (e.g. a Cloud Function), you **must** update these rules or the write will be rejected.
 - **Auto-resolution**: `onRestorationCreated` Cloud Function triggers when `restorationCount` crosses `max(restorationMinVotes, ceil(confirmationCount × restorationRatio))`. Constants live in `AppConstants`.
 - **Geohash** precision 6 (≈1.2 km cell) is stored on every report for proximity queries. The `geohash.dart` utility is pure Dart (no plugin dependency).
 - **`authorUsername`** on reports is denormalized at creation and immutable — do not update it on profile edits.
