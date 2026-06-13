@@ -281,12 +281,10 @@
 
 ---
 
-## ⚠️ Override TEMPORAIRE actif (à retirer)
-- [ ] **Plancher d'auto-résolution abaissé à 1** sur **staging** (`lightcutoff-dev`) pour tester le
-      flux « courant revenu » à un seul compte. Mécanisme : `functions/.env.lightcutoff-dev`
-      (`RESTORATION_MIN_VOTES=1`, gitignoré) lu par `effectiveMinVotes()` ; **défaut prod = 3**
-      inchangé. **Pour revenir à la normale** : supprimer `functions/.env.lightcutoff-dev` (ou la
-      ligne) puis `firebase deploy --only functions --project lightcutoff-dev`.
+## ✅ Override temporaire retiré (2026-06-13)
+- [x] Plancher d'auto-résolution **remis à 3** sur staging : `functions/.env.lightcutoff-dev`
+      supprimé + functions redéployées. Le mécanisme `effectiveMinVotes()` reste en place (défaut 3,
+      surchargeable par `RESTORATION_MIN_VOTES` si on veut re-tester un jour).
 
 ## 📌 À faire tout de suite (housekeeping)
 - [ ] **Pousser** la branche : `master` est **ahead 1** (commit i18n `c22f253`) — pas encore sur `origin`.
