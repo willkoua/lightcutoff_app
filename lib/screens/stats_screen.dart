@@ -40,44 +40,64 @@ class _StatsScreenState extends State<StatsScreen> {
     if (uid != null) await _provider.load(uid);
   }
 
+  /// Enveloppe une section dans une vue scrollable + pull-to-refresh (un par
+  /// onglet).
+  Widget _scrollable(Widget child) {
+    return RefreshIndicator(
+      onRefresh: _refresh,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        children: [child],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(title: Text(l.statsTitle)),
-      body: ListenableBuilder(
-        listenable: _provider,
-        builder: (context, _) {
-          switch (_provider.status) {
-            case StatsStatus.loading:
-              return const Center(child: CircularProgressIndicator());
-            case StatsStatus.error:
-              return _ErrorState(message: l.statsError, onRetry: _refresh);
-            case StatsStatus.ready:
-              return RefreshIndicator(
-                onRefresh: _refresh,
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(l.statsTitle),
+          bottom: TabBar(
+            tabs: [
+              Tab(text: l.statsSectionMine),
+              Tab(text: l.statsSectionZone),
+            ],
+          ),
+        ),
+        body: ListenableBuilder(
+          listenable: _provider,
+          builder: (context, _) {
+            switch (_provider.status) {
+              case StatsStatus.loading:
+                return const Center(child: CircularProgressIndicator());
+              case StatsStatus.error:
+                return _ErrorState(message: l.statsError, onRetry: _refresh);
+              case StatsStatus.ready:
+                return TabBarView(
                   children: [
-                    _Section(
-                      title: l.statsSectionMine,
-                      stats: _provider.mine,
-                      emptyText: l.statsEmptyMine,
+                    _scrollable(
+                      _Section(
+                        stats: _provider.mine,
+                        emptyText: l.statsEmptyMine,
+                      ),
                     ),
-                    const SizedBox(height: 24),
-                    _Section(
-                      title: l.statsSectionZone,
-                      subtitle: l.statsZoneHint,
-                      stats: _provider.zone,
-                      emptyText: l.statsEmptyZone,
-                      unavailable: _provider.zoneUnavailable,
-                      unavailableText: l.statsZoneUnavailable,
+                    _scrollable(
+                      _Section(
+                        subtitle: l.statsZoneHint,
+                        stats: _provider.zone,
+                        emptyText: l.statsEmptyZone,
+                        unavailable: _provider.zoneUnavailable,
+                        unavailableText: l.statsZoneUnavailable,
+                      ),
                     ),
                   ],
-                ),
-              );
-          }
-        },
+                );
+            }
+          },
+        ),
       ),
     );
   }
@@ -87,7 +107,6 @@ class _StatsScreenState extends State<StatsScreen> {
 /// indisponible, soit les cartes chiffrées et les histogrammes.
 class _Section extends StatelessWidget {
   const _Section({
-    required this.title,
     required this.stats,
     required this.emptyText,
     this.subtitle,
@@ -95,7 +114,6 @@ class _Section extends StatelessWidget {
     this.unavailableText,
   });
 
-  final String title;
   final String? subtitle;
   final OutageStats? stats;
   final String emptyText;
@@ -108,13 +126,9 @@ class _Section extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
         if (subtitle != null)
           Padding(
-            padding: const EdgeInsets.only(top: 2),
+            padding: const EdgeInsets.only(bottom: 4),
             child: Text(
               subtitle!,
               style: const TextStyle(color: AppColors.gray, fontSize: 13),
