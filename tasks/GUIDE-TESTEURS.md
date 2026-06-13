@@ -106,23 +106,58 @@ s'ouvre sur un écran orange avec le nom **NJUKA** et la phrase **« Le service,
 ✅ **Ce que tu dois voir :**
 - Message **« Coupure confirmée. Merci ! »**.
 - Le **compteur de confirmations** augmente dans le détail.
+- Le bouton « Confirmer » est **remplacé par** un indicateur vert **« ✓ Tu as confirmé »**. Il
+  **reste** ainsi même si tu fermes et rouvres l'appli (tu ne peux voter qu'**une fois**).
 
 - [ ] Je peux confirmer la coupure d'un autre
 - [ ] Le compteur de confirmations augmente
+- [ ] Après confirmation, je vois bien « ✓ Tu as confirmé » (et ça persiste au redémarrage)
 
 > ℹ️ Le bouton « Confirmer » **n'apparaît pas sur ta propre coupure** (on ne se confirme pas
 > soi-même) — c'est normal.
 
 ---
 
-## 5. Déclarer le retour du courant / supprimer son signalement
+## 5. Faire passer une coupure en « Rétabli » (retour du courant)
 
-👉 **Comment faire (le courant est revenu) :**
+> 🎯 **C'est la partie à bien comprendre.** Le statut d'une coupure passe de **« En cours »** à
+> **« Rétabli »** **tout seul, par un vote collectif** — personne ne « ferme » une coupure d'un
+> simple clic (sinon n'importe qui pourrait masquer une vraie panne).
+
+👉 **Comment faire (déclarer chez toi) :**
 1. Ouvre une coupure **« En cours »** (la tienne ou une autre).
 2. Appuie sur **« Le courant est revenu chez moi »**.
 
-✅ **Ce que tu dois voir :** un message de confirmation ; quand assez de personnes le déclarent,
-la coupure passe automatiquement au statut **« Rétabli »** (chip verte).
+✅ **Ce que tu dois voir :**
+- Un message de confirmation.
+- Le bouton devient l'indicateur vert **« ✓ Tu as signalé le retour »** (et le reste — **un seul
+  vote par personne**, même après redémarrage).
+
+### ⚙️ Comment le statut bascule réellement en « Rétabli »
+
+La coupure passe en **« Rétabli »** **automatiquement** quand **assez de personnes différentes**
+déclarent « courant revenu » sur la **même** coupure :
+
+- il faut **au moins 3 personnes distinctes** ;
+- (s'il y a beaucoup de confirmations, il en faut la moitié — ex. 10 confirmations → 5 déclarations).
+
+> ⚠️ **Donc tu ne peux PAS le faire seul** : 1 personne = 1 vote. Pour voir une coupure passer en
+> « Rétabli », il faut que **3 testeurs** ouvrent la **même** coupure et appuient chacun sur
+> « Le courant est revenu chez moi ».
+
+**🧪 Test à 3 (recommandé entre vous) :**
+1. L'un de vous **signale** une coupure (§3).
+2. Les **3** (le créateur compte) ouvrent **cette même** coupure et appuient sur **« Le courant
+   est revenu chez moi »**.
+3. Au 3ᵉ vote, le statut bascule en **« Rétabli »** (chip **verte**) en quelques secondes, sans
+   recharger.
+
+- [ ] « Le courant est revenu chez moi » fonctionne (indicateur « ✓ Tu as signalé le retour »)
+- [ ] À 3 personnes, la coupure passe bien en « Rétabli »
+
+---
+
+## 5 bis. Supprimer son propre signalement
 
 👉 **Comment faire (supprimer TON signalement de test) :**
 1. Ouvre **ta** coupure → bouton **« Supprimer ce signalement »** (en orange, visible
@@ -131,7 +166,6 @@ la coupure passe automatiquement au statut **« Rétabli »** (chip verte).
 
 ✅ **Ce que tu dois voir :** retour à la Liste, ton signalement a disparu.
 
-- [ ] « Le courant est revenu chez moi » fonctionne
 - [ ] Je peux supprimer mon propre signalement
 
 ---
