@@ -277,10 +277,12 @@
 
 ---
 
-## ✅ Override temporaire retiré (2026-06-13)
-- [x] Plancher d'auto-résolution **remis à 3** sur staging : `functions/.env.lightcutoff-dev`
-      supprimé + functions redéployées. Le mécanisme `effectiveMinVotes()` reste en place (défaut 3,
-      surchargeable par `RESTORATION_MIN_VOTES` si on veut re-tester un jour).
+## ✅ Plancher d'auto-résolution = 3 sur staging (2026-06-13)
+- [x] Seuil **remis à 3** sur staging — fixé **explicitement** via
+      `functions/.env.lightcutoff-dev` (`RESTORATION_MIN_VOTES=3`), pas par suppression du fichier :
+      Firebase ne supprime pas une env var déjà posée sur Cloud Run (elle était restée à 1 → bug
+      « résolu dès 1 vote »). Vérifié sur la fonction déployée (`environmentVariables` = 3).
+      Pour re-tester à 1 compte : passer la valeur à 1, redéployer, puis remettre 3.
 
 ## 📌 À faire tout de suite (housekeeping)
 - [ ] **Pousser** la branche : `master` est **ahead 1** (commit i18n `c22f253`) — pas encore sur `origin`.

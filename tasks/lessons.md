@@ -28,6 +28,16 @@ Format : `[date] | ce qui a mal tourné | règle pour l'éviter`
   `FIRESTORE_EMULATOR_HOST`), plutôt que via un déclencheur HTTP. Ne pas perdre de temps à
   soupçonner le code applicatif sur ce message.
 
+- **2026-06-13 | Firebase Functions v2 : retirer une variable de `.env` ne la SUPPRIME pas du déployé**
+  Après avoir mis `RESTORATION_MIN_VOTES=1` via `functions/.env.lightcutoff-dev` puis **supprimé le
+  fichier** et redéployé, la variable **persistait à 1** sur la fonction Cloud Run (vérifié dans les
+  logs : `threshold=1` alors qu'on attendait 3). Firebase ne réconcilie/efface pas une env var
+  absente du `.env` ; elle reste posée sur le service.
+  → **Règle** : pour annuler un override d'env, **réécrire explicitement la valeur voulue** dans le
+  `.env.<projet>` (ex. `RESTORATION_MIN_VOTES=3`) puis redéployer — ne pas se contenter de
+  supprimer le fichier. Vérifier avec
+  `gcloud functions describe <fn> --gen2 --region <r> --format="value(serviceConfig.environmentVariables)"`.
+
 - **2026-06-10 | `tsx`/esbuild casse si on force une autre version de Node via nvm**
   `npm test` (tsx --test) sous un Node basculé via `export PATH=…/nvm/…` peut échouer avec une
   `TransformError` esbuild (« supportedArchitectures » / binaire incompatible) — faux positif.
