@@ -6,6 +6,8 @@ const {
   updateDoc,
   deleteDoc,
   serverTimestamp,
+  writeBatch,
+  increment,
 } = require("firebase/firestore");
 const { getEnv } = require("./env");
 
@@ -94,7 +96,33 @@ describe("Firestore — reports", () => {
     );
   });
 
-  it("un tiers ne peut faire varier que les compteurs (confirmations / rétablissements)", async () => {
+  // Confirme une coupure de façon LÉGITIME : crée le vote + incrémente le
+  // compteur dans un même commit atomique (ce que fait le client).
+  function confirmBatch(db, uid) {
+    const b = writeBatch(db);
+    b.set(doc(db, `reports/r1/confirmations/${uid}`), {
+      createdAt: serverTimestamp(),
+    });
+    b.update(doc(db, "reports/r1"), {
+      confirmationCount: increment(1),
+      updatedAt: serverTimestamp(),
+    });
+    return b.commit();
+  }
+
+  function restoreBatch(db, uid) {
+    const b = writeBatch(db);
+    b.set(doc(db, `reports/r1/restorations/${uid}`), {
+      createdAt: serverTimestamp(),
+    });
+    b.update(doc(db, "reports/r1"), {
+      restorationCount: increment(1),
+      updatedAt: serverTimestamp(),
+    });
+    return b.commit();
+  }
+
+  it("vote légitime : +1 sur le compteur AVEC création du vote (atomique)", async () => {
     await seed((db) =>
       setDoc(doc(db, "reports/r1"), {
         userId: "alice",
@@ -102,16 +130,63 @@ describe("Firestore — reports", () => {
         restorationCount: 0,
       }),
     );
-    await assertSucceeds(
-      updateDoc(doc(as("bob"), "reports/r1"), {
+    await assertSucceeds(confirmBatch(as("bob"), "bob"));
+    await assertSucceeds(restoreBatch(as("carol"), "carol"));
+    // L'auteur peut déclarer SON rétablissement, mais pas confirmer sa coupure.
+    await assertSucceeds(restoreBatch(as("alice"), "alice"));
+    await assertFails(confirmBatch(as("alice"), "alice"));
+  });
+
+  it("🔒 trou comblé : écrire un compteur arbitraire est refusé", async () => {
+    await seed((db) =>
+      setDoc(doc(db, "reports/r1"), {
+        userId: "alice",
+        confirmationCount: 0,
+        restorationCount: 0,
+      }),
+    );
+    const bob = as("bob");
+    // Valeur arbitraire (pas +1), même en déposant un vote.
+    const b1 = writeBatch(bob);
+    b1.set(doc(bob, "reports/r1/confirmations/bob"), {
+      createdAt: serverTimestamp(),
+    });
+    b1.update(doc(bob, "reports/r1"), {
+      confirmationCount: 9999,
+      updatedAt: serverTimestamp(),
+    });
+    await assertFails(b1.commit());
+
+    // +1 SANS déposer de vote (l'attaque d'origine).
+    await assertFails(
+      updateDoc(doc(bob, "reports/r1"), {
         confirmationCount: 1,
         updatedAt: serverTimestamp(),
       }),
     );
-    await assertSucceeds(
-      updateDoc(doc(as("bob"), "reports/r1"), {
-        restorationCount: 1,
-        updatedAt: serverTimestamp(),
+  });
+
+  it("🔒 double vote refusé (compteur ne peut être incrémenté deux fois)", async () => {
+    await seed(async (db) => {
+      await setDoc(doc(db, "reports/r1"), {
+        userId: "alice",
+        confirmationCount: 1,
+        restorationCount: 0,
+      });
+      await setDoc(doc(db, "reports/r1/confirmations/bob"), {
+        createdAt: serverTimestamp(),
+      });
+    });
+    // Bob a déjà voté → re-incrémenter est refusé (castsVote : !exists faux).
+    await assertFails(confirmBatch(as("bob"), "bob"));
+  });
+
+  it("un tiers ne peut pas modifier les autres champs", async () => {
+    await seed((db) =>
+      setDoc(doc(db, "reports/r1"), {
+        userId: "alice",
+        confirmationCount: 0,
+        restorationCount: 0,
       }),
     );
     await assertFails(

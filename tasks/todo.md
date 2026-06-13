@@ -89,19 +89,15 @@
       *Différé explicitement (« pas maintenant »).*
 
 ### 🟠 Important (qualité / robustesse)
-- [ ] **🔒 Durcir la règle Firestore des compteurs (trou anti-faux)** *(vrai quick win, indépendant du nb d'users)*
-      - **Problème** : `firestore.rules:67-72` protège l'écriture des compteurs via
-        `affectedKeys().hasOnly([...])` — ça contrôle **quels champs** sont modifiés, **pas la
-        valeur**. N'importe quel user connecté peut écrire `confirmationCount = 9999` en un
-        `update`, **sans créer de document de vote**. La garantie « 1 vote/user » n'est PAS assurée
-        par les règles, seulement par la bonne volonté du client.
-      - **Fix (2 options)** : soit la règle impose
-        `request.resource.data.confirmationCount == resource.data.confirmationCount + 1` **et**
-        l'existence du doc de vote `confirmations/{uid}` ; soit **déporter l'incrément** vers une
-        Cloud Function `onConfirmationCreated`/`onRestorationCreated` (l'Admin SDK contourne les
-        règles, le client n'écrit plus le compteur). Idem `restorationCount`.
-      - **Acceptation** : `rules_tests/` mis à jour prouvant qu'un écrit arbitraire du compteur est
-        **refusé** · analyze/test verts.
+- [x] **🔒 Durcir la règle Firestore des compteurs (trou anti-faux)** ✅ *(2026-06-13)*
+      - **Était** : la règle contrôlait *quels* champs changent, pas la *valeur* → n'importe quel
+        user connecté pouvait écrire `confirmationCount = 9999` sans déposer de vote.
+      - **Fix (option A, minimale)** : `firestore.rules` — un tiers ne peut faire que **+1** sur un
+        compteur (`bumpsCounterByOne`) **et** seulement en créant son propre vote dans le **même
+        commit atomique** (`castsVote` via `exists`/`existsAfter`), pas deux fois, pas sur sa propre
+        coupure pour `confirmationCount`. Le chemin client (transaction vote+compteur) reste valide.
+      - **Vérifié** : `rules_tests/` (31 verts) — valeur arbitraire refusée, +1 sans vote refusé,
+        double vote refusé, vote légitime atomique accepté. **Déployé sur lightcutoff-dev.**
 - [ ] **📈 Analytics de funnel minimal** *(préalable à TOUTE feature d'engagement / mesure)*
       - **Pourquoi** : sans mesure, impossible de savoir si les features d'engagement (preuve
         sociale, prédiction, alertes) changent quoi que ce soit. On navigue à l'aveugle.

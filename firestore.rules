@@ -23,6 +23,22 @@ service cloud.firestore {
         .data.userId;
     }
 
+    // Incrément d'EXACTEMENT +1 d'un seul compteur (avec `updatedAt`), rien
+    // d'autre. Bloque l'écriture d'une valeur arbitraire (ex. 9999).
+    function bumpsCounterByOne(field) {
+      return request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly([field, 'updatedAt'])
+        && request.resource.data[field] == resource.data[field] + 1;
+    }
+
+    // L'utilisateur crée son propre document de vote (id = uid) dans le MÊME
+    // commit atomique, et n'en avait pas déjà un. Garantit qu'on ne peut pas
+    // incrémenter le compteur sans déposer un vote, ni voter deux fois.
+    function castsVote(reportId, sub) {
+      return !exists(/databases/$(database)/documents/reports/$(reportId)/$(sub)/$(request.auth.uid))
+        && existsAfter(/databases/$(database)/documents/reports/$(reportId)/$(sub)/$(request.auth.uid));
+    }
+
     // Profils utilisateurs : lecture limitée au propriétaire (ou admin).
     // Empêche la ré-identification d'un confirmant via son uid.
     match /users/{userId} {
@@ -57,20 +73,27 @@ service cloud.firestore {
                     && request.resource.data.userId == request.auth.uid;
 
       // L'auteur modifie/supprime son signalement (et peut l'archiver via
-      // `archivedAt`). Les autres peuvent uniquement faire varier les
-      // compteurs (confirmations / rétablissements) **tant que le report
-      // n'est pas archivé**. Les transitions de statut sont portées par les
+      // `archivedAt`). Un tiers ne peut QUE faire +1 sur un compteur, et
+      // seulement en déposant simultanément son propre vote (sous-collection
+      // confirmations/restorations) — ce qui ferme le trou « écrire
+      // confirmationCount = 9999 sans voter ». Interdit sur report archivé.
+      // L'auteur ne peut pas confirmer sa propre coupure (mais peut déclarer
+      // son rétablissement). Les transitions de statut restent portées par les
       // Cloud Functions via l'Admin SDK (qui contourne ces règles).
       allow update: if isSignedIn() && (
                       resource.data.userId == request.auth.uid ||
                       (
-                        resource.data.get('archivedAt', null) == null &&
-                        request.resource.data.diff(resource.data).affectedKeys()
-                          .hasOnly([
-                            'confirmationCount',
-                            'restorationCount',
-                            'updatedAt',
-                          ])
+                        resource.data.get('archivedAt', null) == null && (
+                          (
+                            bumpsCounterByOne('confirmationCount')
+                            && castsVote(reportId, 'confirmations')
+                            && request.auth.uid != reportAuthor(reportId)
+                          ) ||
+                          (
+                            bumpsCounterByOne('restorationCount')
+                            && castsVote(reportId, 'restorations')
+                          )
+                        )
                       )
                     );
       allow delete: if isSignedIn()
