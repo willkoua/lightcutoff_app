@@ -398,7 +398,7 @@ void main() {
       expect(provider.nearOnly, isFalse);
     });
 
-    test('repli sur liste complète si rien à proximité au démarrage', () async {
+    test('proximité reste active même sans coupure proche (pas de repli)', () async {
       when(
         () => location.checkAccess(),
       ).thenAnswer((_) async => LocationAccess.granted);
@@ -419,7 +419,10 @@ void main() {
       final provider = build();
       await Future<void>.delayed(Duration.zero);
 
-      expect(provider.nearOnly, isFalse); // bascule auto sur liste complète
+      // « À proximité » est le filtre par défaut et le RESTE même vide (état
+      // vide explicite), au lieu de basculer sur la liste complète.
+      expect(provider.nearOnly, isTrue);
+      expect(provider.filteredReports, isEmpty);
     });
   });
 }

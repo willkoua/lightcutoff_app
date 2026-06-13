@@ -101,11 +101,6 @@ class ProfileScreen extends StatelessWidget {
                             : profile.homeLocation.label,
                   ),
                   _InfoTile(
-                    icon: Icons.badge_outlined,
-                    label: l.profileRole,
-                    value: userRoleLabel(context, profile.role),
-                  ),
-                  _InfoTile(
                     icon: Icons.event_outlined,
                     label: l.profileMemberSince,
                     value:
