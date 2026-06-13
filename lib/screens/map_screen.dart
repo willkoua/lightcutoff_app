@@ -26,11 +26,13 @@ class _MapScreenState extends State<MapScreen> {
   static const _fallbackCenter = LatLng(3.848, 11.502); // Yaoundé
   static const _minZoom = 3.0;
   static const _maxZoom = 18.0;
+  // Zoom d'arrivée : niveau quartier, centré sur l'utilisateur.
+  static const _arrivalZoom = 15.0;
 
   final MapController _controller = MapController();
   LatLng? _myPos;
   bool _mapReady = false;
-  bool _didFit = false;
+  bool _didInitialCenter = false;
 
   @override
   void initState() {
@@ -42,6 +44,8 @@ class _MapScreenState extends State<MapScreen> {
     final pos = await context.read<ReportProvider>().myPosition();
     if (!mounted || pos == null) return;
     setState(() => _myPos = LatLng(pos.lat, pos.lng));
+    // Si la carte est déjà prête, on centre dès que la position arrive.
+    _centerOnMe();
   }
 
   void _snack(String message) {
@@ -59,28 +63,21 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  /// Recadre une fois la carte prête et les coupures chargées.
-  void _maybeFit(List<LatLng> points) {
-    if (!_mapReady || _didFit || points.isEmpty) return;
-    _didFit = true;
-    if (points.length == 1) {
-      _controller.move(points.first, 13);
-      return;
-    }
-    _controller.fitCamera(
-      CameraFit.coordinates(
-        coordinates: points,
-        padding: const EdgeInsets.all(60),
-        maxZoom: 15,
-      ),
-    );
+  /// Centre la carte sur la position de l'utilisateur (zoom quartier) à
+  /// l'arrivée, une seule fois. No-op tant que la carte n'est pas prête ou que
+  /// la position n'est pas connue ; ne s'oppose pas aux déplacements manuels
+  /// ultérieurs (ne s'exécute qu'au premier centrage).
+  void _centerOnMe() {
+    if (_didInitialCenter || !_mapReady || _myPos == null) return;
+    _didInitialCenter = true;
+    _controller.move(_myPos!, _arrivalZoom);
   }
 
   /// Force le chargement des tuiles de la vue initiale. Sans un premier
   /// évènement caméra, flutter_map peut rester gris jusqu'à ce que l'utilisateur
-  /// interagisse — surtout quand il n'y a aucun signalement à cadrer
-  /// ([_maybeFit] ne déplace alors pas la caméra). Un « move » sur place, après
-  /// la mise en page, déclenche le recalcul des tuiles.
+  /// interagisse — utile quand la position n'est pas (encore) connue et qu'aucun
+  /// centrage n'a lieu. Un « move » sur place, après la mise en page, déclenche
+  /// le recalcul des tuiles.
   void _primeTiles() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_mapReady) return;
@@ -161,11 +158,6 @@ class _MapScreenState extends State<MapScreen> {
   Widget build(BuildContext context) {
     final provider = context.watch<ReportProvider>();
     final reports = provider.filteredReports;
-    final points =
-        reports.map((r) => LatLng(r.position.lat, r.position.lng)).toList();
-
-    // Recadrage automatique dès que tout est prêt.
-    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeFit(points));
 
     final l = AppLocalizations.of(context);
     return Scaffold(
@@ -191,7 +183,7 @@ class _MapScreenState extends State<MapScreen> {
               maxZoom: _maxZoom,
               onMapReady: () {
                 _mapReady = true;
-                _maybeFit(points);
+                _centerOnMe();
                 _primeTiles();
               },
               interactionOptions: const InteractionOptions(
