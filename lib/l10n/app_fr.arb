@@ -203,6 +203,11 @@
   "reportCardCourantRevenu": "Courant revenu",
   "reportVoteConfirmedByYou": "Tu as confirmé",
   "reportVoteRestoredByYou": "Tu as signalé le retour",
+  "confirmOutageTitle": "Confirmer la coupure ?",
+  "confirmOutageBody": "Tu confirmes qu'il y a bien une coupure de courant ici ?",
+  "confirmRestoreTitle": "Le courant est revenu ?",
+  "confirmRestoreBody": "Tu déclares que le courant est rétabli ? Quand assez de personnes le déclarent, la coupure passe en « Rétabli ».",
+  "confirmRestoreAction": "Oui, c'est revenu",
   "reportCardConfirmationsCount": "{count, plural, =1{1 confirmation} other{{count} confirmations}}",
   "@reportCardConfirmationsCount": { "placeholders": { "count": {"type": "int"} } },
 

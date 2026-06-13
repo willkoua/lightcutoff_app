@@ -10,6 +10,7 @@ import '../providers/report_provider.dart';
 import '../services/analytics_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/l10n_helpers.dart';
+import '../widgets/confirm_dialog.dart';
 import '../widgets/njuka_app_bar.dart';
 import '../widgets/official_outages_view.dart';
 import '../widgets/report_card.dart';
@@ -206,6 +207,13 @@ class _HomeScreenState extends State<HomeScreen> {
             reports,
           ),
       onConfirm: () async {
+        final go = await showConfirmDialog(
+          context,
+          title: l.confirmOutageTitle,
+          message: l.confirmOutageBody,
+          confirmLabel: l.actionConfirm,
+        );
+        if (!go || !context.mounted) return;
         final ok = await reports.confirm(report.id);
         if (context.mounted) {
           _snack(
@@ -217,6 +225,13 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       },
       onMarkRestored: () async {
+        final go = await showConfirmDialog(
+          context,
+          title: l.confirmRestoreTitle,
+          message: l.confirmRestoreBody,
+          confirmLabel: l.confirmRestoreAction,
+        );
+        if (!go || !context.mounted) return;
         final ok = await reports.markRestored(report.id);
         if (context.mounted) {
           _snack(

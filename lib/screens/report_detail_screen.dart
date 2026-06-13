@@ -8,6 +8,7 @@ import '../providers/auth_provider.dart';
 import '../providers/report_provider.dart';
 import '../theme/app_colors.dart';
 import '../utils/l10n_helpers.dart';
+import '../widgets/confirm_dialog.dart';
 import '../widgets/njuka_app_bar.dart';
 
 class ReportDetailScreen extends StatefulWidget {
@@ -184,6 +185,13 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
               else
                 ElevatedButton.icon(
                   onPressed: () async {
+                    final go = await showConfirmDialog(
+                      context,
+                      title: l.confirmOutageTitle,
+                      message: l.confirmOutageBody,
+                      confirmLabel: l.actionConfirm,
+                    );
+                    if (!go || !context.mounted) return;
                     final ok = await provider.confirm(report.id);
                     if (context.mounted) {
                       _snack(
@@ -203,6 +211,13 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
             else
               OutlinedButton.icon(
                 onPressed: () async {
+                  final go = await showConfirmDialog(
+                    context,
+                    title: l.confirmRestoreTitle,
+                    message: l.confirmRestoreBody,
+                    confirmLabel: l.confirmRestoreAction,
+                  );
+                  if (!go || !context.mounted) return;
                   final ok = await provider.markRestored(report.id);
                   if (context.mounted) {
                     _snack(

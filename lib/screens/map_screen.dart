@@ -11,6 +11,7 @@ import '../models/enums.dart';
 import '../models/report.dart';
 import '../providers/report_provider.dart';
 import '../theme/app_colors.dart';
+import '../widgets/confirm_dialog.dart';
 import '../widgets/njuka_app_bar.dart';
 import '../widgets/report_card.dart';
 import 'report_form_screen.dart';
@@ -129,7 +130,14 @@ class _MapScreenState extends State<MapScreen> {
             alreadyConfirmed: provider.iConfirmed(report.id),
             alreadyRestored: provider.iRestored(report.id),
             onConfirm: () async {
-              Navigator.of(sheetContext).pop();
+              final go = await showConfirmDialog(
+                context,
+                title: l.confirmOutageTitle,
+                message: l.confirmOutageBody,
+                confirmLabel: l.actionConfirm,
+              );
+              if (!go) return;
+              if (sheetContext.mounted) Navigator.of(sheetContext).pop();
               final ok = await provider.confirm(report.id);
               if (mounted) {
                 _snack(
@@ -140,7 +148,14 @@ class _MapScreenState extends State<MapScreen> {
               }
             },
             onMarkRestored: () async {
-              Navigator.of(sheetContext).pop();
+              final go = await showConfirmDialog(
+                context,
+                title: l.confirmRestoreTitle,
+                message: l.confirmRestoreBody,
+                confirmLabel: l.confirmRestoreAction,
+              );
+              if (!go) return;
+              if (sheetContext.mounted) Navigator.of(sheetContext).pop();
               final ok = await provider.markRestored(report.id);
               if (mounted) {
                 _snack(
