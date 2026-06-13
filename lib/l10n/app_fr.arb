@@ -83,6 +83,41 @@
   "profileSecurityTitle": "Sécurité",
   "profileSecuritySubtitle": "Email et mot de passe",
   "profileLogoutButton": "Se déconnecter",
+  "profileStatsTitle": "Mes statistiques",
+  "profileStatsSubtitle": "Mes coupures et ma zone",
+
+  "statsTitle": "Statistiques",
+  "statsSectionMine": "Mes coupures",
+  "statsSectionZone": "Ma zone",
+  "statsZoneHint": "Dans un rayon d'environ 2 km autour de toi.",
+  "statsTotal": "Signalées",
+  "statsOngoing": "En cours",
+  "statsResolved": "Rétablies",
+  "statsAvgDuration": "Durée moyenne",
+  "statsTotalDuration": "Durée cumulée",
+  "statsPeakHour": "Heure la plus touchée",
+  "statsPeakDay": "Jour le plus touché",
+  "statsByHour": "Répartition par heure",
+  "statsByWeekday": "Répartition par jour",
+  "statsEmptyMine": "Tu n'as pas encore signalé de coupure. Tes statistiques apparaîtront ici.",
+  "statsEmptyZone": "Aucune coupure enregistrée dans ta zone pour l'instant.",
+  "statsZoneUnavailable": "Active la localisation pour voir les statistiques de ta zone.",
+  "statsError": "Impossible de charger les statistiques.",
+  "statsHourLabel": "{h} h",
+  "@statsHourLabel": {
+    "description": "Heure de la journée, ex. 18 h",
+    "placeholders": { "h": { "type": "int" } }
+  },
+  "statsDurationHm": "{h} h {m} min",
+  "@statsDurationHm": {
+    "description": "Durée heures + minutes",
+    "placeholders": { "h": { "type": "int" }, "m": { "type": "int" } }
+  },
+  "statsDurationM": "{m} min",
+  "@statsDurationM": {
+    "description": "Durée en minutes seulement",
+    "placeholders": { "m": { "type": "int" } }
+  },
 
   "editProfileTitle": "Modifier le profil",
   "editProfileResidence": "Résidence",

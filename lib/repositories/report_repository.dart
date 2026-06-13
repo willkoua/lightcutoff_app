@@ -16,6 +16,10 @@ abstract class ReportRepository {
     required double radiusMeters,
   });
 
+  /// Toutes les coupures créées par [uid] (pour les statistiques perso). Lecture
+  /// unique, non paginée, archivées exclues. Tri par date décroissante.
+  Future<List<Report>> reportsByAuthor(String uid);
+
   Future<void> createReport(Report report);
 
   Future<void> resolveReport(String reportId);

@@ -221,15 +221,18 @@
 > **Préalable transverse** : distribution débloquée (test interne) + **analytics de funnel** en
 > place. Ne rien coder avant d'avoir de vrais utilisateurs et de quoi mesurer l'impact.
 
-- [ ] **1. Statistiques utilisateur sur ses données de coupures** *(palier 0 — faible risque)*
+- [x] **1. Statistiques utilisateur sur ses données de coupures** ✅ *(palier 0 — faible risque)*
   - **Pourquoi** : rendre à l'utilisateur une info perso à forte valeur (réciprocité) — il revient
     pour **sa** donnée. Aucune prédiction → aucune fausse promesse, utile même à faible volume.
-  - **Scope** : tableau de bord **« mes signalements »** + **« ma zone »** (cellule geohash) bâti
-    sur les reports existants (horodatés + geohash) : nombre de coupures, durée cumulée/moyenne,
-    répartition par heure et par jour, tendance sur la période (semaine/mois). **Agrégats
-    uniquement** (RGPD, aucun suivi individuel).
-  - **Acceptation** : `flutter analyze` clean · `flutter test` vert · rendu correct sur jeu de
-    données **faible/vide** (pas de division par zéro, état vide explicite).
+  - **Livré (2026-06-13)** : logique pure `lib/utils/outage_stats.dart` (compte, durée
+    moyenne/cumulée sur coupures **rétablies** uniquement, répartition par heure + par jour, pics) ;
+    `StatsProvider` (mes coupures via `reportsByAuthor`, ma zone via `reportsWithinRadius` rayon
+    `notifyRadiusMeters` ≈ 2 km autour de la position) ; écran `stats_screen.dart` (cartes +
+    histogrammes maison, états vide/indisponible/erreur) ; entrée Profil ; i18n FR/EN ; event
+    analytics `stats_viewed`. `reportsByAuthor` ajouté au repo/service (requête champ unique).
+  - **Vérifié** : `flutter analyze` clean · **134 tests verts** (7 nouveaux sur la logique pure :
+    vide, durée rétablie-only, durée négative ignorée, moyenne, histos heure/jour, pics).
+  - ⏳ **Reste** : smoke test visuel sur appareil/émulateur (rendu + état vide à faible volume).
 
 - [ ] **2. Ingestion du programme de coupures Eneo (amorçage)** — ✅ **source confirmée**
   - **Pourquoi** : amorcer avec les coupures **planifiées officielles** → valeur dès le 1ᵉʳ user +

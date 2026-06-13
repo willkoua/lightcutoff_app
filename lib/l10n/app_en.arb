@@ -72,6 +72,42 @@
   "profileSecurityTitle": "Security",
   "profileSecuritySubtitle": "Email and password",
   "profileLogoutButton": "Sign out",
+  "profileStatsTitle": "My statistics",
+  "profileStatsSubtitle": "My outages and my area",
+
+  "statsTitle": "Statistics",
+  "statsSectionMine": "My outages",
+  "statsSectionZone": "My area",
+  "statsZoneHint": "Within about 2 km around you.",
+  "statsTotal": "Reported",
+  "statsOngoing": "Ongoing",
+  "statsResolved": "Resolved",
+  "statsAvgDuration": "Average duration",
+  "statsTotalDuration": "Cumulative duration",
+  "statsPeakHour": "Peak hour",
+  "statsPeakDay": "Peak day",
+  "statsByHour": "By hour",
+  "statsByWeekday": "By day",
+  "statsEmptyMine": "You haven't reported any outage yet. Your statistics will show up here.",
+  "statsEmptyZone": "No outage recorded in your area yet.",
+  "statsZoneUnavailable": "Enable location to see your area statistics.",
+  "statsError": "Couldn't load statistics.",
+  "statsHourLabel": "{h}:00",
+  "@statsHourLabel": {
+    "description": "Hour of day, e.g. 18:00",
+    "placeholders": { "h": { "type": "int" } }
+  },
+  "statsDurationHm": "{h}h {m}m",
+  "@statsDurationHm": {
+    "description": "Duration hours + minutes",
+    "placeholders": { "h": { "type": "int" }, "m": { "type": "int" } }
+  },
+  "statsDurationM": "{m}m",
+  "@statsDurationM": {
+    "description": "Duration minutes only",
+    "placeholders": { "m": { "type": "int" } }
+  },
+
   "editProfileTitle": "Edit profile",
   "editProfileResidence": "Residence",
   "editProfileCity": "City",

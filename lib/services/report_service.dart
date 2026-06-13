@@ -73,6 +73,17 @@ class ReportService implements ReportRepository {
     }).toList();
   }
 
+  /// Coupures d'un auteur (stats perso). Filtre `userId` = champ unique → pas
+  /// d'index composite ; l'exclusion des archivés se fait côté client (rare).
+  @override
+  Future<List<Report>> reportsByAuthor(String uid) async {
+    final snap = await _reports.where('userId', isEqualTo: uid).get();
+    return snap.docs
+        .map(Report.fromDoc)
+        .where((r) => r.archivedAt == null)
+        .toList();
+  }
+
   @override
   Future<void> createReport(Report report) {
     return _reports.add(report.toCreateMap());

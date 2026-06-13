@@ -76,6 +76,9 @@ class AnalyticsService {
   /// L'utilisateur a ouvert l'onglet des coupures planifiées (Eneo).
   Future<void> logPlannedOutagesViewed() => _log('planned_outages_viewed');
 
+  /// L'utilisateur a ouvert l'écran de statistiques perso.
+  Future<void> logStatsViewed() => _log('stats_viewed');
+
   /// L'utilisateur (dé)suit un quartier pour les alertes planifiées.
   Future<void> logQuartierFollowed({required bool following}) =>
       _log('quartier_follow_toggled', {'following': following});

@@ -9,6 +9,7 @@ import '../utils/l10n_helpers.dart';
 import 'account_security_screen.dart';
 import 'edit_profile_screen.dart';
 import 'settings_screen.dart';
+import 'stats_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -113,6 +114,28 @@ class ProfileScreen extends StatelessWidget {
                             : '—',
                   ),
                   const SizedBox(height: 8),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(
+                      Icons.insights_outlined,
+                      color: AppColors.gray,
+                    ),
+                    title: Text(l.profileStatsTitle),
+                    subtitle: Text(
+                      l.profileStatsSubtitle,
+                      style: const TextStyle(
+                        color: AppColors.gray,
+                        fontSize: 13,
+                      ),
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap:
+                        () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const StatsScreen(),
+                          ),
+                        ),
+                  ),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: const Icon(
