@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'app.dart';
 import 'config/app_config.dart';
 import 'firebase_options.dart';
+import 'services/analytics_service.dart';
 import 'services/notification_service.dart';
 
 /// Handler des messages FCM reçus quand l'app est en arrière-plan ou tuée.
@@ -28,6 +29,18 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Environnements : dev (émulateurs) et staging partagent le projet Firebase
+  // `lightcutoff-dev` (options ci-dessous). Le projet **prod** n'existe pas
+  // encore : on échoue bruyamment plutôt que d'écrire en douce dans staging.
+  // Le jour venu : créer le projet → `flutterfire configure --project=<prod>
+  // --out=lib/firebase_options_prod.dart` → sélectionner les options ici.
+  if (AppConfig.isProd) {
+    throw StateError(
+      'APP_ENV=prod : projet Firebase de production pas encore créé. '
+      'Générer firebase_options_prod.dart via flutterfire configure.',
+    );
+  }
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // App Check : atteste que les requêtes viennent bien de l'app authentique
@@ -74,6 +87,9 @@ Future<void> main() async {
   if (AppConfig.useEmulator) {
     await _connectToEmulators();
   }
+
+  // Analytics : collecte coupée en dev, active en staging/prod (funnel).
+  await AnalyticsService.instance.init();
 
   // Handler background FCM : enregistré AVANT runApp pour qu'il survive aux
   // messages reçus avant que l'UI ne soit prête.

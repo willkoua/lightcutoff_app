@@ -7,6 +7,7 @@ import '../models/app_error.dart';
 import '../models/app_user.dart';
 import '../models/geo.dart';
 import '../repositories/auth_repository.dart';
+import '../services/analytics_service.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
 import '../utils/crash_reporter.dart';
@@ -109,8 +110,8 @@ class AuthProvider extends ChangeNotifier {
     required String password,
     String? phoneNumber,
     DateTime? birthDate,
-  }) {
-    return _run(
+  }) async {
+    final ok = await _run(
       () => _service.register(
         firstName: firstName,
         lastName: lastName,
@@ -121,6 +122,8 @@ class AuthProvider extends ChangeNotifier {
         birthDate: birthDate,
       ),
     );
+    if (ok) AnalyticsService.instance.logSignUp();
+    return ok;
   }
 
   Future<bool> changeEmail({
@@ -209,6 +212,7 @@ class AuthProvider extends ChangeNotifier {
     final following = isFollowingQuartier(key);
     await _service.setQuartierFollowed(uid: uid, key: key, followed: !following);
     _profile = await _service.fetchProfile(uid);
+    AnalyticsService.instance.logQuartierFollowed(following: !following);
     notifyListeners();
   }
 

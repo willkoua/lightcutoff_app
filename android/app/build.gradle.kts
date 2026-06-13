@@ -68,6 +68,14 @@ android {
                 } else {
                     signingConfigs.getByName("debug")
                 }
+            // Demande à AGP d'empaqueter les symboles de débogage natifs.
+            // NB : Flutter livre libapp.so / libflutter.so DÉJÀ strippés, donc
+            // AGP n'a rien à extraire pour ces libs — l'avertissement Play
+            // « code natif sans symboles » subsiste et est inoffensif. Réglage
+            // gardé pour couvrir d'éventuelles libs natives non strippées à venir.
+            ndk {
+                debugSymbolLevel = "FULL"
+            }
         }
     }
 }

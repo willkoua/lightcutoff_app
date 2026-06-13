@@ -5,9 +5,9 @@ import '../repositories/official_outage_repository.dart';
 
 /// Implémentation Firestore de [OfficialOutageRepository].
 ///
-/// Requête **mono-champ** (`progDate >= aujourd'hui` + `orderBy progDate`) →
-/// aucun index composite à déployer. Le filtrage région / recherche quartier
-/// se fait côté client (volume modeste, ~quelques centaines de docs).
+/// Requête **mono-champ** (`where country ==`) → aucun index composite à
+/// déployer. Le filtrage date (≥ aujourd'hui), le tri, la région et la
+/// recherche quartier se font côté client (volume modeste par pays).
 class OfficialOutageService implements OfficialOutageRepository {
   OfficialOutageService({FirebaseFirestore? firestore})
     : _db = firestore ?? FirebaseFirestore.instance;
@@ -18,13 +18,16 @@ class OfficialOutageService implements OfficialOutageRepository {
       _db.collection('official_outages');
 
   @override
-  Future<List<OfficialOutage>> fetchUpcoming() async {
-    final snap =
-        await _col
-            .where('progDate', isGreaterThanOrEqualTo: _todayYmd())
-            .orderBy('progDate')
-            .get();
-    return snap.docs.map(OfficialOutage.fromDoc).toList();
+  Future<List<OfficialOutage>> fetchUpcoming({required String country}) async {
+    final snap = await _col.where('country', isEqualTo: country).get();
+    final today = _todayYmd();
+    final items =
+        snap.docs
+            .map(OfficialOutage.fromDoc)
+            .where((o) => o.progDate.compareTo(today) >= 0)
+            .toList()
+          ..sort((a, b) => a.progDate.compareTo(b.progDate));
+    return items;
   }
 
   /// Date du jour au format YYYY-MM-DD (heure locale de l'appareil — les

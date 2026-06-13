@@ -281,6 +281,13 @@
 
   "settingsSectionAccount": "Compte",
   "settingsDeleteAccount": "Supprimer mon compte",
+  "settingsVersion": "version {version}",
+  "@settingsVersion": {
+    "description": "Pied de page de l'écran Paramètres affichant la version de l'app",
+    "placeholders": {
+      "version": { "type": "String" }
+    }
+  },
   "deleteAccountTitle": "Supprimer le compte ?",
   "deleteAccountBody": "Action définitive. Ton profil, tes appareils et tes médias seront supprimés, et tes signalements anonymisés. Saisis ton mot de passe pour confirmer.",
   "deleteAccountPasswordLabel": "Mot de passe",
@@ -294,6 +301,8 @@
   "homeSegmentReports": "Signalements",
   "homeSegmentPlanned": "Programmées",
   "officialOutageFollow": "Suivre ce quartier",
-  "officialOutageFollowing": "Quartier suivi"
+  "officialOutageFollowing": "Quartier suivi",
+  "settingsSectionProviderDebug": "Pays / compagnie (debug)",
+  "providerAuto": "Auto (détecté)"
 }
 

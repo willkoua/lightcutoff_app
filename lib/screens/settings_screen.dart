@@ -1,13 +1,16 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../config/app_config.dart';
 import '../config/app_constants.dart';
+import '../config/electricity_providers.dart';
 import '../providers/auth_provider.dart';
 import '../providers/locale_provider.dart';
+import '../providers/region_provider.dart';
 import '../services/notification_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/l10n_helpers.dart';
@@ -33,15 +36,63 @@ class SettingsScreen extends StatelessWidget {
           const _ReplayOnboardingTile(),
           _SectionHeader(l.settingsSectionLegal),
           const _PrivacyPolicyTile(),
-          // Sélecteur de langue : utile aux devs / QA pour tester FR↔EN sans
-          // changer la langue du téléphone. Caché en build release.
-          if (!kReleaseMode) ...[
+          // Outils dev/QA (langue, pays/compagnie) : visibles en dev ET en
+          // staging — même en build release. Cachés uniquement en prod.
+          if (AppConfig.showDevTools) ...[
             _SectionHeader(l.settingsSectionLanguageDebug),
             const _LanguagePickerTile(),
+            _SectionHeader(l.settingsSectionProviderDebug),
+            const _ProviderPickerTile(),
           ],
           _SectionHeader(l.settingsSectionAccount),
           const _DeleteAccountTile(),
+          const _VersionFooter(),
         ],
+      ),
+    );
+  }
+}
+
+/// Pied de page discret affichant la version de l'application
+/// (« version 1.1.0 (2) »). Lue à l'exécution via package_info_plus, donc
+/// toujours synchrone avec le `version:` du pubspec — pas de constante à
+/// maintenir. En non-prod, suffixe l'environnement pour lever toute ambiguïté.
+class _VersionFooter extends StatefulWidget {
+  const _VersionFooter();
+
+  @override
+  State<_VersionFooter> createState() => _VersionFooterState();
+}
+
+class _VersionFooterState extends State<_VersionFooter> {
+  String? _version;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final info = await PackageInfo.fromPlatform();
+    if (!mounted) return;
+    setState(() => _version = '${info.version} (${info.buildNumber})');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    if (_version == null) return const SizedBox(height: 48);
+    final env = AppConfig.envBannerLabel;
+    final label =
+        env == null ? _version! : '$_version · $env';
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
+      child: Center(
+        child: Text(
+          l.settingsVersion(label),
+          style: const TextStyle(color: AppColors.gray, fontSize: 12),
+        ),
       ),
     );
   }
@@ -163,6 +214,56 @@ class _LanguagePickerTile extends StatelessWidget {
       title: Text(l.settingsLanguageLabel),
       subtitle: Text(
         _labelFor(context, current),
+        style: const TextStyle(color: AppColors.gray, fontSize: 13),
+      ),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => _pick(context),
+    );
+  }
+}
+
+/// Sélecteur debug du fournisseur d'électricité (pays + compagnie). « Auto »
+/// = détection (profil → locale → défaut). Persiste via [RegionProvider].
+class _ProviderPickerTile extends StatelessWidget {
+  const _ProviderPickerTile();
+
+  Future<void> _pick(BuildContext context) async {
+    final l = AppLocalizations.of(context);
+    final region = context.read<RegionProvider>();
+    final selected = await showDialog<ElectricityProvider?>(
+      context: context,
+      builder:
+          (ctx) => SimpleDialog(
+            title: Text(l.settingsSectionProviderDebug),
+            children: [
+              SimpleDialogOption(
+                onPressed: () => Navigator.of(ctx).pop(null),
+                child: Text(l.providerAuto),
+              ),
+              for (final p in kSupportedProviders)
+                SimpleDialogOption(
+                  onPressed: () => Navigator.of(ctx).pop(p),
+                  child: Text(p.displayLabel),
+                ),
+            ],
+          ),
+    );
+    await region.setOverride(selected);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final region = context.watch<RegionProvider>();
+    final subtitle =
+        region.isOverridden
+            ? region.overrideProvider!.displayLabel
+            : '${l.providerAuto} · ${region.activeProvider?.displayLabel ?? region.activeCountry}';
+    return ListTile(
+      leading: const Icon(Icons.bolt_outlined, color: AppColors.gray),
+      title: Text(l.settingsSectionProviderDebug),
+      subtitle: Text(
+        subtitle,
         style: const TextStyle(color: AppColors.gray, fontSize: 13),
       ),
       trailing: const Icon(Icons.chevron_right),

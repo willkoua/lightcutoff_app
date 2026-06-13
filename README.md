@@ -1,29 +1,45 @@
 # NJUKA
 
-Application mobile de **signalement de coupures de courant** (Android & iOS), construite avec Flutter et Firebase. Les utilisateurs signalent les coupures dans leur zone (avec géolocalisation), confirment les coupures existantes et suivent leur résolution.
+Application mobile de **signalement de coupures de courant** (Android & iOS), construite avec Flutter et Firebase. Les utilisateurs signalent les coupures dans leur zone (géolocalisées), confirment celles existantes, déclarent le retour du courant, suivent la résolution — et consultent les **coupures planifiées officielles** de leur fournisseur d'électricité (Eneo au Cameroun).
 
-- **Nom de l'app** : NJUKA
+- **Nom de l'app** : NJUKA — *« Le service, l'information. »*
 - **Package / module** : `lightcutoff_app`
-- **Identifiant** : `com.example.lightcutoff_app`
+- **Identifiant** : `com.njuka.app` (Android & iOS — figé, 1ʳᵉ publication faite)
 - **Plateformes** : Android, iOS uniquement
-- **Projet Firebase** : `lightcutoff-dev`
+- **Éditeur** : Bogal Consulting
 - **Gestion d'état** : Provider
 - **Modèle de données** : voir [`SCHEMA.md`](SCHEMA.md)
 
+### Environnements
+
+L'app a **3 environnements**, choisis au build via `--dart-define=APP_ENV=…` :
+
+| Env | Firebase | Outils dev (sélecteurs langue, pays/compagnie) | Bannière |
+|-----|----------|------------------------------------------------|----------|
+| `dev` | Émulateurs locaux | ✅ visibles | `DEV` |
+| `staging` | **`lightcutoff-dev`** (en ligne) | ✅ visibles, même en release | `STAGING` |
+| `prod` | Projet dédié — **pas encore créé** | ❌ cachés | aucune |
+
+Sans `APP_ENV` → `staging` (comportement historique) ; `USE_EMULATOR=true` → `dev` (alias hérité). Tant que le projet prod n'existe pas, `APP_ENV=prod` échoue volontairement au démarrage. Config : [`lib/config/app_config.dart`](lib/config/app_config.dart).
+
 ### État d'avancement
 
-**MVP terminé ✅** — authentification + signalement de coupures, testé et livrable.
+**MVP+ complet** — en **test interne Play Store** (release `1.1.0+2`).
 
-| Phase | Statut |
-|-------|--------|
-| Setup (projet, Firebase, CI, émulateurs) | ✅ Terminé |
-| Phase 0 — Fondations (modèles, thème, squelette, règles) | ✅ Terminé |
-| Phase 1 — Authentification (login, inscription, vérif. email, indicatif tél.) | ✅ Terminé |
-| Phase 2 — Signalement (géoloc, liste temps réel, confirmation, résolution) | ✅ Terminé |
-| Phase 3 — Finitions (tests automatisés, états UI) | ✅ Terminé |
-| Post-MVP livré | 🗺️ carte · 👤 profil · 🔁 anti-doublon · 🔒 anonymat confirmations · 👋 onboarding · 🏛️ repository pattern |
+| Domaine | Livré |
+|---------|-------|
+| Authentification | login pseudo **ou** email, inscription (pseudo unique), vérif. email obligatoire, changement email/mdp, **suppression de compte RGPD** |
+| Signalements | géoloc + reverse-geocoding, liste temps réel **paginée**, filtres/tri/recherche, anti-doublon 500 m, médias photo/GIF |
+| Crowd | **confirmations** & **« courant revenu »** (1 vote/user, transactionnel), **auto-résolution** par seuil, archivage soft-delete + purge 30 j |
+| Coupures officielles | **programme Eneo ingéré quotidiennement** (Cloud Function) → segment « Programmées » (recherche quartier + filtre région), **suivre un quartier** + alerte push la veille |
+| Multi-pays | fournisseur résolu automatiquement (profil → locale → défaut), registre extensible ([`lib/config/electricity_providers.dart`](lib/config/electricity_providers.dart)) |
+| Carte | `flutter_map` + tuiles Stadia Maps (repli OSM) + clustering |
+| Notifications | FCM (foreground/background/app tuée + navigation), préférence opt-out |
+| i18n | **FR / EN** complet (UI + erreurs), ARB + `flutter gen-l10n` |
+| Hors-ligne | persistance Firestore + bandeau global « Hors ligne » |
+| Qualité | App Check, Crashlytics, règles Firestore/Storage **testées**, CI 3 jobs, 123 tests Dart + 21 tests functions + 28 tests de règles |
 
-Pistes restantes : notifications push FCM, photo de profil, filtres/recherche, job CI iOS.
+Pistes restantes : APNs iOS (gelé — accès Apple Developer), statistiques utilisateur, prédiction de délestage, photo de profil.
 
 ---
 
@@ -68,12 +84,12 @@ flutter analyze
 
 ## Configuration Firebase
 
-Le projet est **déjà connecté** à Firebase (`lightcutoff-dev`). Les fichiers générés sont versionnés :
+Les environnements **dev** et **staging** partagent le projet `lightcutoff-dev` (alias `staging` dans `.firebaserc`). Le projet **prod** n'existe pas encore. Les fichiers générés sont versionnés :
 - `lib/firebase_options.dart`
 - `android/app/google-services.json`
 - `ios/Runner/GoogleService-Info.plist`
 
-L'initialisation se fait dans `lib/main.dart` via `Firebase.initializeApp(...)`.
+L'initialisation se fait dans `lib/main.dart` via `Firebase.initializeApp(...)` (qui **refuse** de démarrer si `APP_ENV=prod` tant que `firebase_options_prod.dart` n'est pas généré).
 
 ### Re-générer la config (si besoin)
 
@@ -89,10 +105,12 @@ flutterfire configure --project=lightcutoff-dev --platforms=android,ios
 
 ### Packages principaux
 
-- **Firebase** : `firebase_core`, `firebase_auth`, `cloud_firestore`, `firebase_database`, `cloud_functions`
+- **Firebase** : `firebase_core`, `firebase_auth`, `cloud_firestore`, `firebase_database`, `cloud_functions`, `firebase_storage`, `firebase_messaging`, `firebase_app_check`, `firebase_crashlytics`
 - **État** : `provider`
 - **Géolocalisation** : `geolocator`, `geocoding`
-- **UI** : `intl_phone_field` (champ téléphone avec indicatif)
+- **Carte** : `flutter_map`, `flutter_map_marker_cluster`, `latlong2` (tuiles Stadia Maps via `--dart-define=STADIA_API_KEY`)
+- **UI / divers** : `intl_phone_field`, `image_picker`, `flutter_local_notifications`, `url_launcher`, `connectivity_plus`, `shared_preferences`
+- **Tests** : `mocktail`, `fake_cloud_firestore`, `firebase_auth_mocks`
 
 ---
 
@@ -141,22 +159,23 @@ flutter run
 
 Pendant l'exécution (`flutter run`) : `r` = hot reload, `R` = hot restart, `q` = quitter.
 
-### Choisir l'environnement Firebase (en ligne ou émulateurs)
-
-L'app se connecte par défaut à **Firebase en ligne** (`lightcutoff-dev`). Pour la
-faire tourner contre les **émulateurs locaux**, passer le flag `USE_EMULATOR` :
+### Choisir l'environnement (dev / staging / prod)
 
 ```bash
-# Firebase en ligne (par défaut)
-flutter run
+# dev — émulateurs Firebase locaux + outils dev + bannière DEV
+flutter run --dart-define=APP_ENV=dev
 
-# Émulateurs Firebase locaux (Auth + Firestore + Database)
-flutter run --dart-define=USE_EMULATOR=true
+# staging — Firebase en ligne (lightcutoff-dev) + outils dev + bannière STAGING
+flutter run --dart-define=APP_ENV=staging
+flutter run                                  # équivalent (défaut = staging)
+
+# prod — refuse de démarrer tant que le projet Firebase prod n'est pas créé
+flutter run --dart-define=APP_ENV=prod
 ```
 
-- L'hôte est résolu automatiquement : `10.0.2.2` sur émulateur Android, `localhost` sinon.
-- Override possible : `--dart-define=EMULATOR_HOST=192.168.x.x` (ex. appareil physique).
-- Pense à démarrer les émulateurs avant (`firebase emulators:start`).
+- La **clé Stadia** est nécessaire pour la carte : ajouter `--dart-define=STADIA_API_KEY=…` (sinon repli OSM, acceptable en dev).
+- En `dev`, l'hôte des émulateurs est résolu automatiquement : `10.0.2.2` sur émulateur Android, `localhost` sinon. Override : `--dart-define=EMULATOR_HOST=192.168.x.x` (appareil physique). Démarrer les émulateurs avant (`firebase emulators:start`).
+- Les **outils dev** (sélecteur de langue, sélecteur pays/compagnie d'électricité dans Paramètres) sont visibles en dev **et** staging, jamais en prod.
 
 Config : [`lib/config/app_config.dart`](lib/config/app_config.dart), branchement dans [`lib/main.dart`](lib/main.dart).
 
@@ -196,8 +215,9 @@ firebase emulators:start --import=./emulator-data --export-on-exit=./emulator-da
 
 Les règles de sécurité Firestore ([`firestore.rules`](firestore.rules)) sont chargées automatiquement par l'émulateur.
 
-> Pour faire pointer l'app vers ces émulateurs, lancer l'app avec `--dart-define=USE_EMULATOR=true`
-> (voir « Choisir l'environnement Firebase » plus haut). Par défaut l'app utilise Firebase en ligne.
+> Pour faire pointer l'app vers ces émulateurs, lancer l'app en **environnement dev** :
+> `--dart-define=APP_ENV=dev` (voir « Choisir l'environnement » plus haut). Par défaut (`staging`)
+> l'app utilise Firebase en ligne (`lightcutoff-dev`).
 
 > ⚠️ **Android & HTTP en clair** : les émulateurs communiquent en HTTP (non chiffré), bloqué par défaut sur Android.
 > Une config réseau **debug-only** l'autorise pour `10.0.2.2`/`localhost`
@@ -208,16 +228,23 @@ Les règles de sécurité Firestore ([`firestore.rules`](firestore.rules)) sont 
 
 ## Build de production
 
-```bash
-# Android (APK)
-flutter build apk --release
+Toujours passer `APP_ENV` **et** la clé Stadia pour un artefact publiable.
 
-# Android (App Bundle pour le Play Store)
-flutter build appbundle --release
+```bash
+STADIA=<clé Stadia Maps>
+
+# Android (App Bundle pour le Play Store) — staging tant que prod n'existe pas
+flutter build appbundle --release \
+  --dart-define=APP_ENV=staging --dart-define=STADIA_API_KEY=$STADIA
+
+# Android (APK)
+flutter build apk --release --dart-define=APP_ENV=staging --dart-define=STADIA_API_KEY=$STADIA
 
 # iOS
-flutter build ipa --release
+flutter build ipa --release --dart-define=APP_ENV=staging --dart-define=STADIA_API_KEY=$STADIA
 ```
+
+> L'AAB de release est signé `CN=Bogal Consulting` (keystore `android/app/njuka-release.jks`, `android/key.properties` — tous deux gitignorés). Le jour où le projet **prod** existe, builder avec `--dart-define=APP_ENV=prod` (voir la checklist dans `tasks/todo.md`).
 
 ---
 
@@ -264,18 +291,19 @@ Types de tests :
 - **Organisation de `lib/`** :
   ```
   lib/
-  ├── main.dart            # point d'entrée + init Firebase + bascule émulateurs
-  ├── app.dart             # MaterialApp, thème, MultiProvider
+  ├── main.dart            # point d'entrée + init Firebase + garde prod + bascule émulateurs
+  ├── app.dart             # MaterialApp, thème, MultiProvider, bannière d'env
   ├── firebase_options.dart
-  ├── config/              # config d'environnement (USE_EMULATOR, hôte, ports)
+  ├── config/              # AppConfig (APP_ENV, hôte, ports), AppConstants, electricity_providers
+  ├── l10n/                # ARB FR/EN → généré dans l10n/generated/ (gitignoré)
   ├── models/              # modèles de données + enums (voir SCHEMA.md)
-  ├── repositories/        # contrats abstraits (AuthRepository, ReportRepository…)
+  ├── repositories/        # contrats abstraits (AuthRepository, ReportRepository, OfficialOutage…)
   ├── services/            # implémentations concrètes (Firebase/geolocator)
-  ├── providers/           # gestion d'état (ChangeNotifier : AuthProvider…)
+  ├── providers/           # gestion d'état (Auth, Report, Locale, Connectivity, Region…)
   ├── screens/             # écrans / pages
   ├── widgets/             # composants réutilisables
   ├── theme/               # couleurs + ThemeData (charte graphique)
-  └── utils/               # helpers (validators, formatting…)
+  └── utils/               # helpers (validators, formatting, l10n_helpers…)
   ```
 - **Architecture en couches** : `Provider → Repository (interface) → Service (impl) → Firebase`.
   Les providers dépendent des **interfaces** (`repositories/`), pas des implémentations
@@ -329,24 +357,29 @@ jobs:
 ```
 lightcutoff_app/
 ├── lib/
-│   ├── main.dart              # Point d'entrée + init Firebase + bascule émulateurs
-│   ├── app.dart               # MaterialApp, thème, MultiProvider
+│   ├── main.dart              # Point d'entrée + init Firebase + garde prod + émulateurs
+│   ├── app.dart               # MaterialApp, thème, MultiProvider, bannière d'env
 │   ├── firebase_options.dart  # Config Firebase (généré)
-│   ├── config/                # AppConfig (USE_EMULATOR, hôte, ports)
-│   ├── models/                # AppUser, Report, Confirmation, enums, geo
-│   ├── repositories/          # interfaces Auth/Report/Location
+│   ├── config/                # AppConfig (3 envs), AppConstants, electricity_providers
+│   ├── l10n/                  # ARB FR/EN (généré dans l10n/generated/, gitignoré)
+│   ├── models/                # AppUser, Report, Confirmation, OfficialOutage, enums, geo
+│   ├── repositories/          # interfaces Auth/Report/Location/OfficialOutage
 │   ├── services/              # implémentations Firebase/geolocator
-│   ├── providers/             # AuthProvider, ReportProvider
-│   ├── screens/               # onboarding, login, register, home, carte, profil, détail
-│   ├── widgets/               # report_card, location_permission_sheet
+│   ├── providers/             # Auth, Report, Locale, Connectivity, Region, OfficialOutage
+│   ├── screens/               # onboarding, login, home (segments), carte, profil, settings, détail
+│   ├── widgets/               # report_card, official_outage(s)_*, offline_banner…
 │   ├── theme/                 # AppColors, AppTheme (charte graphique)
-│   └── utils/                 # validators, formatting
+│   └── utils/                 # validators, formatting, l10n_helpers, geohash
+├── functions/                 # Cloud Functions (Node 22, TS) — FCM, ingestion Eneo, RGPD
+│   └── src/sources/           # adaptateurs fournisseurs (eneo.ts) — multi-pays
 ├── android/                   # Projet Android (minSdk 23, Kotlin 2.1.0)
 │   └── app/src/debug/         # config réseau debug (cleartext émulateurs)
 ├── ios/                       # Projet iOS (platform 13.0)
-├── firebase.json              # Config FlutterFire + Firestore + émulateurs
+├── public/                    # pages légales (privacy, account-deletion) — Firebase Hosting
+├── rules_tests/               # tests des règles Firestore/Storage (émulateur)
+├── firebase.json              # Config FlutterFire + Firestore + Functions + Hosting + émulateurs
 ├── firestore.rules            # Règles de sécurité Firestore
-├── .firebaserc                # Projet Firebase par défaut
+├── .firebaserc                # Alias projets : default + staging → lightcutoff-dev
 ├── SCHEMA.md                  # Modèle de données (collections, champs, règles)
 └── pubspec.yaml               # Dépendances
 ```

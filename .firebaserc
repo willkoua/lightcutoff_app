@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "lightcutoff-dev"
+    "default": "lightcutoff-dev",
+    "staging": "lightcutoff-dev"
   }
 }

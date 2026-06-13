@@ -15,6 +15,7 @@ import '../models/restoration.dart';
 import '../repositories/location_repository.dart';
 import '../repositories/report_repository.dart';
 import '../repositories/storage_repository.dart';
+import '../services/analytics_service.dart';
 import '../services/location_service.dart';
 import '../services/notification_service.dart';
 import '../services/report_service.dart';
@@ -538,6 +539,7 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
         geohash: encodeGeohash(draft.position.lat, draft.position.lng),
       );
       await _service.createReport(report);
+      AnalyticsService.instance.logReportCreated();
       // En mode proximité (requête ponctuelle), on resynchronise tout de suite
       // pour que le nouveau signalement apparaisse sans attendre le refresh.
       if (_nearOnly) await _refreshNear();
@@ -559,6 +561,7 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (reportById(reportId)?.userId == uid) return false;
     try {
       await _service.confirmReport(reportId, uid);
+      AnalyticsService.instance.logReportConfirmed();
       // En mode proximité (requête ponctuelle), on resynchronise tout de suite.
       if (_nearOnly) await _refreshNear();
       return true;
@@ -605,6 +608,7 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (uid == null) return false;
     try {
       await _service.markRestored(reportId, uid);
+      AnalyticsService.instance.logReportRestored();
       if (_nearOnly) await _refreshNear();
       return true;
     } catch (_) {

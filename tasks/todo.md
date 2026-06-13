@@ -284,6 +284,29 @@
 
 ---
 
+## 🌍 Environnements (dev / staging / prod) — ✅ câblés côté app (2026-06-10)
+
+> `--dart-define=APP_ENV=dev|staging|prod` (`AppConfig.environment`).
+> **dev** = émulateurs locaux · **staging** = `lightcutoff-dev` en ligne (outils dev visibles même
+> en release : sélecteurs langue + pays/compagnie, bannière STAGING) · **prod** = projet dédié.
+> Rétro-compat : sans `APP_ENV` → staging ; `USE_EMULATOR=true` → dev. `main()` **refuse**
+> `APP_ENV=prod` tant que le projet n'existe pas. Alias `.firebaserc` : `staging` → lightcutoff-dev.
+
+### 📋 Checklist « jour de création du projet PROD » (rien n'existe encore)
+- [ ] Créer le projet Firebase prod (ex. `njuka-prod`) — compte `willkoua@gmail.com`, Blaze.
+- [ ] `flutterfire configure --project=<prod> --platforms=android,ios --out=lib/firebase_options_prod.dart`
+      puis brancher la sélection d'options dans `main.dart` (lever la garde `isProd`).
+- [ ] `.firebaserc` : ajouter l'alias `prod`.
+- [ ] Déployer **règles + functions + hosting** sur prod (`firebase deploy -P prod`) — règles ET
+      functions ENSEMBLE (leçon du 2026-06-10).
+- [ ] Lancer une 1ʳᵉ ingestion Eneo sur prod (cron ou `gcloud scheduler jobs run`).
+- [ ] App Check : enregistrer l'app Android prod (Play Integrity + SHA-256) ; debug token au besoin.
+- [ ] Play Console : pointer les releases store sur un AAB buildé `--dart-define=APP_ENV=prod`
+      (+ STADIA_API_KEY) ; récupérer la SHA-256 Google (Play App Signing) → Firebase + App Check.
+- [ ] Vérifier qu'aucun outil dev n'apparaît (pas de bannière, pas de sélecteurs en Paramètres).
+
+---
+
 ## 🛠️ PLAN — Phase 2a : Liste/recherche des coupures planifiées (UI)
 
 > 🔄 **REDESIGN (Option 1, choisi)** : l'écran séparé + l'icône AppBar sont **remplacés** par un

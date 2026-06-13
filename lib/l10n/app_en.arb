@@ -234,6 +234,13 @@
   "settingsLinkOpenFailed": "Couldn't open the link.",
   "settingsSectionAccount": "Account",
   "settingsDeleteAccount": "Delete my account",
+  "settingsVersion": "version {version}",
+  "@settingsVersion": {
+    "description": "Settings screen footer showing the app version",
+    "placeholders": {
+      "version": { "type": "String" }
+    }
+  },
   "deleteAccountTitle": "Delete account?",
   "deleteAccountBody": "This is permanent. Your profile, devices and media will be deleted, and your reports anonymized. Enter your password to confirm.",
   "deleteAccountPasswordLabel": "Password",
@@ -247,5 +254,7 @@
   "homeSegmentReports": "Reports",
   "homeSegmentPlanned": "Planned",
   "officialOutageFollow": "Follow this area",
-  "officialOutageFollowing": "Following"
+  "officialOutageFollowing": "Following",
+  "settingsSectionProviderDebug": "Country / company (debug)",
+  "providerAuto": "Auto (detected)"
 }

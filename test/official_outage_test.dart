@@ -10,7 +10,8 @@ class _FakeRepo implements OfficialOutageRepository {
   _FakeRepo(this.items);
   final List<OfficialOutage> items;
   @override
-  Future<List<OfficialOutage>> fetchUpcoming() async => items;
+  Future<List<OfficialOutage>> fetchUpcoming({required String country}) async =>
+      items;
 }
 
 OfficialOutage _mk({
@@ -64,11 +65,15 @@ void main() {
     test('ne renvoie que les dates ≥ aujourd\'hui, triées', () async {
       final fake = FakeFirebaseFirestore();
       final col = fake.collection('official_outages');
-      await col.doc('past').set({'quartier': 'OLD', 'progDate': '2000-01-01'});
-      await col.doc('future').set({'quartier': 'NEW', 'progDate': '2099-12-31'});
+      await col.doc('past').set(
+        {'country': 'CM', 'quartier': 'OLD', 'progDate': '2000-01-01'},
+      );
+      await col.doc('future').set(
+        {'country': 'CM', 'quartier': 'NEW', 'progDate': '2099-12-31'},
+      );
       final service = OfficialOutageService(firestore: fake);
 
-      final list = await service.fetchUpcoming();
+      final list = await service.fetchUpcoming(country: 'CM');
 
       expect(list.length, 1);
       expect(list.first.quartier, 'NEW');
@@ -78,6 +83,7 @@ void main() {
   group('OfficialOutageProvider', () {
     test('charge la donnée et expose les régions distinctes triées', () async {
       final p = OfficialOutageProvider(
+        country: 'CM',
         repository: _FakeRepo([
           _mk(region: 'LITTORAL'),
           _mk(region: 'CENTRE', quartier: 'BASTOS'),
@@ -91,6 +97,7 @@ void main() {
 
     test('filtre par région et recherche quartier', () async {
       final p = OfficialOutageProvider(
+        country: 'CM',
         repository: _FakeRepo([
           _mk(region: 'LITTORAL', quartier: 'CITE SIC'),
           _mk(region: 'CENTRE', quartier: 'BASTOS'),

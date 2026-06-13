@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 import 'package:provider/provider.dart';
 
+import '../config/electricity_providers.dart';
 import '../models/report.dart';
 import '../providers/official_outage_provider.dart';
+import '../providers/region_provider.dart';
 import '../providers/report_provider.dart';
+import '../services/analytics_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/l10n_helpers.dart';
 import '../widgets/njuka_app_bar.dart';
@@ -29,8 +32,8 @@ class _HomeScreenState extends State<HomeScreen> {
   // Créé en lazy au 1ᵉʳ passage sur « Programmées » / « Toutes » (charge alors).
   OfficialOutageProvider? _outages;
 
-  OfficialOutageProvider _ensureOutages() =>
-      _outages ??= OfficialOutageProvider();
+  OfficialOutageProvider _ensureOutages(String country) =>
+      _outages ??= OfficialOutageProvider(country: country);
 
   @override
   void dispose() {
@@ -39,7 +42,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _select(HomeSegment s) {
-    if (s != HomeSegment.reports) _ensureOutages();
+    if (s == HomeSegment.planned && _segment != HomeSegment.planned) {
+      AnalyticsService.instance.logPlannedOutagesViewed();
+    }
     setState(() => _segment = s);
   }
 
@@ -61,17 +66,22 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final reports = context.watch<ReportProvider>();
+    final region = context.watch<RegionProvider>();
     final l = AppLocalizations.of(context);
 
+    // Pas de fournisseur pour le pays de l'utilisateur → on masque carrément le
+    // segment « Programmées » (et le sélecteur), et on reste sur les signalements.
+    final provider = region.activeProvider;
+    final showPlanned = provider != null;
+    final segment = showPlanned ? _segment : HomeSegment.reports;
+
     return Scaffold(
-      // Le filtre signalements n'a de sens que sur les segments « Signalements »
-      // et « Toutes » (les programmées ont leur propre recherche/région).
       appBar: NjukaAppBar(
         title: l.homeTitle,
-        filterProvider: _segment == HomeSegment.planned ? null : reports,
+        filterProvider: segment == HomeSegment.planned ? null : reports,
       ),
       floatingActionButton:
-          _segment == HomeSegment.planned
+          segment == HomeSegment.planned
               ? null
               : FloatingActionButton.extended(
                 onPressed: () => _open(context, const ReportFormScreen(), reports),
@@ -80,8 +90,9 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
       body: Column(
         children: [
-          _SegmentedControl(segment: _segment, onChanged: _select),
-          Expanded(child: _content(context, reports, l)),
+          if (showPlanned)
+            _SegmentedControl(segment: segment, onChanged: _select),
+          Expanded(child: _content(context, reports, provider, segment)),
         ],
       ),
     );
@@ -90,14 +101,23 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _content(
     BuildContext context,
     ReportProvider reports,
-    AppLocalizations l,
+    ElectricityProvider? provider,
+    HomeSegment segment,
   ) {
-    switch (_segment) {
+    switch (segment) {
       case HomeSegment.reports:
         return _buildReportsList(context, reports);
       case HomeSegment.planned:
+        // `segment == planned` ⇒ `showPlanned` ⇒ provider non nul.
+        final outages = _ensureOutages(provider!.country);
+        // Si le pays actif change (override dev / profil), re-requête après frame.
+        if (outages.country != provider.country) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) outages.setCountry(provider.country);
+          });
+        }
         return ChangeNotifierProvider.value(
-          value: _ensureOutages(),
+          value: outages,
           child: const OfficialOutagesView(),
         );
     }

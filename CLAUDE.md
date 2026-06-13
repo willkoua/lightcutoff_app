@@ -20,16 +20,19 @@ flutter test test/widget_test.dart   # single file
 # Generate localizations (after editing ARB files)
 flutter gen-l10n
 
-# Run on a connected device
-flutter run                                      # Firebase production
-flutter run --dart-define=USE_EMULATOR=true      # local Firebase emulators
-flutter run --dart-define=USE_EMULATOR=true \
+# Run on a connected device — 3 environments via APP_ENV (dev | staging | prod)
+flutter run --dart-define=APP_ENV=dev            # local Firebase emulators + dev tools
+flutter run --dart-define=APP_ENV=staging        # online lightcutoff-dev + dev tools
+flutter run --dart-define=APP_ENV=prod           # prod project (NOT CREATED YET → throws)
+flutter run                                      # default = staging (legacy behavior)
+flutter run --dart-define=USE_EMULATOR=true      # legacy alias for APP_ENV=dev
+flutter run --dart-define=APP_ENV=dev \
             --dart-define=EMULATOR_HOST=192.168.x.x  # physical device vs emulators
 
-# Build
-flutter build apk --release
-flutter build appbundle --release
-flutter build ipa --release
+# Build (always pass APP_ENV explicitly for release artifacts)
+flutter build apk --release --dart-define=APP_ENV=staging
+flutter build appbundle --release --dart-define=APP_ENV=staging
+flutter build ipa --release --dart-define=APP_ENV=staging
 
 # Firebase emulators (Auth 9099, Firestore 8080, RTDB 9000, Storage 9199)
 firebase emulators:start
@@ -106,7 +109,15 @@ For ICU plurals in ARB, always add a `"placeholders"` block with `"type": "int"`
 
 ## Firebase & environment
 
-`AppConfig` (lib/config/app_config.dart) reads `--dart-define` flags. With `USE_EMULATOR=true`, `main.dart` calls `_connectToEmulators()` before `runApp`. On Android emulator the host is auto-resolved to `10.0.2.2`; override with `EMULATOR_HOST` for a physical device.
+The app has **3 environments**, selected at build time via `--dart-define=APP_ENV=dev|staging|prod` (`AppConfig.environment`, lib/config/app_config.dart):
+
+- **dev** — local Firebase emulators (`main.dart` calls `_connectToEmulators()`), dev tools visible.
+- **staging** — online Firebase project **`lightcutoff-dev`**, dev tools (language picker, country/company picker, `STAGING` banner) visible **even in release builds** (`AppConfig.showDevTools`).
+- **prod** — dedicated Firebase project, **not created yet**: `main()` throws on `APP_ENV=prod` until `firebase_options_prod.dart` is generated (`flutterfire configure --project=<prod> --out=lib/firebase_options_prod.dart`). Dev tools hidden, no banner.
+
+Backward compatibility: no `APP_ENV` → `staging`; `USE_EMULATOR=true` → `dev`. A `Banner` (top-right corner, `app.dart`) shows DEV/STAGING in non-prod builds. `.firebaserc` has a `staging` alias (→ lightcutoff-dev); add a `prod` alias when the project exists.
+
+On Android emulator the emulator host is auto-resolved to `10.0.2.2`; override with `EMULATOR_HOST` for a physical device.
 
 `lib/firebase_options.dart`, `android/app/google-services.json`, and `ios/Runner/GoogleService-Info.plist` are versioned. Re-generate only if the Firebase project changes:
 ```bash

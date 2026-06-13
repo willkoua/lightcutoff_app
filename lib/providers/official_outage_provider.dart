@@ -8,12 +8,26 @@ import '../services/official_outage_service.dart';
 /// et recherche quartier appliqués côté client. Créé à l'ouverture de l'écran
 /// (lazy), pas dans le MultiProvider global.
 class OfficialOutageProvider extends ChangeNotifier {
-  OfficialOutageProvider({OfficialOutageRepository? repository})
-    : _repo = repository ?? OfficialOutageService() {
+  OfficialOutageProvider({
+    required String country,
+    OfficialOutageRepository? repository,
+  }) : _country = country,
+       _repo = repository ?? OfficialOutageService() {
     load();
   }
 
   final OfficialOutageRepository _repo;
+  String _country;
+
+  /// Pays (ISO) actuellement requêté.
+  String get country => _country;
+
+  /// Change le pays et recharge (no-op si identique).
+  void setCountry(String country) {
+    if (country == _country) return;
+    _country = country;
+    load();
+  }
 
   List<OfficialOutage> _all = [];
   bool _loading = true;
@@ -50,7 +64,7 @@ class OfficialOutageProvider extends ChangeNotifier {
     _error = false;
     notifyListeners();
     try {
-      _all = await _repo.fetchUpcoming();
+      _all = await _repo.fetchUpcoming(country: _country);
     } catch (_) {
       _error = true;
     }
