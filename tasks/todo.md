@@ -82,10 +82,14 @@
             réelles (compte, géoloc, FCM, médias, Crashlytics, App Check) + hébergement **Firebase Hosting**
             (`firebase.json`) + lien in-app (Paramètres → Légal, via `url_launcher`).
       - [x] **Déployée** sur Firebase Hosting → live à `https://lightcutoff-dev.web.app/privacy` (HTTP 200).
-      - [ ] **AVANT soumission store** : remplir les placeholders `[ÉDITEUR]` / `[date]` dans
-            `public/privacy.html` + **relire par un juriste** (RGPD), puis re-déployer
-            (`firebase deploy --only hosting` avec Node ≥20).
-      - [ ] CGU / Mentions légales : différées (non strictement requises pour publier).
+      - [x] Placeholders remplis (éditeur **Bogal Consulting**, contact `bogal.consulting@gmail.com`,
+            Analytics ajouté) + date MAJ 14 juin 2026.
+      - [x] **CGU** (`public/cgu.html`) et **Mentions légales** (`public/mentions-legales.html`)
+            créées, bilingues FR/EN, liées entre elles (footer). ⚠️ Brouillons à **faire relire par un
+            juriste** ; compléter dans `mentions-legales.html` l'**adresse postale + immatriculation**
+            de l'éditeur (placeholder « À compléter »).
+      - [ ] **AVANT soumission store** : relecture juriste + `firebase deploy --only hosting` (Node ≥20)
+            pour publier privacy + cgu + mentions-legales. (Optionnel : lien in-app vers CGU.)
 - [x] **Suppression de compte (RGPD / exigence stores)** : Cloud Function callable `deleteAccount`
       (anonymise les signalements ; supprime profil/pseudo/devices/médias/compte Auth) +
       UI `Profil → Paramètres → Compte → Supprimer mon compte` (ré-auth mot de passe) +
