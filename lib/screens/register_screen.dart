@@ -1,8 +1,11 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../config/app_constants.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_colors.dart';
 import '../utils/formatting.dart';
@@ -28,6 +31,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
   DateTime? _birthDate;
   bool _obscure = true;
   bool _checkingUsername = false;
+  bool _acceptedTerms = false;
+
+  // Recognizers pour les liens cliquables CGU / confidentialité dans la case
+  // d'acceptation (créés une fois, libérés dans dispose).
+  late final TapGestureRecognizer _termsTap =
+      TapGestureRecognizer()..onTap = () => _openUrl(AppConstants.termsUrl);
+  late final TapGestureRecognizer _privacyTap =
+      TapGestureRecognizer()
+        ..onTap = () => _openUrl(AppConstants.privacyPolicyUrl);
 
   @override
   void dispose() {
@@ -37,7 +49,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _email.dispose();
     _password.dispose();
     _confirmPassword.dispose();
+    _termsTap.dispose();
+    _privacyTap.dispose();
     super.dispose();
+  }
+
+  Future<void> _openUrl(String url) async {
+    try {
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    } catch (_) {
+      /* lien non critique */
+    }
   }
 
   Future<void> _pickBirthDate() async {
@@ -58,6 +80,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
     final l = AppLocalizations.of(context);
+    // Acceptation des CGU obligatoire pour créer un compte.
+    if (!_acceptedTerms) {
+      _snack(l.registerMustAcceptTerms);
+      return;
+    }
     // Date de naissance et téléphone sont optionnels.
     final auth = context.read<AuthProvider>();
     // Vérifie l'unicité du pseudo avant de créer le compte.
@@ -241,9 +268,63 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ? l.registerPasswordsMismatch
                               : null,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
+                // Acceptation obligatoire des CGU (liens cliquables).
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Checkbox(
+                      value: _acceptedTerms,
+                      onChanged:
+                          (v) => setState(() => _acceptedTerms = v ?? false),
+                      activeColor: AppColors.primary,
+                    ),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap:
+                            () => setState(
+                              () => _acceptedTerms = !_acceptedTerms,
+                            ),
+                        child: Text.rich(
+                          TextSpan(
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppColors.dark,
+                            ),
+                            children: [
+                              TextSpan(text: l.registerAcceptPrefix),
+                              TextSpan(
+                                text: l.registerTermsLink,
+                                style: const TextStyle(
+                                  color: AppColors.orange,
+                                  fontWeight: FontWeight.w600,
+                                  decoration: TextDecoration.underline,
+                                ),
+                                recognizer: _termsTap,
+                              ),
+                              TextSpan(text: l.registerAcceptAnd),
+                              TextSpan(
+                                text: l.registerPrivacyLink,
+                                style: const TextStyle(
+                                  color: AppColors.orange,
+                                  fontWeight: FontWeight.w600,
+                                  decoration: TextDecoration.underline,
+                                ),
+                                recognizer: _privacyTap,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: (busy || _checkingUsername) ? null : _submit,
+                  onPressed:
+                      (busy || _checkingUsername || !_acceptedTerms)
+                          ? null
+                          : _submit,
                   child:
                       (busy || _checkingUsername)
                           ? const SizedBox(

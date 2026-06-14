@@ -87,4 +87,8 @@ class AppConstants {
   /// Source : `public/privacy.html`. Exigée par les stores + lien in-app.
   static const String privacyPolicyUrl =
       'https://lightcutoff-dev.web.app/privacy';
+
+  /// URL publique des Conditions d'utilisation (Firebase Hosting).
+  /// Source : `public/cgu.html`. Liée à la case d'acceptation à l'inscription.
+  static const String termsUrl = 'https://lightcutoff-dev.web.app/cgu';
 }

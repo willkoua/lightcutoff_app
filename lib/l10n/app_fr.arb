@@ -58,6 +58,11 @@
   "registerPasswordConfirmLabel": "Confirmer le mot de passe",
   "registerPasswordsMismatch": "Les mots de passe diffèrent",
   "registerButton": "Créer mon compte",
+  "registerAcceptPrefix": "J'accepte les ",
+  "registerTermsLink": "Conditions d'utilisation",
+  "registerAcceptAnd": " et la ",
+  "registerPrivacyLink": "Politique de confidentialité",
+  "registerMustAcceptTerms": "Tu dois accepter les Conditions d'utilisation pour créer un compte.",
 
   "emailVerificationTitle": "Vérification",
   "emailVerificationHeading": "Vérifiez votre email",
