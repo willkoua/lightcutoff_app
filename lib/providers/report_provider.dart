@@ -225,11 +225,12 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
     final base = _nearOnly ? (_nearResults ?? const <Report>[]) : _reports;
     final list =
         base.where((r) {
-          // Cloisonnement pays : on exclut une coupure seulement si son pays
-          // est connu ET différent de celui de l'utilisateur (les données sans
-          // countryCode restent visibles — transition douce).
+          // Cloisonnement pays STRICT : un utilisateur ne voit que les coupures
+          // de son pays. Tout report dont le pays ne correspond pas (y compris
+          // sans countryCode) est exclu. `_countryFilter == null` = mode admin
+          // « monde » (aucun cloisonnement). Les anciennes données ont été
+          // backfillées (scripts/backfillCountryCode.cjs).
           if (_countryFilter != null &&
-              r.location.countryCode.isNotEmpty &&
               r.location.countryCode != _countryFilter) {
             return false;
           }

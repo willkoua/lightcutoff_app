@@ -296,15 +296,15 @@ void main() {
       expect(provider.filteredReports.map((r) => r.id), ['a']);
     });
 
-    test('cloisonnement par pays : ne montre que le pays actif', () async {
+    test('cloisonnement par pays STRICT : seulement le pays actif', () async {
       final provider = await buildWith([
         _report(id: 'cm', countryCode: 'CM'),
         _report(id: 'ca', countryCode: 'CA'),
-        _report(id: 'legacy'), // sans countryCode → reste visible
+        _report(id: 'legacy'), // sans countryCode → exclu (strict)
       ]);
       provider.setCountryFilter('CM');
-      // CA exclu (pays connu ≠), CM gardé, legacy gardé (transition douce).
-      expect(provider.filteredReports.map((r) => r.id).toSet(), {'cm', 'legacy'});
+      // Seul CM passe : CA (autre pays) ET legacy (pays inconnu) sont exclus.
+      expect(provider.filteredReports.map((r) => r.id).toSet(), {'cm'});
     });
 
     test('cloisonnement pays inactif si pays null → tout visible', () async {
