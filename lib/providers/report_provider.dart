@@ -182,6 +182,17 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
+  /// Mode admin « monde » : ignore le cloisonnement pays **ET** la proximité
+  /// (sinon le filtre « à proximité » masquerait les coupures lointaines). Par
+  /// défaut `false` → comportement normal (proximité respectée).
+  bool _worldwide = false;
+
+  void setWorldwide(bool value) {
+    if (value == _worldwide) return;
+    _worldwide = value;
+    notifyListeners();
+  }
+
   /// Résultats de la requête bornée par geohash (filtre « à proximité »).
   /// `null` quand le filtre est inactif.
   List<Report>? _nearResults;
@@ -222,7 +233,11 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// geohash (déjà filtrée par distance) ; sinon, le flux temps réel paginé.
   List<Report> get filteredReports {
     final q = _query.trim().toLowerCase();
-    final base = _nearOnly ? (_nearResults ?? const <Report>[]) : _reports;
+    // En mode « monde » (admin), on ignore la proximité pour tout afficher.
+    final base =
+        (_nearOnly && !_worldwide)
+            ? (_nearResults ?? const <Report>[])
+            : _reports;
     final list =
         base.where((r) {
           // Cloisonnement pays STRICT : un utilisateur ne voit que les coupures

@@ -307,6 +307,16 @@ void main() {
       expect(provider.filteredReports.map((r) => r.id).toSet(), {'cm'});
     });
 
+    test('mode monde (admin) : affiche tous les pays', () async {
+      final provider = await buildWith([
+        _report(id: 'cm', countryCode: 'CM'),
+        _report(id: 'ke', countryCode: 'KE'),
+      ]);
+      provider.setWorldwide(true);
+      provider.setCountryFilter(null); // le proxy met le filtre à null en monde
+      expect(provider.filteredReports.map((r) => r.id).toSet(), {'cm', 'ke'});
+    });
+
     test('cloisonnement pays inactif si pays null → tout visible', () async {
       final provider = await buildWith([
         _report(id: 'cm', countryCode: 'CM'),

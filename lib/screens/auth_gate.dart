@@ -25,8 +25,9 @@ class AuthGate extends StatelessWidget {
         return ChangeNotifierProxyProvider<RegionProvider, ReportProvider>(
           create: (_) => ReportProvider(),
           update: (_, region, report) {
-            // Mode admin « monde » → pas de cloisonnement (filtre pays nul).
-            report!.setCountryFilter(
+            // Mode admin « monde » → pas de cloisonnement pays NI de proximité.
+            report!.setWorldwide(region.worldwide);
+            report.setCountryFilter(
               region.worldwide ? null : region.activeCountry,
             );
             return report;
