@@ -168,6 +168,20 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
   bool _nearOnly = false;
   ReportSort _sort = _defaultSort;
 
+  /// Cloisonnement par pays : code ISO du pays de l'utilisateur (alimenté par
+  /// `RegionProvider.activeCountry`). Quand il est défini, on ne montre que les
+  /// coupures de ce pays. `null` = pas de cloisonnement. Les reports sans
+  /// `countryCode` (données héritées) restent visibles (non destructif).
+  String? _countryFilter;
+
+  /// Définit le pays actif (ISO). Sans effet si inchangé.
+  void setCountryFilter(String? iso) {
+    final next = (iso == null || iso.isEmpty) ? null : iso.toUpperCase();
+    if (next == _countryFilter) return;
+    _countryFilter = next;
+    notifyListeners();
+  }
+
   /// Résultats de la requête bornée par geohash (filtre « à proximité »).
   /// `null` quand le filtre est inactif.
   List<Report>? _nearResults;
@@ -211,6 +225,14 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
     final base = _nearOnly ? (_nearResults ?? const <Report>[]) : _reports;
     final list =
         base.where((r) {
+          // Cloisonnement pays : on exclut une coupure seulement si son pays
+          // est connu ET différent de celui de l'utilisateur (les données sans
+          // countryCode restent visibles — transition douce).
+          if (_countryFilter != null &&
+              r.location.countryCode.isNotEmpty &&
+              r.location.countryCode != _countryFilter) {
+            return false;
+          }
           if (_statusFilter != null && r.status != _statusFilter) return false;
           if (_typeFilter != null && r.type != _typeFilter) return false;
           if (_onlyMine && r.userId != _uid) return false;

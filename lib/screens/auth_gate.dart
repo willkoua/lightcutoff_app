@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
+import '../providers/region_provider.dart';
 import '../providers/report_provider.dart';
 import 'email_verification_screen.dart';
 import 'login_screen.dart';
@@ -18,8 +19,15 @@ class AuthGate extends StatelessWidget {
       case AuthStatus.unknown:
         return const SplashScreen();
       case AuthStatus.authenticated:
-        return ChangeNotifierProvider(
+        // ReportProvider est alimenté par le pays actif (RegionProvider) pour
+        // cloisonner les coupures : chaque utilisateur ne voit que celles de
+        // son pays.
+        return ChangeNotifierProxyProvider<RegionProvider, ReportProvider>(
           create: (_) => ReportProvider(),
+          update: (_, region, report) {
+            report!.setCountryFilter(region.activeCountry);
+            return report;
+          },
           child: const MainShell(),
         );
       case AuthStatus.awaitingVerification:

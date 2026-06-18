@@ -85,6 +85,7 @@ class LocationService implements LocationRepository {
       final p = placemarks.first;
       return GeoArea(
         country: p.country ?? '',
+        countryCode: (p.isoCountryCode ?? '').toUpperCase(),
         region: p.administrativeArea ?? '',
         city: p.locality ?? '',
         neighborhood: p.subLocality ?? '',

@@ -16,12 +16,18 @@ class GeoPosition {
 /// Découpage administratif lisible (issu du reverse-géocodage).
 class GeoArea {
   final String country;
+
+  /// Code pays ISO (ex. `CM`, `CA`), issu du géocodage. Sert à **cloisonner les
+  /// données par pays** (un utilisateur ne voit que les coupures de son pays).
+  /// Vide si le géocodage ne l'a pas fourni (données héritées).
+  final String countryCode;
   final String region;
   final String city;
   final String neighborhood;
 
   const GeoArea({
     this.country = '',
+    this.countryCode = '',
     this.region = '',
     this.city = '',
     this.neighborhood = '',
@@ -31,6 +37,7 @@ class GeoArea {
     final m = map ?? const {};
     return GeoArea(
       country: m['country'] as String? ?? '',
+      countryCode: m['countryCode'] as String? ?? '',
       region: m['region'] as String? ?? '',
       city: m['city'] as String? ?? '',
       neighborhood: m['neighborhood'] as String? ?? '',
@@ -39,6 +46,7 @@ class GeoArea {
 
   Map<String, dynamic> toMap() => {
     'country': country,
+    'countryCode': countryCode,
     'region': region,
     'city': city,
     'neighborhood': neighborhood,

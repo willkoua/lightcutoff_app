@@ -25,13 +25,14 @@ Report _report({
   double lat = 0,
   double lng = 0,
   String city = '',
+  String countryCode = '',
   int confirmations = 0,
 }) => Report(
   id: id,
   userId: userId,
   status: status,
   position: GeoPosition(lat: lat, lng: lng),
-  location: GeoArea(city: city),
+  location: GeoArea(city: city, countryCode: countryCode),
   confirmationCount: confirmations,
 );
 
@@ -293,6 +294,26 @@ void main() {
       ]);
       provider.toggleOnlyMine();
       expect(provider.filteredReports.map((r) => r.id), ['a']);
+    });
+
+    test('cloisonnement par pays : ne montre que le pays actif', () async {
+      final provider = await buildWith([
+        _report(id: 'cm', countryCode: 'CM'),
+        _report(id: 'ca', countryCode: 'CA'),
+        _report(id: 'legacy'), // sans countryCode → reste visible
+      ]);
+      provider.setCountryFilter('CM');
+      // CA exclu (pays connu ≠), CM gardé, legacy gardé (transition douce).
+      expect(provider.filteredReports.map((r) => r.id).toSet(), {'cm', 'legacy'});
+    });
+
+    test('cloisonnement pays inactif si pays null → tout visible', () async {
+      final provider = await buildWith([
+        _report(id: 'cm', countryCode: 'CM'),
+        _report(id: 'ca', countryCode: 'CA'),
+      ]);
+      provider.setCountryFilter(null);
+      expect(provider.filteredReports.map((r) => r.id).toSet(), {'cm', 'ca'});
     });
 
     test('tri par nombre de confirmations', () async {
