@@ -163,7 +163,6 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   String _query = '';
   OutageStatus? _statusFilter = _defaultStatus;
-  OutageType? _typeFilter;
   bool _onlyMine = false;
   bool _nearOnly = false;
   ReportSort _sort = _defaultSort;
@@ -212,7 +211,6 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   String get query => _query;
   OutageStatus? get statusFilter => _statusFilter;
-  OutageType? get typeFilter => _typeFilter;
   bool get onlyMine => _onlyMine;
   bool get nearOnly => _nearOnly;
   bool get nearLoading => _nearLoading;
@@ -223,7 +221,6 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
   bool get hasActiveFilters =>
       _query.isNotEmpty ||
       _statusFilter != _defaultStatus ||
-      _typeFilter != null ||
       _onlyMine ||
       _sort != _defaultSort;
 
@@ -250,7 +247,6 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
             return false;
           }
           if (_statusFilter != null && r.status != _statusFilter) return false;
-          if (_typeFilter != null && r.type != _typeFilter) return false;
           if (_onlyMine && r.userId != _uid) return false;
           if (q.isNotEmpty) {
             final haystack =
@@ -284,13 +280,12 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
-  void setTypeFilter(OutageType? type) {
-    _typeFilter = type;
-    notifyListeners();
-  }
-
   void toggleOnlyMine() {
     _onlyMine = !_onlyMine;
+    // « Mes signalements » et « À proximité » sont mutuellement exclusifs.
+    if (_onlyMine && _nearOnly) {
+      setNearOnly(false); // désactive la proximité (et notifie)
+    }
     notifyListeners();
   }
 
@@ -314,6 +309,7 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
       final loc = await _location.getCurrentLocation();
       _nearCenter = loc.position;
       _nearOnly = true;
+      _onlyMine = false; // exclusif avec « mes signalements »
       _nearLoading = true;
       notifyListeners();
       // Requête bornée par geohash (centre + voisines), affinée par distance.
@@ -418,7 +414,6 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
   void clearFilters() {
     _query = '';
     _statusFilter = _defaultStatus;
-    _typeFilter = null;
     _onlyMine = false;
     _sort = _defaultSort;
     notifyListeners();

@@ -135,24 +135,6 @@ class _FilterSheetState extends State<_FilterSheet> {
               ],
             ),
             const SizedBox(height: 16),
-            _label(l.filterSheetTypeSection),
-            Wrap(
-              spacing: 8,
-              children: [
-                _choice(
-                  l.filterSheetAllTypes,
-                  p.typeFilter == null,
-                  () => p.setTypeFilter(null),
-                ),
-                for (final t in OutageType.values)
-                  _choice(
-                    outageTypeLabel(context, t),
-                    p.typeFilter == t,
-                    () => p.setTypeFilter(t),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 16),
             _label(l.filterSheetDisplaySection),
             Wrap(
               spacing: 8,
