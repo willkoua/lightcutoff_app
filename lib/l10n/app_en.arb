@@ -309,7 +309,7 @@
   "officialOutagesSearchHint": "Search a neighborhood",
   "officialOutagesAllRegions": "All regions",
   "officialOutagesEmpty": "No planned outages",
-  "officialOutagesError": "Failed to load planned outages",
+  "officialOutagesError": "Can't connect. Check your connection (or turn off your VPN) and try again.",
   "officialOutagesPlannedBadge": "Planned works · Eneo",
   "homeSegmentReports": "Reports",
   "homeSegmentPlanned": "Planned",

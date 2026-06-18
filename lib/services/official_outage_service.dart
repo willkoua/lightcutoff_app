@@ -3,6 +3,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/official_outage.dart';
 import '../repositories/official_outage_repository.dart';
 
+/// Levée quand les coupures planifiées ne peuvent pas être lues depuis le
+/// serveur (hors-ligne / connexion bloquée) et que le cache est vide → permet
+/// d'afficher « connexion impossible » au lieu d'un faux état vide.
+class OfficialOutagesUnavailable implements Exception {
+  const OfficialOutagesUnavailable();
+}
+
 /// Implémentation Firestore de [OfficialOutageRepository].
 ///
 /// Requête **mono-champ** (`where country ==`) → aucun index composite à
@@ -20,6 +27,13 @@ class OfficialOutageService implements OfficialOutageRepository {
   @override
   Future<List<OfficialOutage>> fetchUpcoming({required String country}) async {
     final snap = await _col.where('country', isEqualTo: country).get();
+    // Serveur injoignable (hors-ligne, ou gRPC bloqué par un VPN/pare-feu) :
+    // Firestore retombe silencieusement sur le cache. Si ce cache est vide, on
+    // ne peut pas distinguer « rien » de « pas chargé » → on lève une erreur
+    // pour afficher « connexion impossible » plutôt qu'un faux « aucune coupure ».
+    if (snap.metadata.isFromCache && snap.docs.isEmpty) {
+      throw const OfficialOutagesUnavailable();
+    }
     final today = _todayYmd();
     final items =
         snap.docs

@@ -355,7 +355,7 @@
   "officialOutagesSearchHint": "Rechercher un quartier",
   "officialOutagesAllRegions": "Toutes les régions",
   "officialOutagesEmpty": "Aucune coupure planifiée",
-  "officialOutagesError": "Échec du chargement des coupures planifiées",
+  "officialOutagesError": "Connexion impossible. Vérifie ta connexion (ou désactive ton VPN) et réessaie.",
   "officialOutagesPlannedBadge": "Travaux planifiés · Eneo",
   "homeSegmentReports": "Signalements",
   "homeSegmentPlanned": "Programmées",
