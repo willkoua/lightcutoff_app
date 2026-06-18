@@ -370,6 +370,37 @@ void main() {
       ).called(1);
     });
 
+    test('« proximité » et « mes signalements » sont exclusifs', () async {
+      when(() => location.getCurrentLocation()).thenAnswer(
+        (_) async => const LocationResult(
+          position: GeoPosition(lat: 3.86, lng: 11.51),
+          area: GeoArea(),
+        ),
+      );
+      when(
+        () => service.reportsWithinRadius(
+          lat: any(named: 'lat'),
+          lng: any(named: 'lng'),
+          radiusMeters: any(named: 'radiusMeters'),
+        ),
+      ).thenAnswer((_) async => [_report(id: 'near')]);
+
+      final provider = build();
+      await Future<void>.delayed(Duration.zero);
+
+      // Activer proximité désactive « mes signalements »…
+      provider.toggleOnlyMine();
+      expect(provider.onlyMine, isTrue);
+      await provider.setNearOnly(true);
+      expect(provider.nearOnly, isTrue);
+      expect(provider.onlyMine, isFalse);
+
+      // …et activer « mes signalements » désactive la proximité.
+      provider.toggleOnlyMine();
+      expect(provider.onlyMine, isTrue);
+      expect(provider.nearOnly, isFalse);
+    });
+
     test('erreur de localisation -> filtre désactivé + code', () async {
       when(
         () => location.getCurrentLocation(),
