@@ -480,6 +480,23 @@ class _DeleteReasonDialog extends StatefulWidget {
 
 class _DeleteReasonDialogState extends State<_DeleteReasonDialog> {
   String? _reason;
+  final _otherText = TextEditingController();
+
+  @override
+  void dispose() {
+    _otherText.dispose();
+    super.dispose();
+  }
+
+  /// Valeur renvoyée : le code ; si « autre » + texte saisi, on y accole la
+  /// précision libre (« other: … »).
+  String get _result {
+    if (_reason == 'other') {
+      final extra = _otherText.text.trim();
+      return extra.isEmpty ? 'other' : 'other: $extra';
+    }
+    return _reason!;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -492,26 +509,44 @@ class _DeleteReasonDialogState extends State<_DeleteReasonDialog> {
     };
     return AlertDialog(
       title: Text(l.reportDetailDeleteDialogTitle),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            l.deleteReasonPrompt,
-            style: const TextStyle(color: AppColors.gray, fontSize: 13),
-          ),
-          const SizedBox(height: 8),
-          for (final e in options.entries)
-            RadioListTile<String>(
-              value: e.key,
-              groupValue: _reason,
-              onChanged: (v) => setState(() => _reason = v),
-              title: Text(e.value),
-              contentPadding: EdgeInsets.zero,
-              dense: true,
-              activeColor: AppColors.orange,
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              l.deleteReasonPrompt,
+              style: const TextStyle(color: AppColors.gray, fontSize: 13),
             ),
-        ],
+            const SizedBox(height: 8),
+            for (final e in options.entries)
+              RadioListTile<String>(
+                value: e.key,
+                groupValue: _reason,
+                onChanged: (v) => setState(() => _reason = v),
+                title: Text(e.value),
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                activeColor: AppColors.orange,
+              ),
+            // Champ libre facultatif quand « Autre » est sélectionné.
+            if (_reason == 'other')
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: TextField(
+                  controller: _otherText,
+                  autofocus: true,
+                  maxLength: 200,
+                  maxLines: 2,
+                  minLines: 1,
+                  decoration: InputDecoration(
+                    hintText: l.deleteReasonOtherHint,
+                    isDense: true,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
       actions: [
         TextButton(
@@ -519,11 +554,12 @@ class _DeleteReasonDialogState extends State<_DeleteReasonDialog> {
           child: Text(l.actionCancel),
         ),
         ElevatedButton(
-          // Désactivé tant qu'aucune raison n'est choisie.
+          // Désactivé tant qu'aucune raison n'est choisie (le texte « autre »
+          // reste facultatif).
           onPressed:
               _reason == null
                   ? null
-                  : () => Navigator.of(context).pop(_reason),
+                  : () => Navigator.of(context).pop(_result),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.orange,
             foregroundColor: AppColors.white,

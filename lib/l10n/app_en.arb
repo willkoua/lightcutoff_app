@@ -176,6 +176,7 @@
   "deleteReasonDuplicate": "Duplicate (already reported)",
   "deleteReasonResolved": "Power is already back",
   "deleteReasonOther": "Other reason",
+  "deleteReasonOtherHint": "Tell us more (optional)",
   "reportDetailDeleteDialogBody": "The report will disappear from the app for everyone immediately. Associated confirmations and reports will be permanently deleted within 30 days. This action is irreversible.",
   "reportDetailDeleted": "Report deleted.",
   "reportDetailDeleteFailed": "Delete failed.",

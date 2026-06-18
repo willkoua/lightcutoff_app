@@ -196,6 +196,7 @@
   "deleteReasonDuplicate": "Doublon (déjà signalé)",
   "deleteReasonResolved": "Le courant est déjà revenu",
   "deleteReasonOther": "Autre raison",
+  "deleteReasonOtherHint": "Précise (facultatif)",
   "reportDetailDeleteDialogBody": "Le signalement disparaîtra immédiatement de l'app pour tout le monde. Les confirmations et déclarations associées seront définitivement supprimées sous 30 jours. Cette action est irréversible.",
   "reportDetailDeleted": "Signalement supprimé.",
   "reportDetailDeleteFailed": "Échec de la suppression.",
