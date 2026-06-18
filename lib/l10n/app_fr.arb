@@ -332,6 +332,9 @@
   "settingsPrivacyPolicy": "Politique de confidentialité",
   "settingsLinkOpenFailed": "Impossible d'ouvrir le lien.",
 
+  "settingsSectionAdmin": "Administration",
+  "settingsWorldwide": "Afficher tous les signalements (monde)",
+  "settingsWorldwideDescription": "Lève le filtre par pays et affiche les coupures actives du monde entier. Réservé aux administrateurs.",
   "settingsSectionAccount": "Compte",
   "settingsDeleteAccount": "Supprimer mon compte",
   "settingsVersion": "version {version}",

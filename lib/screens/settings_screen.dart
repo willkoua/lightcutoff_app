@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../config/app_config.dart';
 import '../config/app_constants.dart';
 import '../config/electricity_providers.dart';
+import '../models/enums.dart';
 import '../providers/auth_provider.dart';
 import '../providers/locale_provider.dart';
 import '../providers/region_provider.dart';
@@ -43,6 +44,11 @@ class SettingsScreen extends StatelessWidget {
             const _LanguagePickerTile(),
             _SectionHeader(l.settingsSectionProviderDebug),
             const _ProviderPickerTile(),
+          ],
+          // Section admin : visible uniquement si l'utilisateur est admin.
+          if (context.watch<AuthProvider>().profile?.role == UserRole.admin) ...[
+            _SectionHeader(l.settingsSectionAdmin),
+            const _WorldwideToggle(),
           ],
           _SectionHeader(l.settingsSectionAccount),
           const _DeleteAccountTile(),
@@ -94,6 +100,28 @@ class _VersionFooterState extends State<_VersionFooter> {
           style: const TextStyle(color: AppColors.gray, fontSize: 12),
         ),
       ),
+    );
+  }
+}
+
+/// Bascule admin : afficher tous les signalements (monde) en levant le
+/// cloisonnement par pays. Pilotée par [RegionProvider.worldwide].
+class _WorldwideToggle extends StatelessWidget {
+  const _WorldwideToggle();
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final region = context.watch<RegionProvider>();
+    return SwitchListTile(
+      secondary: const Icon(Icons.public, color: AppColors.gray),
+      title: Text(l.settingsWorldwide),
+      subtitle: Text(
+        l.settingsWorldwideDescription,
+        style: const TextStyle(color: AppColors.gray, fontSize: 13),
+      ),
+      value: region.worldwide,
+      onChanged: (v) => context.read<RegionProvider>().setWorldwide(v),
     );
   }
 }

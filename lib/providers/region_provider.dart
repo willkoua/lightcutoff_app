@@ -14,15 +14,22 @@ import '../config/electricity_providers.dart';
 class RegionProvider extends ChangeNotifier {
   RegionProvider() {
     _loadOverride();
+    _loadWorldwide();
   }
 
   static const _prefKey = 'provider_override_id';
+  static const _worldwideKey = 'admin_worldwide';
 
   ElectricityProvider? _override; // dev, persistant
   String? _homeCountryIso; // dérivé de homeLocation du profil
+  bool _worldwide = false; // admin : voir tous les signalements (tous pays)
 
   bool get isOverridden => _override != null;
   ElectricityProvider? get overrideProvider => _override;
+
+  /// `true` = afficher les signalements du **monde entier** (réservé admin).
+  /// Quand actif, le cloisonnement par pays est levé.
+  bool get worldwide => _worldwide;
 
   Future<void> _loadOverride() async {
     final prefs = await SharedPreferences.getInstance();
@@ -35,6 +42,24 @@ class RegionProvider extends ChangeNotifier {
         return;
       }
     }
+  }
+
+  Future<void> _loadWorldwide() async {
+    final prefs = await SharedPreferences.getInstance();
+    final v = prefs.getBool(_worldwideKey) ?? false;
+    if (v != _worldwide) {
+      _worldwide = v;
+      notifyListeners();
+    }
+  }
+
+  /// Active/désactive la vue monde (admin). Persisté.
+  Future<void> setWorldwide(bool value) async {
+    if (value == _worldwide) return;
+    _worldwide = value;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_worldwideKey, value);
   }
 
   String? get _localeCountry =>
