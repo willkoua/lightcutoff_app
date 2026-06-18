@@ -91,4 +91,9 @@ class AppConstants {
   /// URL publique des Conditions d'utilisation (Firebase Hosting).
   /// Source : `public/cgu.html`. Liée à la case d'acceptation à l'inscription.
   static const String termsUrl = 'https://lightcutoff-dev.web.app/cgu';
+
+  /// Sondage de retour des testeurs (Google Forms). Affiché via une bannière
+  /// sur la Liste **en staging/dev uniquement** (cf. AppConfig.showDevTools).
+  static const String surveyUrl =
+      'https://docs.google.com/forms/d/e/1FAIpQLSc4-2-C0Kryt4SUDGO0WucSYPqK4fEtAlCWBv6_HTRBKklMgA/viewform';
 }

@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../config/app_config.dart';
+import '../config/app_constants.dart';
 import '../config/electricity_providers.dart';
 import '../models/report.dart';
 import '../providers/official_outage_provider.dart';
@@ -91,6 +95,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
       body: Column(
         children: [
+          const _SurveyBanner(),
           if (showPlanned)
             _SegmentedControl(segment: segment, onChanged: _select),
           Expanded(child: _content(context, reports, provider, segment)),
@@ -242,6 +247,88 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
       },
+    );
+  }
+}
+
+/// Bannière (fermable) invitant les testeurs à répondre au sondage. Affichée
+/// **uniquement en dev/staging** (`showDevTools`) et tant qu'elle n'a pas été
+/// fermée (état persisté). N'apparaît jamais en prod.
+class _SurveyBanner extends StatefulWidget {
+  const _SurveyBanner();
+
+  @override
+  State<_SurveyBanner> createState() => _SurveyBannerState();
+}
+
+class _SurveyBannerState extends State<_SurveyBanner> {
+  static const _prefKey = 'survey_banner_dismissed';
+  bool _dismissed = true; // masqué tant qu'on n'a pas lu la préférence
+
+  @override
+  void initState() {
+    super.initState();
+    if (AppConfig.showDevTools) _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() => _dismissed = prefs.getBool(_prefKey) ?? false);
+  }
+
+  Future<void> _dismiss() async {
+    setState(() => _dismissed = true);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_prefKey, true);
+  }
+
+  Future<void> _open() async {
+    try {
+      await launchUrl(
+        Uri.parse(AppConstants.surveyUrl),
+        mode: LaunchMode.externalApplication,
+      );
+    } catch (_) {
+      /* lien non critique */
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!AppConfig.showDevTools || _dismissed) return const SizedBox.shrink();
+    final l = AppLocalizations.of(context);
+    return Material(
+      color: AppColors.primary.withValues(alpha: 0.12),
+      child: InkWell(
+        onTap: _open,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
+          child: Row(
+            children: [
+              const Icon(Icons.assignment_outlined,
+                  size: 20, color: AppColors.orange),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  l.surveyBannerText,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.dark,
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: l.surveyBannerDismiss,
+                icon: const Icon(Icons.close, size: 18, color: AppColors.gray),
+                onPressed: _dismiss,
+                visualDensity: VisualDensity.compact,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

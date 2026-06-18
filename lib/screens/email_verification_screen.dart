@@ -85,6 +85,35 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: AppColors.gray),
                 ),
+                const SizedBox(height: 16),
+                // Rappel : l'e-mail finit souvent dans les spams.
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(
+                        Icons.mark_email_unread_outlined,
+                        size: 18,
+                        color: AppColors.orange,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          l.emailVerificationSpamHint,
+                          style: const TextStyle(
+                            color: AppColors.dark,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 32),
                 ElevatedButton(
                   onPressed: _checking ? null : _check,

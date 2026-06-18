@@ -68,6 +68,7 @@
   "emailVerificationHeading": "Vérifiez votre email",
   "emailVerificationBody": "Un lien de vérification a été envoyé à\n{email}.\n\nCliquez sur le lien, puis revenez ici.",
   "@emailVerificationBody": { "placeholders": { "email": {} } },
+  "emailVerificationSpamHint": "Tu ne le vois pas ? Pense à vérifier tes spams / courriers indésirables.",
   "emailVerificationCheckButton": "J'ai vérifié mon email",
   "emailVerificationNotYet": "Email pas encore vérifié. Vérifiez votre boîte de réception.",
   "emailVerificationResent": "Email de vérification renvoyé.",
@@ -224,6 +225,8 @@
 
   "homeTitle": "Coupures signalées",
   "homeEmptyAllReports": "Aucune coupure signalée pour le moment.",
+  "surveyBannerText": "Aide-nous à améliorer NJUKA — réponds au sondage (2 min)",
+  "surveyBannerDismiss": "Fermer",
   "homeEmptyWithFilters": "Aucune coupure ne correspond à votre recherche.",
   "homeActiveFilters": "{count, plural, =1{Filtres actifs · 1 résultat} other{Filtres actifs · {count} résultats}}",
   "@homeActiveFilters": { "placeholders": { "count": {"type": "int"} } },
