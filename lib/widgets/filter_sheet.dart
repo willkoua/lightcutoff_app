@@ -179,10 +179,18 @@ class _FilterSheetState extends State<_FilterSheet> {
 
   Widget _filter(String label, bool selected, VoidCallback onTap) {
     return FilterChip(
-      label: Text(label),
+      label: Text(
+        label,
+        style: TextStyle(
+          color: selected ? AppColors.white : AppColors.dark,
+          fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+        ),
+      ),
       selected: selected,
       onSelected: (_) => onTap(),
-      showCheckmark: false,
+      // Coche + texte blanc/gras : la sélection est sans ambiguïté.
+      showCheckmark: true,
+      checkmarkColor: AppColors.white,
       selectedColor: AppColors.primary,
     );
   }
