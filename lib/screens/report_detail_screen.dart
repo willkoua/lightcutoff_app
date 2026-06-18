@@ -45,31 +45,14 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
     String reportId,
   ) async {
     final l = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
+    // Demande la RAISON de la suppression (choix obligatoire).
+    final reason = await showDialog<String>(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: Text(l.reportDetailDeleteDialogTitle),
-            content: Text(l.reportDetailDeleteDialogBody),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: Text(l.actionCancel),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.of(ctx).pop(true),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.orange,
-                  foregroundColor: AppColors.white,
-                ),
-                child: Text(l.actionDelete),
-              ),
-            ],
-          ),
+      builder: (_) => const _DeleteReasonDialog(),
     );
-    if (confirmed != true || !context.mounted) return;
+    if (reason == null || !context.mounted) return;
 
-    final ok = await provider.archive(reportId);
+    final ok = await provider.archive(reportId, reason: reason);
     if (!context.mounted) return;
     if (ok) {
       _snack(context, l.reportDetailDeleted);
@@ -479,6 +462,73 @@ class _InfoRow extends StatelessWidget {
               fontWeight: bold ? FontWeight.bold : FontWeight.normal,
             ),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Dialog de suppression : oblige à choisir une **raison** avant de confirmer.
+/// Renvoie le code de la raison (`error`/`duplicate`/`resolved`/`other`) ou
+/// `null` si annulé.
+class _DeleteReasonDialog extends StatefulWidget {
+  const _DeleteReasonDialog();
+
+  @override
+  State<_DeleteReasonDialog> createState() => _DeleteReasonDialogState();
+}
+
+class _DeleteReasonDialogState extends State<_DeleteReasonDialog> {
+  String? _reason;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final options = <String, String>{
+      'error': l.deleteReasonError,
+      'duplicate': l.deleteReasonDuplicate,
+      'resolved': l.deleteReasonResolved,
+      'other': l.deleteReasonOther,
+    };
+    return AlertDialog(
+      title: Text(l.reportDetailDeleteDialogTitle),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l.deleteReasonPrompt,
+            style: const TextStyle(color: AppColors.gray, fontSize: 13),
+          ),
+          const SizedBox(height: 8),
+          for (final e in options.entries)
+            RadioListTile<String>(
+              value: e.key,
+              groupValue: _reason,
+              onChanged: (v) => setState(() => _reason = v),
+              title: Text(e.value),
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              activeColor: AppColors.orange,
+            ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l.actionCancel),
+        ),
+        ElevatedButton(
+          // Désactivé tant qu'aucune raison n'est choisie.
+          onPressed:
+              _reason == null
+                  ? null
+                  : () => Navigator.of(context).pop(_reason),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.orange,
+            foregroundColor: AppColors.white,
+          ),
+          child: Text(l.actionDelete),
         ),
       ],
     );

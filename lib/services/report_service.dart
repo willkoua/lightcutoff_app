@@ -99,12 +99,14 @@ class ReportService implements ReportRepository {
     });
   }
 
-  /// Soft-delete : pose `archivedAt = now`. La règle Firestore vérifie que
-  /// l'auteur seul peut écrire ce champ. Hard delete différé au cron.
+  /// Soft-delete : pose `archivedAt = now` (+ `archiveReason` si fournie). La
+  /// règle Firestore vérifie que l'auteur seul peut écrire ces champs. Hard
+  /// delete différé au cron (actuellement désactivé).
   @override
-  Future<void> archiveReport(String reportId) {
+  Future<void> archiveReport(String reportId, {String? reason}) {
     return _reports.doc(reportId).update({
       'archivedAt': FieldValue.serverTimestamp(),
+      if (reason != null && reason.isNotEmpty) 'archiveReason': reason,
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }

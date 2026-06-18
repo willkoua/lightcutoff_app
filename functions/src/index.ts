@@ -280,6 +280,14 @@ export const onRestorationCreated = onDocumentCreated(
 );
 
 /**
+ * Interrupteur de la purge automatique. **Désactivé pour l'instant** (demande
+ * produit 2026-06-15) : les reports archivés ne sont PLUS supprimés
+ * définitivement. Le cron reste déployé mais ne fait rien. Repasser à `true`
+ * (et redéployer les functions) pour réactiver la purge.
+ */
+const PURGE_ARCHIVED_ENABLED = false;
+
+/**
  * Cron quotidien : purge définitive (hard delete) des reports archivés depuis
  * plus de [ARCHIVED_RETENTION_DAYS] jours. La suppression est **récursive** :
  * sous-collections `confirmations` et `restorations` incluses (sinon elles
@@ -292,6 +300,10 @@ export const purgeArchivedReports = onSchedule(
     retryCount: 0,
   },
   async () => {
+    if (!PURGE_ARCHIVED_ENABLED) {
+      logger.info("purgeArchivedReports: désactivé (PURGE_ARCHIVED_ENABLED=false) — aucune purge.");
+      return;
+    }
     const db = admin.firestore();
     const cutoff = new Date(
       Date.now() - ARCHIVED_RETENTION_DAYS * 24 * 60 * 60 * 1000

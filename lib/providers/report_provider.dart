@@ -635,13 +635,13 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// règles Firestore valident côté serveur. Disparaît immédiatement de tous
   /// les flux (filtrés côté client) ; sera supprimé définitivement par le cron
   /// `purgeArchivedReports`.
-  Future<bool> archive(String reportId) async {
+  Future<bool> archive(String reportId, {String? reason}) async {
     final uid = _uid;
     if (uid == null) return false;
     // Garde-fou client : seul l'auteur peut archiver son report.
     if (reportById(reportId)?.userId != uid) return false;
     try {
-      await _service.archiveReport(reportId);
+      await _service.archiveReport(reportId, reason: reason);
       if (_nearOnly) await _refreshNear();
       return true;
     } catch (_) {

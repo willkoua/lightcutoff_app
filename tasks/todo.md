@@ -170,6 +170,43 @@
       sur la liste chargée **sous-compte**. À résoudre avant : soit afficher un nombre plafonné
       (« 20+ »), soit un `count()` (qui coûte). Clarifier quelle source (liste temps réel vs requête
       proximité one-shot) alimente le bandeau.
+- [ ] **🗺️ Cartographier l'étendue d'une coupure (via positions des confirmants)** — DESIGN validé
+      (2026-06-14). Idée : 1 signalement = 1 point, mais N confirmations venant d'endroits différents
+      = l'emprise réelle. Représentation = **cercle de zone estimée** (CircleLayer).
+      - **Vie privée** : on stocke la **cellule geohash ~1,2 km** du confirmant (PAS de GPS précis),
+        cohérent avec « cellules anonymes ». Confirmation sans localisation = compte quand même, ne
+        contribue pas à l'étendue.
+      - **Anonymat préservé** : les confirmations restent lisibles auteur/admin seulement. Une Cloud
+        Function **`onConfirmationCreated`** recopie la cellule dans un champ **public agrégé**
+        `extentCells` (set/comptes) sur le report ; la carte lit `extentCells`, jamais les votes.
+      - **Cercle** : centre = barycentre {point du report + centres des cellules}, rayon = distance
+        au plus loin + marge, **plancher ~400 m**, opacité/couleur = nb de cellules (confiance).
+      - **Rendu (choisi, maquette validée 2026-06-14)** : **cercle SEUL** à l'écran (+ point d'origine
+        + chip « N confirmations »). Les **cellules ne sont PAS dessinées** (trop chargé) — elles
+        restent un détail de calcul interne, éventuellement révélable en outil dev. La confiance se
+        lit via l'**opacité/bordure** du cercle, pas via des carrés.
+      - **Touche** : modèle `confirmations` (+geohash) ; `confirmReport` (capte la cellule via
+        LocationService) ; rules (champ + interdire écriture client de `extentCells`) ; Cloud Function
+        d'agrégation ; politique de confidentialité (cellule approx. du confirmant) ; carte (CircleLayer
+        + calcul d'emprise en fonction pure testée) ; gestion refus localisation.
+      - **⚠️ Honnêteté** : afficher « zone estimée » ; rayon dérivé de la dispersion réelle, jamais
+        inventé. Cold-start : peu de confirmants = petit cercle pâle (confiance faible).
+- [x] **🗑️ Suppression d'un signalement par son auteur + RAISON** ✅ (2026-06-15) : dialog avec
+      choix de raison obligatoire (erreur / doublon / courant revenu / autre), stockée en
+      `archiveReason` sur le report (`archiveReport(reportId, {reason})`). ⚙️ **Cron de purge
+      `purgeArchivedReports` DÉSACTIVÉ** (`PURGE_ARCHIVED_ENABLED=false`, déployé) → les reports
+      archivés ne sont plus supprimés définitivement pour l'instant. Reste possible : version
+      antérieure ci-dessous.
+- [ ] ~~Suppression + raison (spec d'origine)~~ : la suppression existe déjà
+      (`archive` / soft-delete `archivedAt`, auteur uniquement, écran détail). **Ajout demandé** :
+      au moment de supprimer, **demander la raison** (« erreur de saisie », « doublon », « courant
+      déjà revenu », « autre » + texte libre optionnel). Stocker la raison sur le report
+      (`archiveReason`) pour la modération / comprendre pourquoi les gens suppriment.
+      - Touche : dialog de suppression (`report_detail_screen._confirmAndArchive`) → ajouter le choix
+        de raison ; `archiveReport` (+ champ `archiveReason`) ; rules (autoriser le champ) ; i18n FR/EN.
+      - ⚠️ Garde-fou : ne pas transformer ça en outil pour **masquer une vraie coupure** — la
+        suppression reste réservée à l'**auteur** ; les coupures confirmées par d'autres pourraient
+        rester visibles ou nécessiter un seuil (à décider).
 - [ ] **Réduction de friction (multiplicateur de contribution)** : signalement **en 1 tap**,
       depuis la **notification**, depuis un **widget**. Souvent meilleur ROI que toute récompense.
 - [ ] **Réputation pondérée par la justesse** (Tier 3, double comme anti-faux) : un signaleur dont

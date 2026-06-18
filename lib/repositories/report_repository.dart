@@ -27,7 +27,7 @@ abstract class ReportRepository {
   /// Soft-delete : marque le report comme archivé (`archivedAt = now`). Il
   /// disparaît immédiatement des flux/listes/notifs. Sera purgé définitivement
   /// par le cron `purgeArchivedReports` après [AppConstants.archivedRetentionDays].
-  Future<void> archiveReport(String reportId);
+  Future<void> archiveReport(String reportId, {String? reason});
 
   Stream<List<Confirmation>> watchConfirmations(String reportId);
 
