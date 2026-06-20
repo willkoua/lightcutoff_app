@@ -63,6 +63,10 @@ String appErrorLabel(BuildContext context, AppError error) {
     AppError.accountDisabled => l.errorAccountDisabled,
     AppError.authFailed => l.errorAuthFailed,
     AppError.profileUpdateFailed => l.errorProfileUpdateFailed,
+    AppError.socialSignInCancelled => l.errorSocialSignInCancelled,
+    AppError.socialSignInFailed => l.errorSocialSignInFailed,
+    AppError.accountExistsDifferentCredential =>
+      l.errorAccountExistsDifferentCredential,
     AppError.notLoggedIn => l.errorNotLoggedIn,
     AppError.reportSubmitFailed => l.errorReportSubmitFailed,
     AppError.reportsLoadFailed => l.errorReportsLoadFailed,

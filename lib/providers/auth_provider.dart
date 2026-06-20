@@ -16,6 +16,11 @@ enum AuthStatus {
   unknown,
   authenticated,
   awaitingVerification,
+
+  /// Authentifié (email vérifié) mais **sans profil Firestore** : cas d'un 1er
+  /// login social (Google) → l'utilisateur doit choisir un pseudo et compléter
+  /// son profil avant d'entrer dans l'app.
+  profileIncomplete,
   unauthenticated,
 }
 
@@ -53,20 +58,36 @@ class AuthProvider extends ChangeNotifier {
       _profile = null;
       _status = AuthStatus.awaitingVerification;
     } else {
-      _profile = await _service.fetchProfile(user.uid);
-      _status = AuthStatus.authenticated;
-      // Enregistre le device pour les notifs push (idempotent, ne bloque pas).
-      unawaited(
-        _notifications.registerForUser(
-          userId: user.uid,
-          homeLocation: _profile?.homeLocation ?? const GeoArea(),
-        ),
-      );
+      // Email vérifié : on charge le profil. Absent (1er login social) →
+      // profileIncomplete. En cas d'erreur réseau, on ne bloque pas un
+      // utilisateur existant (on reste authenticated avec le profil connu).
+      try {
+        final profile = await _service.fetchProfile(user.uid);
+        _profile = profile;
+        if (profile == null) {
+          _status = AuthStatus.profileIncomplete;
+        } else {
+          _status = AuthStatus.authenticated;
+          // Device pour les notifs push (idempotent, ne bloque pas).
+          unawaited(
+            _notifications.registerForUser(
+              userId: user.uid,
+              homeLocation: profile.homeLocation,
+            ),
+          );
+        }
+      } catch (_) {
+        _status = AuthStatus.authenticated;
+      }
     }
     notifyListeners();
   }
 
   String? get pendingEmail => _service.currentUser?.email;
+
+  /// Nom affiché du compte courant (ex. fourni par Google) — sert à préremplir
+  /// l'écran « compléter le profil » d'un 1er login social.
+  String? get pendingDisplayName => _service.currentUser?.displayName;
 
   Future<void> resendVerificationEmail() => _service.sendEmailVerification();
 
@@ -123,6 +144,70 @@ class AuthProvider extends ChangeNotifier {
       ),
     );
     if (ok) AnalyticsService.instance.logSignUp();
+    return ok;
+  }
+
+  /// Connexion **Google**. Au succès, le listener d'auth bascule vers
+  /// `profileIncomplete` (1er login → choisir un pseudo) ou `authenticated`.
+  /// Une annulation par l'utilisateur est silencieuse (pas de message d'erreur).
+  Future<bool> signInWithGoogle() async {
+    _busy = true;
+    _error = null;
+    notifyListeners();
+    try {
+      await _service.signInWithGoogle();
+      return true;
+    } on SocialSignInCancelledException {
+      return false; // annulation : aucun message
+    } on AccountDisabledException {
+      _error = AppError.accountDisabled;
+      return false;
+    } on FirebaseAuthException catch (e) {
+      _error = _codeFor(e);
+      return false;
+    } catch (e, st) {
+      CrashReporter.recordError(e, st, reason: 'google sign-in');
+      _error = AppError.socialSignInFailed;
+      return false;
+    } finally {
+      _busy = false;
+      notifyListeners();
+    }
+  }
+
+  /// Finalise le profil d'un compte social (pseudo unique + infos), crée les
+  /// docs `users`/`usernames`, puis bascule en `authenticated`.
+  Future<bool> completeProfile({
+    required String firstName,
+    required String lastName,
+    required String username,
+    String? phoneNumber,
+    DateTime? birthDate,
+  }) async {
+    final ok = await _run(
+      () => _service.completeSocialProfile(
+        firstName: firstName,
+        lastName: lastName,
+        username: username,
+        phoneNumber: phoneNumber,
+        birthDate: birthDate,
+      ),
+    );
+    if (ok) {
+      AnalyticsService.instance.logSignUp();
+      final user = _service.currentUser;
+      if (user != null) {
+        _profile = await _service.fetchProfile(user.uid);
+        _status = AuthStatus.authenticated;
+        unawaited(
+          _notifications.registerForUser(
+            userId: user.uid,
+            homeLocation: _profile?.homeLocation ?? const GeoArea(),
+          ),
+        );
+        notifyListeners();
+      }
+    }
     return ok;
   }
 
@@ -258,6 +343,8 @@ class AuthProvider extends ChangeNotifier {
         return AppError.wrongCredentials;
       case 'email-already-in-use':
         return AppError.emailInUse;
+      case 'account-exists-with-different-credential':
+        return AppError.accountExistsDifferentCredential;
       case 'username-already-in-use':
         return AppError.usernameInUse;
       case 'weak-password':

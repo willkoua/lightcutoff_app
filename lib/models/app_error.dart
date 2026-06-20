@@ -18,6 +18,15 @@ enum AppError {
   authFailed,
   profileUpdateFailed,
 
+  /// Connexion sociale (Google) annulée par l'utilisateur — non affichée.
+  socialSignInCancelled,
+
+  /// Échec de la connexion sociale (Google).
+  socialSignInFailed,
+
+  /// L'email est déjà lié à un compte créé avec une autre méthode.
+  accountExistsDifferentCredential,
+
   // --- Signalements ---
   notLoggedIn,
   reportSubmitFailed,

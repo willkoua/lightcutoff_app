@@ -8,6 +8,12 @@ class AccountDisabledException implements Exception {
   const AccountDisabledException();
 }
 
+/// Levée lorsqu'un utilisateur annule une connexion sociale (ferme la
+/// pop-up Google) — à traiter silencieusement côté UI.
+class SocialSignInCancelledException implements Exception {
+  const SocialSignInCancelledException();
+}
+
 /// Contrat d'accès à l'authentification et au profil utilisateur.
 /// L'implémentation concrète (Firebase) est interchangeable.
 abstract class AuthRepository {
@@ -24,6 +30,27 @@ abstract class AuthRepository {
   Future<void> signInWithIdentifier({
     required String identifier,
     required String password,
+  });
+
+  /// Connexion **Google** (Sign in with Google) → credential Firebase.
+  /// Lève [SocialSignInCancelledException] si l'utilisateur annule. Le profil
+  /// (`users`/`usernames`) n'est PAS créé ici : un compte social sans profil
+  /// est routé vers l'écran « compléter le profil » (cf. [completeSocialProfile]).
+  Future<void> signInWithGoogle();
+
+  /// `true` si l'utilisateur connecté n'a pas encore de profil Firestore
+  /// (cas d'un 1er login social) — il doit alors compléter son profil.
+  Future<bool> needsProfile();
+
+  /// Crée le profil (`users` + `usernames`) d'un compte social déjà
+  /// authentifié, après que l'utilisateur a choisi un pseudo unique. Symétrique
+  /// à [register] mais sans création de compte Auth ni email de vérification.
+  Future<void> completeSocialProfile({
+    required String firstName,
+    required String lastName,
+    required String username,
+    String? phoneNumber,
+    DateTime? birthDate,
   });
 
   Future<void> register({

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/region_provider.dart';
 import '../providers/report_provider.dart';
+import 'complete_profile_screen.dart';
 import 'email_verification_screen.dart';
 import 'login_screen.dart';
 import 'main_shell.dart';
@@ -36,6 +37,8 @@ class AuthGate extends StatelessWidget {
         );
       case AuthStatus.awaitingVerification:
         return const EmailVerificationScreen();
+      case AuthStatus.profileIncomplete:
+        return const CompleteProfileScreen();
       case AuthStatus.unauthenticated:
         return const LoginScreen();
     }

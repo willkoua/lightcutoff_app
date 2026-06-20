@@ -45,6 +45,20 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _google() async {
+    FocusScope.of(context).unfocus();
+    final auth = context.read<AuthProvider>();
+    final ok = await auth.signInWithGoogle();
+    // Au succès, l'AuthGate route automatiquement (profil à compléter ou app).
+    if (!ok && mounted && auth.error != null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(appErrorLabel(context, auth.error!))),
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final busy = context.watch<AuthProvider>().busy;
@@ -127,7 +141,28 @@ class _LoginScreenState extends State<LoginScreen> {
                             )
                             : Text(l.loginButton),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
+                  // Séparateur « ou ».
+                  Row(
+                    children: [
+                      const Expanded(child: Divider()),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Text(
+                          l.authOrSeparator,
+                          style: const TextStyle(color: AppColors.gray),
+                        ),
+                      ),
+                      const Expanded(child: Divider()),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  OutlinedButton.icon(
+                    onPressed: busy ? null : _google,
+                    icon: const Icon(Icons.account_circle_outlined),
+                    label: Text(l.authContinueWithGoogle),
+                  ),
+                  const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

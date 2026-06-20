@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../models/app_user.dart';
 import '../models/enums.dart';
@@ -69,6 +70,71 @@ class AuthService implements AuthRepository {
       await _auth.signOut();
       throw const AccountDisabledException();
     }
+  }
+
+  @override
+  Future<void> signInWithGoogle() async {
+    final googleUser = await GoogleSignIn().signIn();
+    if (googleUser == null) {
+      // L'utilisateur a fermé la pop-up de sélection de compte.
+      throw const SocialSignInCancelledException();
+    }
+    final googleAuth = await googleUser.authentication;
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+    final cred = await _auth.signInWithCredential(credential);
+    // Compte désactivé ? (le profil peut déjà exister si réinscription)
+    final profile = await fetchProfile(cred.user!.uid);
+    if (profile != null && profile.isDisabled) {
+      await GoogleSignIn().signOut();
+      await _auth.signOut();
+      throw const AccountDisabledException();
+    }
+  }
+
+  @override
+  Future<bool> needsProfile() async {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+    return (await fetchProfile(user.uid)) == null;
+  }
+
+  @override
+  Future<void> completeSocialProfile({
+    required String firstName,
+    required String lastName,
+    required String username,
+    String? phoneNumber,
+    DateTime? birthDate,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw FirebaseAuthException(code: 'no-current-user');
+    }
+    final uname = _normUsername(username);
+    if (!await isUsernameAvailable(uname)) {
+      throw FirebaseAuthException(code: 'username-already-in-use');
+    }
+    final email = user.email ?? '';
+    final appUser = AppUser(
+      uid: user.uid,
+      email: email,
+      username: uname,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      birthDate: birthDate,
+      phoneNumber: phoneNumber?.trim(),
+      photoURL: user.photoURL,
+      role: UserRole.citizen,
+      status: AccountStatus.active,
+    );
+    await user.updateDisplayName(appUser.fullName);
+    final batch = _firestore.batch();
+    batch.set(_users.doc(user.uid), appUser.toCreateMap());
+    batch.set(_usernamesRef.doc(uname), {'uid': user.uid, 'email': email});
+    await batch.commit();
   }
 
   /// Resynchronise l'email (doc user + index) si l'email Auth a changé
@@ -225,5 +291,14 @@ class AuthService implements AuthRepository {
   Future<void> reloadUser() => _auth.currentUser?.reload() ?? Future.value();
 
   @override
-  Future<void> signOut() => _auth.signOut();
+  Future<void> signOut() async {
+    // Déconnexion Google aussi → la prochaine connexion re-propose le sélecteur
+    // de compte (sans effet si l'utilisateur n'était pas connecté via Google).
+    try {
+      await GoogleSignIn().signOut();
+    } catch (_) {
+      /* non bloquant */
+    }
+    await _auth.signOut();
+  }
 }

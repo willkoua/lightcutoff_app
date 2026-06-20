@@ -64,6 +64,9 @@ dependencies:
   url_launcher: ^6.3.2
   package_info_plus: ^9.0.1
   firebase_analytics: ^12.4.2
+  # Connexion Google (Sign in with Google) — fournit le credential OAuth à
+  # firebase_auth. Nécessite la config console (provider Google activé + SHA-1).
+  google_sign_in: ^6.2.1
 
 dev_dependencies:
   flutter_test:

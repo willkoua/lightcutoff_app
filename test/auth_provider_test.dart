@@ -168,6 +168,55 @@ void main() {
     });
   });
 
+  group('connexion Google + profil social', () {
+    test('annulation utilisateur → silencieux (pas d\'erreur)', () async {
+      when(
+        () => service.signInWithGoogle(),
+      ).thenThrow(const SocialSignInCancelledException());
+
+      final provider = build();
+      final ok = await provider.signInWithGoogle();
+
+      expect(ok, isFalse);
+      expect(provider.error, isNull);
+    });
+
+    test('email lié à une autre méthode → erreur mappée', () async {
+      when(() => service.signInWithGoogle()).thenThrow(
+        FirebaseAuthException(code: 'account-exists-with-different-credential'),
+      );
+
+      final provider = build();
+      final ok = await provider.signInWithGoogle();
+
+      expect(ok, isFalse);
+      expect(provider.error, AppError.accountExistsDifferentCredential);
+    });
+
+    test('completeProfile délègue au service', () async {
+      when(
+        () => service.completeSocialProfile(
+          firstName: any(named: 'firstName'),
+          lastName: any(named: 'lastName'),
+          username: any(named: 'username'),
+          phoneNumber: any(named: 'phoneNumber'),
+          birthDate: any(named: 'birthDate'),
+        ),
+      ).thenAnswer((_) async {});
+      when(() => service.currentUser).thenReturn(null);
+
+      final provider = build();
+      final ok = await provider.completeProfile(
+        firstName: 'Will',
+        lastName: 'Koua',
+        username: 'willk',
+      );
+
+      expect(ok, isTrue);
+      expect(provider.error, isNull);
+    });
+  });
+
   test('login réussi -> pas d\'erreur', () async {
     when(
       () => service.signInWithIdentifier(

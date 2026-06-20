@@ -5,6 +5,15 @@
   "@appName": { "description": "Nom de l'app — invariant." },
   "splashTagline": "Ensemble, on y voit plus clair.",
 
+  "authOrSeparator": "ou",
+  "authContinueWithGoogle": "Continuer avec Google",
+  "completeProfileTitle": "Compléter mon profil",
+  "completeProfileIntro": "Choisis un pseudo unique pour finaliser ton compte.",
+  "completeProfileButton": "Terminer",
+  "errorSocialSignInCancelled": "Connexion annulée.",
+  "errorSocialSignInFailed": "La connexion avec Google a échoué. Réessaie.",
+  "errorAccountExistsDifferentCredential": "Cet email est déjà utilisé avec une autre méthode de connexion.",
+
   "navList": "Liste",
   "navMap": "Carte",
   "navProfile": "Profil",
