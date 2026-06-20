@@ -38,6 +38,22 @@ Format : `[date] | ce qui a mal tourné | règle pour l'éviter`
   supprimer le fichier. Vérifier avec
   `gcloud functions describe <fn> --gen2 --region <r> --format="value(serviceConfig.environmentVariables)"`.
 
+- **2026-06-20 | `FlutterError.onError = recordFlutterFatalError` = tout devient un crash FATAL**
+  Câbler `FlutterError.onError` directement sur `crashlytics.recordFlutterFatalError` (et
+  `PlatformDispatcher.onError` avec `fatal: true`) remonte **toute** erreur framework comme crash
+  fatal — **y compris les échecs de chargement d'images** (`flutter_map` charge ses tuiles via
+  `package:http` ; un `Connection reset by peer` sur `tile.openstreetmap.org` lève une
+  `ClientException` rapportée via le flux d'image → `FlutterError.onError`). Résultat : faux crashs
+  fatals en masse dans Crashlytics pour de simples pertes réseau transitoires.
+  → **Règle** : filtrer les erreurs réseau transitoires (`SocketException`, `TimeoutException`,
+  `HttpException`, `ClientException`) dans `FlutterError.onError`/`PlatformDispatcher.onError` et les
+  enregistrer en **non-fatal** (`fatal: false`), pas comme crash. Voir `_isTransientNetworkError`
+  dans `lib/main.dart`.
+  → **Corollaire tuiles** : en staging on lance souvent **sans `STADIA_API_KEY`** → repli sur le
+  serveur **OSM public** (`tile.openstreetmap.org`), qui *rate-limit*/reset les connexions (sa
+  politique d'usage interdit l'usage applicatif lourd). Pour réduire la source : builds de
+  test/prod avec `--dart-define=STADIA_API_KEY=…` (tuiles Stadia).
+
 - **2026-06-10 | `tsx`/esbuild casse si on force une autre version de Node via nvm**
   `npm test` (tsx --test) sous un Node basculé via `export PATH=…/nvm/…` peut échouer avec une
   `TransformError` esbuild (« supportedArchitectures » / binaire incompatible) — faux positif.

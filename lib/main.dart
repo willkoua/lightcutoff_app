@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -25,6 +28,29 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // affiche déjà la notif automatiquement. On garde ce handler pour les futurs
   // traitements (cache local, badge, etc.).
   debugPrint('[FCM bg] message reçu: ${message.messageId}');
+}
+
+/// Vrai si [error] est une erreur réseau **transitoire** (perte de connexion,
+/// timeout, reset, host injoignable) — typiquement un échec de chargement de
+/// tuile de carte (`flutter_map` via `package:http`, qui lève une
+/// `ClientException` encapsulant souvent une `SocketException`). Ces erreurs ne
+/// sont pas des crashs : on évite de les remonter à Crashlytics comme fatales.
+bool _isTransientNetworkError(Object error) {
+  if (error is SocketException ||
+      error is TimeoutException ||
+      error is HttpException) {
+    return true;
+  }
+  // `package:http` n'est pas une dépendance directe : on identifie sa
+  // `ClientException` (et les SocketException encapsulées) par le texte.
+  final text = error.toString().toLowerCase();
+  return text.contains('clientexception') ||
+      text.contains('socketexception') ||
+      text.contains('connection reset') ||
+      text.contains('connection closed') ||
+      text.contains('connection refused') ||
+      text.contains('software caused connection abort') ||
+      text.contains('failed host lookup');
 }
 
 Future<void> main() async {
@@ -78,9 +104,27 @@ Future<void> main() async {
   // Crash reporting : collecte active uniquement hors debug.
   final crashlytics = FirebaseCrashlytics.instance;
   await crashlytics.setCrashlyticsCollectionEnabled(!kDebugMode);
-  FlutterError.onError = crashlytics.recordFlutterFatalError;
+  FlutterError.onError = (details) {
+    // Échec réseau transitoire (ex. tuile de carte OSM dont la connexion est
+    // resettée) : ce n'est PAS un crash. On l'enregistre en non-fatal pour
+    // info, au lieu d'inonder Crashlytics de faux crashs fatals.
+    if (_isTransientNetworkError(details.exception)) {
+      crashlytics.recordError(
+        details.exception,
+        details.stack,
+        reason: 'réseau transitoire (non fatal)',
+        fatal: false,
+      );
+      return;
+    }
+    crashlytics.recordFlutterFatalError(details);
+  };
   PlatformDispatcher.instance.onError = (error, stack) {
-    crashlytics.recordError(error, stack, fatal: true);
+    crashlytics.recordError(
+      error,
+      stack,
+      fatal: !_isTransientNetworkError(error),
+    );
     return true;
   };
 
