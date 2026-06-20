@@ -52,6 +52,41 @@ String encodeGeohash(
   return hash.toString();
 }
 
+/// Décode un [hash] geohash vers le **centre** de sa cellule. Opération inverse
+/// de [encodeGeohash] : utile pour positionner un repère « au niveau cellule »
+/// (ex. anonymiser un marqueur, ou situer une confirmation dont on n'a stocké
+/// que le geohash grossier — pas le GPS exact).
+({double lat, double lng}) decodeGeohashCenter(String hash) {
+  var latMin = -90.0, latMax = 90.0;
+  var lngMin = -180.0, lngMax = 180.0;
+  var even = true; // on commence par la longitude (cf. encodeGeohash)
+
+  for (var i = 0; i < hash.length; i++) {
+    final idx = _base32.indexOf(hash[i]);
+    if (idx < 0) continue; // caractère hors alphabet : ignoré (défensif)
+    for (var bit = 4; bit >= 0; bit--) {
+      final isOne = ((idx >> bit) & 1) == 1;
+      if (even) {
+        final mid = (lngMin + lngMax) / 2;
+        if (isOne) {
+          lngMin = mid;
+        } else {
+          lngMax = mid;
+        }
+      } else {
+        final mid = (latMin + latMax) / 2;
+        if (isOne) {
+          latMin = mid;
+        } else {
+          latMax = mid;
+        }
+      }
+      even = !even;
+    }
+  }
+  return (lat: (latMin + latMax) / 2, lng: (lngMin + lngMax) / 2);
+}
+
 // Tables d'adjacence (algorithme classique movable-type). Index 0 = longueur
 // paire, index 1 = longueur impaire.
 const Map<String, List<String>> _neighborChars = {

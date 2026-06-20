@@ -11,6 +11,7 @@ import '../models/enums.dart';
 import '../models/report.dart';
 import '../providers/report_provider.dart';
 import '../theme/app_colors.dart';
+import '../utils/geohash.dart';
 import '../widgets/confirm_dialog.dart';
 import '../widgets/njuka_app_bar.dart';
 import '../widgets/report_card.dart';
@@ -29,6 +30,63 @@ class _MapScreenState extends State<MapScreen> {
   static const _maxZoom = 18.0;
   // Zoom d'arrivée : niveau quartier, centré sur l'utilisateur.
   static const _arrivalZoom = 15.0;
+  // Rayon plancher de l'emprise (m) : ~taille d'une cellule geohash-6. Une
+  // coupure sans confirmation géolocalisée s'affiche au moins comme cette zone.
+  static const _minZoneRadiusM = 600.0;
+
+  static const _distance = Distance();
+
+  /// Point d'« origine » d'un report pour le marqueur : centre de sa cellule
+  /// geohash (anonymise le GPS exact du 1er déclarant), avec repli sur la
+  /// position brute si le report n'a pas de geohash (données héritées).
+  LatLng _originPoint(Report report) {
+    final gh = report.geohash;
+    if (gh != null && gh.isNotEmpty) {
+      final c = decodeGeohashCenter(gh);
+      return LatLng(c.lat, c.lng);
+    }
+    return LatLng(report.position.lat, report.position.lng);
+  }
+
+  /// Vrai si le report a une emprise **mesurée** (au moins une confirmation
+  /// géolocalisée → bounding box renseignée côté serveur). Tant que c'est faux,
+  /// on n'affiche **que le marqueur** : pas de cercle, car il n'y a rien à
+  /// mesurer (un signalement seul n'a pas d'étendue constatée).
+  bool _hasImpact(Report report) =>
+      report.impactMinLat != null &&
+      report.impactMaxLat != null &&
+      report.impactMinLng != null &&
+      report.impactMaxLng != null;
+
+  /// Centre de l'emprise mesurée : centre de la bounding box des confirmeurs si
+  /// disponible, sinon le point d'origine.
+  LatLng _impactCenter(Report report) {
+    if (report.impactMinLat != null &&
+        report.impactMaxLat != null &&
+        report.impactMinLng != null &&
+        report.impactMaxLng != null) {
+      return LatLng(
+        (report.impactMinLat! + report.impactMaxLat!) / 2,
+        (report.impactMinLng! + report.impactMaxLng!) / 2,
+      );
+    }
+    return _originPoint(report);
+  }
+
+  /// Rayon (m) de l'emprise mesurée : distance du centre au coin le plus
+  /// éloigné de la bounding box, plancher à [_minZoneRadiusM].
+  double _impactRadiusM(Report report) {
+    if (report.impactMinLat != null &&
+        report.impactMaxLat != null &&
+        report.impactMinLng != null &&
+        report.impactMaxLng != null) {
+      final center = _impactCenter(report);
+      final corner = LatLng(report.impactMaxLat!, report.impactMaxLng!);
+      final r = _distance.as(LengthUnit.Meter, center, corner);
+      return r > _minZoneRadiusM ? r : _minZoneRadiusM;
+    }
+    return _minZoneRadiusM;
+  }
 
   final MapController _controller = MapController();
   LatLng? _myPos;
@@ -223,6 +281,31 @@ class _MapScreenState extends State<MapScreen> {
                   userAgentPackageName: 'com.njuka.app',
                   maxZoom: 19,
                 ),
+              // Emprise mesurée de chaque coupure : cercle translucide dont le
+              // rayon reflète les positions (grossières) des confirmeurs. Sous
+              // les marqueurs pour rester tappables. Couleur = statut.
+              CircleLayer(
+                circles: [
+                  // Cercle uniquement pour les coupures dont l'emprise a été
+                  // mesurée (≥ 1 confirmation géolocalisée). Sinon : marqueur seul.
+                  for (final report in reports)
+                    if (_hasImpact(report))
+                    () {
+                      final color =
+                          report.status == OutageStatus.ongoing
+                              ? AppColors.ongoing
+                              : AppColors.resolved;
+                      return CircleMarker(
+                        point: _impactCenter(report),
+                        radius: _impactRadiusM(report),
+                        useRadiusInMeter: true,
+                        color: color.withValues(alpha: 0.15),
+                        borderColor: color.withValues(alpha: 0.5),
+                        borderStrokeWidth: 1.5,
+                      );
+                    }(),
+                ],
+              ),
               MarkerClusterLayerWidget(
                 options: MarkerClusterLayerOptions(
                   maxClusterRadius: 48,
@@ -231,7 +314,7 @@ class _MapScreenState extends State<MapScreen> {
                   markers: [
                     for (final report in reports)
                       Marker(
-                        point: LatLng(report.position.lat, report.position.lng),
+                        point: _originPoint(report),
                         width: 44,
                         height: 44,
                         child: GestureDetector(

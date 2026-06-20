@@ -5,6 +5,8 @@ import {
   plannedAlertBody,
   resolutionThreshold,
   shouldResolve,
+  decodeGeohashCenter,
+  expandImpactBounds,
 } from "./logic";
 
 test("plannedAlertBody : quartier + créneau", () => {
@@ -82,4 +84,41 @@ test("buildBody : quartier + ville (ordre quartier → ville)", () => {
     buildBody({ neighborhood: "Bastos", city: "Yaoundé" }),
     "Bastos, Yaoundé · à l'instant"
   );
+});
+
+test("decodeGeohashCenter : exemple connu 'ezs42'", () => {
+  const c = decodeGeohashCenter("ezs42");
+  assert.ok(c);
+  // Centre attendu ≈ (42.605, -5.603).
+  assert.ok(Math.abs(c!.lat - 42.605) < 0.02, `lat=${c!.lat}`);
+  assert.ok(Math.abs(c!.lng - -5.603) < 0.02, `lng=${c!.lng}`);
+});
+
+test("decodeGeohashCenter : vide ou caractère invalide -> null", () => {
+  assert.equal(decodeGeohashCenter(""), null);
+  assert.equal(decodeGeohashCenter("ail"), null); // a,i,l hors alphabet
+});
+
+test("expandImpactBounds : amorce depuis un point (box dégénérée)", () => {
+  const b = expandImpactBounds(null, { lat: 3.85, lng: 11.5 });
+  assert.deepEqual(b, {
+    impactMinLat: 3.85,
+    impactMaxLat: 3.85,
+    impactMinLng: 11.5,
+    impactMaxLng: 11.5,
+  });
+});
+
+test("expandImpactBounds : étend la box, jamais ne rétrécit", () => {
+  let b = expandImpactBounds(null, { lat: 3.85, lng: 11.5 });
+  b = expandImpactBounds(b, { lat: 3.9, lng: 11.4 });
+  assert.deepEqual(b, {
+    impactMinLat: 3.85,
+    impactMaxLat: 3.9,
+    impactMinLng: 11.4,
+    impactMaxLng: 11.5,
+  });
+  // Un point déjà à l'intérieur ne change rien.
+  const b2 = expandImpactBounds(b, { lat: 3.87, lng: 11.45 });
+  assert.deepEqual(b2, b);
 });

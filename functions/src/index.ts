@@ -30,6 +30,9 @@ import {
   resolutionThreshold,
   shouldResolve,
   effectiveMinVotes,
+  decodeGeohashCenter,
+  expandImpactBounds,
+  ImpactBounds,
 } from "./logic";
 import { EneoAdapter } from "./sources/eneo";
 
@@ -276,6 +279,70 @@ export const onRestorationCreated = onDocumentCreated(
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
     logger.info(`onRestorationCreated: report ${reportId} → resolved.`);
+  }
+);
+
+/**
+ * Déclenché à chaque confirmation (`reports/{id}/confirmations/{uid}`). Étend
+ * l'**emprise mesurée** du report (bounding box `impact*`) pour inclure la
+ * position grossière du confirmeur (décodée depuis le `geohash` du vote). La
+ * carte en dérive un cercle. Admin SDK → contourne les règles ; la position
+ * fine du confirmeur n'est jamais exposée aux autres clients (lecture des
+ * confirmations restreinte). Transaction pour rester correct sous concurrence.
+ */
+export const onConfirmationCreated = onDocumentCreated(
+  "reports/{reportId}/confirmations/{uid}",
+  async (event) => {
+    const reportId = event.params.reportId;
+    const conf = event.data?.data() as { geohash?: string } | undefined;
+    const geohash = conf?.geohash;
+    if (!geohash) {
+      // Confirmeur sans position (permission refusée) — pas d'emprise à étendre.
+      return;
+    }
+    const point = decodeGeohashCenter(geohash);
+    if (!point) {
+      logger.warn(`onConfirmationCreated: geohash invalide "${geohash}".`);
+      return;
+    }
+
+    const db = admin.firestore();
+    const reportRef = db.collection("reports").doc(reportId);
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(reportRef);
+      if (!snap.exists) {
+        logger.warn(`onConfirmationCreated: report ${reportId} introuvable.`);
+        return;
+      }
+      const report = snap.data() as ReportDoc & Partial<ImpactBounds>;
+
+      // Base : l'emprise existante si présente, sinon on l'amorce avec la
+      // position du report (l'origine fait partie de la zone touchée).
+      let bounds: Partial<ImpactBounds> | null = report;
+      const hasImpact =
+        typeof report.impactMinLat === "number" &&
+        typeof report.impactMaxLat === "number" &&
+        typeof report.impactMinLng === "number" &&
+        typeof report.impactMaxLng === "number";
+      if (!hasImpact) {
+        bounds = report.position
+          ? expandImpactBounds(null, {
+              lat: report.position.lat,
+              lng: report.position.lng,
+            })
+          : null;
+      }
+
+      const next = expandImpactBounds(bounds, point);
+      tx.update(reportRef, {
+        impactMinLat: next.impactMinLat,
+        impactMaxLat: next.impactMaxLat,
+        impactMinLng: next.impactMinLng,
+        impactMaxLng: next.impactMaxLng,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    });
+    logger.info(`onConfirmationCreated: emprise étendue pour ${reportId}.`);
   }
 );
 

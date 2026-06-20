@@ -137,6 +137,37 @@ describe("Firestore — reports", () => {
     await assertFails(confirmBatch(as("alice"), "alice"));
   });
 
+  // Confirme avec un `geohash` (position grossière du confirmeur) sur le vote.
+  function confirmBatchWithGeohash(db, uid, geohash) {
+    const b = writeBatch(db);
+    b.set(doc(db, `reports/r1/confirmations/${uid}`), {
+      createdAt: serverTimestamp(),
+      geohash,
+    });
+    b.update(doc(db, "reports/r1"), {
+      confirmationCount: increment(1),
+      updatedAt: serverTimestamp(),
+    });
+    return b.commit();
+  }
+
+  it("confirmation : geohash string court accepté, non-string refusé", async () => {
+    await seed((db) =>
+      setDoc(doc(db, "reports/r1"), {
+        userId: "alice",
+        confirmationCount: 0,
+        restorationCount: 0,
+      }),
+    );
+    await assertSucceeds(confirmBatchWithGeohash(as("bob"), "bob", "s2x4r1"));
+    // Type invalide (nombre) → refusé par la validation de la règle.
+    await assertFails(confirmBatchWithGeohash(as("carol"), "carol", 12345));
+    // Trop long → refusé.
+    await assertFails(
+      confirmBatchWithGeohash(as("dave"), "dave", "0123456789abcd"),
+    );
+  });
+
   it("🔒 trou comblé : écrire un compteur arbitraire est refusé", async () => {
     await seed((db) =>
       setDoc(doc(db, "reports/r1"), {

@@ -106,9 +106,14 @@ service cloud.firestore {
         allow read: if isOwner(userId)
                     || isAdmin()
                     || request.auth.uid == reportAuthor(reportId);
-        // On ne peut pas confirmer sa propre coupure.
+        // On ne peut pas confirmer sa propre coupure. Le champ `geohash`
+        // (position grossière du confirmeur, pour l'emprise mesurée) est
+        // optionnel et, s'il est présent, doit être une chaîne courte.
         allow create: if isOwner(userId)
-                      && request.auth.uid != reportAuthor(reportId);
+                      && request.auth.uid != reportAuthor(reportId)
+                      && (!('geohash' in request.resource.data)
+                          || (request.resource.data.geohash is string
+                              && request.resource.data.geohash.size() <= 12));
         allow delete: if isOwner(userId);
       }
 

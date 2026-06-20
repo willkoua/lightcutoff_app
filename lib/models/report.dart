@@ -18,6 +18,17 @@ class Report {
 
   /// Geohash de [position] — index de proximité (filtres de zone, notifications).
   final String? geohash;
+
+  /// Bounding box de l'**emprise mesurée** de la coupure : l'enveloppe des
+  /// positions (centres de cellule geohash) des confirmeurs, maintenue côté
+  /// serveur par la Cloud Function `onConfirmationCreated`. La carte en dérive
+  /// un cercle (centre + rayon). `null` tant qu'aucune confirmation géolocalisée
+  /// n'est arrivée → la carte retombe sur [position] avec un rayon plancher.
+  final double? impactMinLat;
+  final double? impactMaxLat;
+  final double? impactMinLng;
+  final double? impactMaxLng;
+
   final int confirmationCount;
 
   /// Nombre de déclarations « le courant est revenu chez moi ». Quand ce
@@ -47,6 +58,10 @@ class Report {
     this.mediaUrl,
     this.authorUsername,
     this.geohash,
+    this.impactMinLat,
+    this.impactMaxLat,
+    this.impactMinLng,
+    this.impactMaxLng,
     this.confirmationCount = 0,
     this.restorationCount = 0,
     this.reportedAt,
@@ -71,6 +86,10 @@ class Report {
       mediaUrl: map['mediaUrl'] as String?,
       authorUsername: map['authorUsername'] as String?,
       geohash: map['geohash'] as String?,
+      impactMinLat: (map['impactMinLat'] as num?)?.toDouble(),
+      impactMaxLat: (map['impactMaxLat'] as num?)?.toDouble(),
+      impactMinLng: (map['impactMinLng'] as num?)?.toDouble(),
+      impactMaxLng: (map['impactMaxLng'] as num?)?.toDouble(),
       confirmationCount: (map['confirmationCount'] as num?)?.toInt() ?? 0,
       restorationCount: (map['restorationCount'] as num?)?.toInt() ?? 0,
       reportedAt: (map['reportedAt'] as Timestamp?)?.toDate(),

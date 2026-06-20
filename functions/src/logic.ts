@@ -65,6 +65,89 @@ export function shouldResolve(report: ResolutionInput): boolean {
   return restorations >= resolutionThreshold(confirmations, effectiveMinVotes());
 }
 
+/**
+ * Alphabet base32 du geohash (identique à `lib/utils/geohash.dart`).
+ */
+const GEOHASH_BASE32 = "0123456789bcdefghjkmnpqrstuvwxyz";
+
+/** Centre (lat/lng) d'une cellule geohash. */
+export interface LatLng {
+  lat: number;
+  lng: number;
+}
+
+/**
+ * Décode un geohash vers le **centre** de sa cellule. Inverse de
+ * `encodeGeohash` côté Dart — même alphabet, longitude en premier. Renvoie
+ * `null` si la chaîne est vide ou contient un caractère hors alphabet.
+ */
+export function decodeGeohashCenter(hash: string): LatLng | null {
+  if (!hash) return null;
+  let latMin = -90,
+    latMax = 90,
+    lngMin = -180,
+    lngMax = 180;
+  let even = true; // longitude en premier
+  for (const ch of hash) {
+    const idx = GEOHASH_BASE32.indexOf(ch);
+    if (idx < 0) return null;
+    for (let bit = 4; bit >= 0; bit--) {
+      const isOne = ((idx >> bit) & 1) === 1;
+      if (even) {
+        const mid = (lngMin + lngMax) / 2;
+        if (isOne) lngMin = mid;
+        else lngMax = mid;
+      } else {
+        const mid = (latMin + latMax) / 2;
+        if (isOne) latMin = mid;
+        else latMax = mid;
+      }
+      even = !even;
+    }
+  }
+  return { lat: (latMin + latMax) / 2, lng: (lngMin + lngMax) / 2 };
+}
+
+/** Bounding box de l'emprise mesurée d'une coupure. */
+export interface ImpactBounds {
+  impactMinLat: number;
+  impactMaxLat: number;
+  impactMinLng: number;
+  impactMaxLng: number;
+}
+
+/**
+ * Étend une bounding box d'impact pour inclure [point]. Si [current] est absente
+ * ou incomplète, on repart de [point] (box dégénérée). Croissance monotone : une
+ * emprise ne rétrécit jamais (une coupure ne « dé-s'étend » pas).
+ */
+export function expandImpactBounds(
+  current: Partial<ImpactBounds> | null | undefined,
+  point: LatLng
+): ImpactBounds {
+  const has =
+    current != null &&
+    typeof current.impactMinLat === "number" &&
+    typeof current.impactMaxLat === "number" &&
+    typeof current.impactMinLng === "number" &&
+    typeof current.impactMaxLng === "number";
+  if (!has) {
+    return {
+      impactMinLat: point.lat,
+      impactMaxLat: point.lat,
+      impactMinLng: point.lng,
+      impactMaxLng: point.lng,
+    };
+  }
+  const c = current as ImpactBounds;
+  return {
+    impactMinLat: Math.min(c.impactMinLat, point.lat),
+    impactMaxLat: Math.max(c.impactMaxLat, point.lat),
+    impactMinLng: Math.min(c.impactMinLng, point.lng),
+    impactMaxLng: Math.max(c.impactMaxLng, point.lng),
+  };
+}
+
 /** Construit le corps de la notif à partir de la zone du report. */
 export function buildBody(area?: NotifArea): string {
   const fallback = "Une coupure vient d'être signalée près de chez vous.";

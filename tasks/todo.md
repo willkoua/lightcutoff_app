@@ -10,6 +10,30 @@
 
 ---
 
+## ✅ FAIT — Carte : emprise mesurée des coupures (2026-06-19)
+
+Objectif : la carte montre une **zone mesurée** (cercle ∝ positions des confirmeurs),
+pas un rayon décoratif. Marqueur d'origine = 1er signalement, snappé cellule geohash.
+✅ **Déployé sur staging (lightcutoff-dev) le 2026-06-19** — `firebase deploy --only
+firestore:rules,functions:onConfirmationCreated`. Règles publiées + function créée (Node 22 2nd Gen).
+⚠️ Le trigger `onDocumentCreated` n'agit que sur les **nouvelles** confirmations (pas de rétroactif
+sur les votes antérieurs au déploiement). Build app encore à publier au store le moment venu.
+
+- [x] `geohash.dart` : `decodeGeohashCenter` (inverse de `encodeGeohash`, pur Dart)
+- [x] `Confirmation` : champ `geohash`
+- [x] `Report` : agrégat bbox `impactMinLat/MaxLat/MinLng/MaxLng`
+- [x] `ReportRepository` / `ReportService.confirmReport` : param `geohash`
+- [x] `ReportProvider.confirm` : capte la position → geohash-6 → service
+- [x] `map_screen.dart` : `CircleLayer` (emprise) + marqueur snappé cellule
+- [x] Cloud Function `onConfirmationCreated` : étend la bbox (Admin SDK, transaction)
+- [x] `functions/src/logic.ts` : `decodeGeohashCenter` + `expandImpactBounds` + tests
+- [x] `firestore.rules` : `geohash` autorisé/typé sur create confirmation (compteur intact)
+- [x] `rules_tests/` : geohash valide accepté / non-string refusé
+- [x] `public/privacy.html` : localisation grossière des confirmeurs
+- [x] Vérif : `flutter analyze` clean · `flutter test` (138✓) · functions tsc+test (25✓) · rules (32✓)
+
+---
+
 ## ✅ FAIT (vérifié dans le code)
 
 ### Authentification & profil
