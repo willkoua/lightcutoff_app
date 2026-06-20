@@ -3,7 +3,7 @@
 
   "appName": "NJUKA",
   "@appName": { "description": "Nom de l'app — invariant." },
-  "splashTagline": "Le service, l'information.",
+  "splashTagline": "Ensemble, on y voit plus clair.",
 
   "navList": "Liste",
   "navMap": "Carte",
