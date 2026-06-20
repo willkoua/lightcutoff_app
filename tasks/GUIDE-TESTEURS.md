@@ -274,7 +274,7 @@ et rouvre l'appli pour vérifier).
 
 ✅ **Ce que tu dois voir :**
 - La page Paramètres s'ouvre.
-- En pied de page : **« version 1.1.0 (2) · STAGING »** (ou un numéro proche).
+- En pied de page : **« version 1.1.0 (11) · STAGING »** (ou un numéro proche).
 
 **👉 Recopie-moi ce numéro exact :** ____________________
 *(il me dit précisément quelle version tu testes)*
