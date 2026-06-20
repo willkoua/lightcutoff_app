@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 import 'package:provider/provider.dart';
 
+import '../config/app_config.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_colors.dart';
 import '../utils/l10n_helpers.dart';
@@ -141,28 +142,31 @@ class _LoginScreenState extends State<LoginScreen> {
                             )
                             : Text(l.loginButton),
                   ),
-                  const SizedBox(height: 20),
-                  // Séparateur « ou ».
-                  Row(
-                    children: [
-                      const Expanded(child: Divider()),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text(
-                          l.authOrSeparator,
-                          style: const TextStyle(color: AppColors.gray),
+                  // Connexion sociale — masquée tant que la config Firebase
+                  // Google n'est pas faite (cf. AppConfig.enableGoogleSignIn).
+                  if (AppConfig.enableGoogleSignIn) ...[
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        const Expanded(child: Divider()),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            l.authOrSeparator,
+                            style: const TextStyle(color: AppColors.gray),
+                          ),
                         ),
-                      ),
-                      const Expanded(child: Divider()),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  OutlinedButton.icon(
-                    onPressed: busy ? null : _google,
-                    icon: const Icon(Icons.account_circle_outlined),
-                    label: Text(l.authContinueWithGoogle),
-                  ),
-                  const SizedBox(height: 8),
+                        const Expanded(child: Divider()),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    OutlinedButton.icon(
+                      onPressed: busy ? null : _google,
+                      icon: const Icon(Icons.account_circle_outlined),
+                      label: Text(l.authContinueWithGoogle),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

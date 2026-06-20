@@ -63,6 +63,13 @@ class AppConfig {
   /// **sauf en prod** — tout ce qu'on voit en dev doit exister en staging.
   static bool get showDevTools => !isProd;
 
+  /// Affiche le bouton « Continuer avec Google ». **Désactivé** tant que la
+  /// config Firebase n'est pas faite (provider Google activé + empreintes SHA-1
+  /// debug/release/Play App Signing + `google-services.json` régénéré — voir
+  /// `tasks/SETUP-AUTH-GOOGLE.md`). Sans cette config, le bouton planterait
+  /// (`ApiException: 10`). Passer à `true` puis rebuild une fois la config prête.
+  static const bool enableGoogleSignIn = false;
+
   /// Étiquette de la bannière d'environnement (`null` = pas de bannière, prod).
   static String? get envBannerLabel {
     switch (environment) {
