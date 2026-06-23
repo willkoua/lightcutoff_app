@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../config/app_config.dart';
 import '../models/enums.dart';
 import '../models/report.dart';
+import '../providers/region_provider.dart';
 import '../providers/report_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/active_filters_banner.dart';
@@ -176,6 +177,19 @@ class _MapScreenState extends State<MapScreen> {
     final reports = provider.filteredReports;
 
     final l = AppLocalizations.of(context);
+    final region = context.watch<RegionProvider>();
+    // Périmètre actif (pays + proximité) : la proximité restreint l'affichage
+    // mais n'est pas dans `hasActiveFilters` → on l'ajoute pour la bannière et
+    // l'état vide. Sans ça, sur la carte, le filtre proximité agit en silence.
+    final restricted = provider.hasActiveFilters || provider.nearOnly;
+    final scope = buildScopeLabel(
+      countryLabel:
+          region.worldwide
+              ? null
+              : (region.activeProvider?.countryLabel ?? region.activeCountry),
+      nearOnly: provider.nearOnly,
+      nearbyLabel: l.filterSheetNearby,
+    );
     return Scaffold(
       appBar: NjukaAppBar(title: l.mapTitle, filterProvider: provider),
       // FAB « Signaler » à gauche pour ne pas chevaucher la colonne de
@@ -325,7 +339,7 @@ class _MapScreenState extends State<MapScreen> {
           // Indicateur de filtre actif (proximité/pays/recherche) : sans lui,
           // sur la carte, des coupures masquées par le filtre passent pour un
           // bug (« les autres quartiers ne s'affichent pas »). Tap → tout voir.
-          if (provider.hasActiveFilters && reports.isNotEmpty)
+          if (restricted && reports.isNotEmpty)
             Positioned(
               top: 0,
               left: 0,
@@ -334,7 +348,8 @@ class _MapScreenState extends State<MapScreen> {
                 bottom: false,
                 child: ActiveFiltersBanner(
                   count: reports.length,
-                  onClear: provider.clearFilters,
+                  scope: scope,
+                  onClear: provider.showAll,
                 ),
               ),
             ),
@@ -359,7 +374,7 @@ class _MapScreenState extends State<MapScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      provider.hasActiveFilters
+                      restricted
                           ? Icons.search_off
                           : Icons.check_circle_outline,
                       color: AppColors.primary,
@@ -367,15 +382,15 @@ class _MapScreenState extends State<MapScreen> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      provider.hasActiveFilters
+                      restricted
                           ? l.homeEmptyWithFilters
                           : l.homeEmptyAllReports,
                       textAlign: TextAlign.center,
                     ),
-                    if (provider.hasActiveFilters) ...[
+                    if (restricted) ...[
                       const SizedBox(height: 12),
                       ElevatedButton(
-                        onPressed: provider.clearFilters,
+                        onPressed: provider.showAll,
                         child: Text(l.homeClearFilters),
                       ),
                     ],

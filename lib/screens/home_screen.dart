@@ -144,25 +144,33 @@ class _HomeScreenState extends State<HomeScreen> {
         text: appErrorLabel(context, reports.error!),
       );
     }
+    final region = context.watch<RegionProvider>();
+    // Périmètre actif (pays + proximité) : sert à la bannière et au choix du
+    // message d'état vide. La proximité (`nearOnly`) restreint l'affichage mais
+    // n'était pas comptée dans `hasActiveFilters` → on l'ajoute ici.
+    final restricted = reports.hasActiveFilters || reports.nearOnly;
+    final scope = buildScopeLabel(
+      countryLabel:
+          region.worldwide
+              ? null
+              : (region.activeProvider?.countryLabel ?? region.activeCountry),
+      nearOnly: reports.nearOnly,
+      nearbyLabel: l.filterSheetNearby,
+    );
     final list = reports.filteredReports;
     if (list.isEmpty) {
       return _Message(
-        icon:
-            reports.hasActiveFilters
-                ? Icons.search_off
-                : Icons.check_circle_outline,
-        text:
-            reports.hasActiveFilters
-                ? l.homeEmptyWithFilters
-                : l.homeEmptyAllReports,
+        icon: restricted ? Icons.search_off : Icons.check_circle_outline,
+        text: restricted ? l.homeEmptyWithFilters : l.homeEmptyAllReports,
       );
     }
     return Column(
       children: [
-        if (reports.hasActiveFilters)
+        if (restricted)
           ActiveFiltersBanner(
             count: list.length,
-            onClear: reports.clearFilters,
+            scope: scope,
+            onClear: reports.showAll,
           ),
         Expanded(
           child: RefreshIndicator(

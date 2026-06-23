@@ -420,6 +420,17 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (!_nearOnly) _applyDefaultProximity();
   }
 
+  /// « Tout voir » (bannière de la Liste/Carte) : enlève les filtres
+  /// utilisateur **ET** la proximité (le cloisonnement par pays reste). Diffère
+  /// de [clearFilters] qui, lui, **réactive** la proximité par défaut.
+  Future<void> showAll() async {
+    _query = '';
+    _statusFilter = _defaultStatus;
+    _onlyMine = false;
+    _sort = _defaultSort;
+    await setNearOnly(false); // désactive la proximité et notifie
+  }
+
   String? get _uid => _auth.currentUser?.uid;
   String? get currentUid => _uid;
 

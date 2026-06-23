@@ -3,6 +3,21 @@ import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 
 import '../theme/app_colors.dart';
 
+/// Construit le libellé de périmètre affiché par [ActiveFiltersBanner], ex.
+/// « Cameroun · À proximité ». Pur (sans provider) → réutilisable Liste/Carte.
+/// Renvoie `null` si aucun périmètre n'est restreint.
+String? buildScopeLabel({
+  required String? countryLabel,
+  required bool nearOnly,
+  required String nearbyLabel,
+}) {
+  final parts = <String>[
+    if (countryLabel != null && countryLabel.isNotEmpty) countryLabel,
+    if (nearOnly) nearbyLabel,
+  ];
+  return parts.isEmpty ? null : parts.join(' · ');
+}
+
 /// Bannière « filtre actif » réutilisée par la **Liste** et la **Carte** :
 /// signale qu'un filtre (proximité, statut, recherche…) restreint l'affichage,
 /// et propose de **tout réafficher** d'un tap. Sans elle, sur la carte, des
@@ -12,10 +27,16 @@ class ActiveFiltersBanner extends StatelessWidget {
     super.key,
     required this.count,
     required this.onClear,
+    this.scope,
   });
 
   final int count;
   final VoidCallback onClear;
+
+  /// Périmètre affiché en clair (ex. « Cameroun · À proximité ») pour expliquer
+  /// pourquoi seul un sous-ensemble des coupures est visible. Si `null`, on
+  /// retombe sur le décompte « X résultats filtrés ».
+  final String? scope;
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +51,7 @@ class ActiveFiltersBanner extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              l.homeActiveFilters(count),
+              scope ?? l.homeActiveFilters(count),
               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
             ),
           ),
