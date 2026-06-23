@@ -14,9 +14,27 @@ import 'report_detail_screen.dart';
 import '../utils/l10n_helpers.dart';
 import '../utils/media.dart';
 import '../widgets/location_permission_sheet.dart';
-import '../widgets/njuka_app_bar.dart';
 
 enum _DupChoice { confirm, anyway, viewMine, cancel }
+
+/// Ouvre le formulaire de signalement en **bottom sheet modal** (mêmes deux
+/// points d'entrée : FAB de la Liste et de la Carte). Ré-injecte le
+/// [ReportProvider] pour que la modale partage le même état.
+Future<void> showReportFormSheet(
+  BuildContext context,
+  ReportProvider provider,
+) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true, // grandit avec le contenu + le clavier
+    showDragHandle: true,
+    builder:
+        (_) => ChangeNotifierProvider<ReportProvider>.value(
+          value: provider,
+          child: const ReportFormScreen(),
+        ),
+  );
+}
 
 class ReportFormScreen extends StatefulWidget {
   const ReportFormScreen({super.key});
@@ -255,14 +273,27 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
   Widget build(BuildContext context) {
     final submitting = context.watch<ReportProvider>().submitting;
     final l = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: NjukaAppBar(title: l.reportFormTitle),
-      body: SafeArea(
+    return Padding(
+      // Le clavier (viewInsets) pousse le contenu de la modale au-dessus de lui.
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SafeArea(
+        top: false,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Text(
+                l.reportFormTitle,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
               Row(
                 children: [
                   const Icon(

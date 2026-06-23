@@ -90,8 +90,7 @@ class _HomeScreenState extends State<HomeScreen> {
           segment == HomeSegment.planned
               ? null
               : FloatingActionButton.extended(
-                onPressed:
-                    () => _open(context, const ReportFormScreen(), reports),
+                onPressed: () => showReportFormSheet(context, reports),
                 icon: const Icon(Icons.add),
                 label: Text(l.actionSignal),
               ),

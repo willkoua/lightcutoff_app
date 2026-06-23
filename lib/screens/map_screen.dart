@@ -108,15 +108,7 @@ class _MapScreenState extends State<MapScreen> {
   /// pour que la nouvelle route ait accès au même état (cf. fix nav depuis
   /// les notifications push).
   void _openReportForm(ReportProvider provider) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder:
-            (_) => ChangeNotifierProvider<ReportProvider>.value(
-              value: provider,
-              child: const ReportFormScreen(),
-            ),
-      ),
-    );
+    showReportFormSheet(context, provider);
   }
 
   void _openDetails(Report report) {
