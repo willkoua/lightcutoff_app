@@ -14,6 +14,7 @@ import '../providers/report_provider.dart';
 import '../services/analytics_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/l10n_helpers.dart';
+import '../widgets/active_filters_banner.dart';
 import '../widgets/confirm_dialog.dart';
 import '../widgets/njuka_app_bar.dart';
 import '../widgets/official_outages_view.dart';
@@ -89,7 +90,8 @@ class _HomeScreenState extends State<HomeScreen> {
           segment == HomeSegment.planned
               ? null
               : FloatingActionButton.extended(
-                onPressed: () => _open(context, const ReportFormScreen(), reports),
+                onPressed:
+                    () => _open(context, const ReportFormScreen(), reports),
                 icon: const Icon(Icons.add),
                 label: Text(l.actionSignal),
               ),
@@ -158,7 +160,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       children: [
         if (reports.hasActiveFilters)
-          _ActiveFiltersBanner(
+          ActiveFiltersBanner(
             count: list.length,
             onClear: reports.clearFilters,
           ),
@@ -206,11 +208,8 @@ class _HomeScreenState extends State<HomeScreen> {
       alreadyConfirmed: reports.iConfirmed(report.id),
       alreadyRestored: reports.iRestored(report.id),
       onTap:
-          () => _open(
-            context,
-            ReportDetailScreen(reportId: report.id),
-            reports,
-          ),
+          () =>
+              _open(context, ReportDetailScreen(reportId: report.id), reports),
       onConfirm: () async {
         final go = await showConfirmDialog(
           context,
@@ -306,8 +305,11 @@ class _SurveyBannerState extends State<_SurveyBanner> {
           padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
           child: Row(
             children: [
-              const Icon(Icons.assignment_outlined,
-                  size: 20, color: AppColors.orange),
+              const Icon(
+                Icons.assignment_outlined,
+                size: 20,
+                color: AppColors.orange,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -364,7 +366,8 @@ class _SegmentedControl extends StatelessWidget {
                   duration: const Duration(milliseconds: 150),
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   decoration: BoxDecoration(
-                    color: s == segment ? AppColors.primary : Colors.transparent,
+                    color:
+                        s == segment ? AppColors.primary : Colors.transparent,
                     borderRadius: BorderRadius.circular(9),
                   ),
                   child: Text(
@@ -379,45 +382,6 @@ class _SegmentedControl extends StatelessWidget {
                 ),
               ),
             ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ActiveFiltersBanner extends StatelessWidget {
-  const _ActiveFiltersBanner({required this.count, required this.onClear});
-
-  final int count;
-  final VoidCallback onClear;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    return Container(
-      width: double.infinity,
-      color: AppColors.primary.withValues(alpha: 0.12),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: [
-          const Icon(Icons.filter_alt, size: 18, color: AppColors.primary),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              l.homeActiveFilters(count),
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-            ),
-          ),
-          GestureDetector(
-            onTap: onClear,
-            child: Text(
-              l.homeClearFilters,
-              style: const TextStyle(
-                color: AppColors.orange,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
         ],
       ),
     );

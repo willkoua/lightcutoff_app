@@ -11,6 +11,7 @@ import '../models/enums.dart';
 import '../models/report.dart';
 import '../providers/report_provider.dart';
 import '../theme/app_colors.dart';
+import '../widgets/active_filters_banner.dart';
 import '../widgets/confirm_dialog.dart';
 import '../widgets/njuka_app_bar.dart';
 import '../widgets/report_card.dart';
@@ -321,6 +322,67 @@ class _MapScreenState extends State<MapScreen> {
               child: const Icon(Icons.my_location),
             ),
           ),
+          // Indicateur de filtre actif (proximité/pays/recherche) : sans lui,
+          // sur la carte, des coupures masquées par le filtre passent pour un
+          // bug (« les autres quartiers ne s'affichent pas »). Tap → tout voir.
+          if (provider.hasActiveFilters && reports.isNotEmpty)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                bottom: false,
+                child: ActiveFiltersBanner(
+                  count: reports.length,
+                  onClear: provider.clearFilters,
+                ),
+              ),
+            ),
+          // État vide explicite : au lieu d'une carte vide trompeuse, on
+          // explique pourquoi rien ne s'affiche et on propose de tout réafficher.
+          if (reports.isEmpty)
+            Center(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 40),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      blurRadius: 12,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      provider.hasActiveFilters
+                          ? Icons.search_off
+                          : Icons.check_circle_outline,
+                      color: AppColors.primary,
+                      size: 36,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      provider.hasActiveFilters
+                          ? l.homeEmptyWithFilters
+                          : l.homeEmptyAllReports,
+                      textAlign: TextAlign.center,
+                    ),
+                    if (provider.hasActiveFilters) ...[
+                      const SizedBox(height: 12),
+                      ElevatedButton(
+                        onPressed: provider.clearFilters,
+                        child: Text(l.homeClearFilters),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
