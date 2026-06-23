@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../models/confirmation.dart';
 import '../models/enums.dart';
+import '../models/report.dart';
 import '../providers/auth_provider.dart';
 import '../providers/report_provider.dart';
 import '../theme/app_colors.dart';
@@ -21,9 +22,19 @@ class ReportDetailScreen extends StatefulWidget {
 }
 
 class _ReportDetailScreenState extends State<ReportDetailScreen> {
+  /// Flux du report par id : permet d'afficher un report **hors** de la liste
+  /// temps réel (ouverture depuis une notification ou l'anti-doublon) et de
+  /// suivre ses mises à jour (compteurs) en direct.
+  late final Stream<Report?> _reportStream;
+
+  /// Compteur de confirmations **optimiste** : à la confirmation, on affiche
+  /// +1 sans attendre le round-trip serveur (le stream réconcilie ensuite).
+  int? _optimisticConfirmCount;
+
   @override
   void initState() {
     super.initState();
+    _reportStream = context.read<ReportProvider>().watchReport(widget.reportId);
     // Hydrate l'état « j'ai déjà voté » depuis le serveur (survit à un
     // redémarrage), après le 1er frame pour disposer du provider.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -67,211 +78,248 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final provider = context.watch<ReportProvider>();
-    final report = provider.reportById(widget.reportId);
+    return StreamBuilder<Report?>(
+      stream: _reportStream,
+      builder: (context, snapshot) {
+        // Repli : tant que le stream Firestore n'a pas émis, on tente la liste
+        // temps réel locale ; sinon on charge le report par son id.
+        final report = snapshot.data ?? provider.reportById(widget.reportId);
+        if (report == null) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Scaffold(
+              appBar: NjukaAppBar(title: l.reportDetailTitleShort),
+              body: const Center(child: CircularProgressIndicator()),
+            );
+          }
+          return Scaffold(
+            appBar: NjukaAppBar(title: l.reportDetailTitleShort),
+            body: Center(child: Text(l.reportDetailNotFound)),
+          );
+        }
 
-    if (report == null) {
-      return Scaffold(
-        appBar: NjukaAppBar(title: l.reportDetailTitleShort),
-        body: Center(child: Text(l.reportDetailNotFound)),
-      );
-    }
+        final ongoing = report.status == OutageStatus.ongoing;
+        final isAuthor = provider.isAuthor(report);
+        final isAdmin =
+            context.watch<AuthProvider>().profile?.role == UserRole.admin;
+        // Le détail des confirmations n'est lisible que par l'auteur ou un admin.
+        final canViewTimeline = isAuthor || isAdmin;
+        // Compteur affiché = max(serveur, optimiste) → ne descend jamais et
+        // bouge immédiatement quand l'utilisateur confirme.
+        final confirmCount =
+            (_optimisticConfirmCount != null &&
+                    _optimisticConfirmCount! > report.confirmationCount)
+                ? _optimisticConfirmCount!
+                : report.confirmationCount;
 
-    final ongoing = report.status == OutageStatus.ongoing;
-    final isAuthor = provider.isAuthor(report);
-    final isAdmin =
-        context.watch<AuthProvider>().profile?.role == UserRole.admin;
-    // Le détail des confirmations n'est lisible que par l'auteur ou un admin.
-    final canViewTimeline = isAuthor || isAdmin;
-
-    return Scaffold(
-      appBar: NjukaAppBar(title: l.reportDetailTitle),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          _StatusChip(
-            ongoing: ongoing,
-            label: outageStatusLabel(context, report.status),
-          ),
-          const SizedBox(height: 16),
-          _InfoRow(
-            icon: Icons.place_outlined,
-            text:
-                report.location.label.isEmpty
-                    ? l.reportDetailZoneUnknown
-                    : report.location.label,
-            bold: true,
-          ),
-          const SizedBox(height: 8),
-          _InfoRow(
-            icon: Icons.bolt_outlined,
-            text: outageTypeLabel(context, report.type),
-          ),
-          if (report.authorUsername != null &&
-              report.authorUsername!.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            _InfoRow(
-              icon: Icons.person_outline,
-              text: '@${report.authorUsername}',
-            ),
-          ],
-          const SizedBox(height: 8),
-          _InfoRow(
-            icon: Icons.schedule,
-            text: l.reportDetailReportedAt(
-              relativeTimeL10n(context, report.reportedAt),
-            ),
-          ),
-          if (!ongoing && report.resolvedAt != null) ...[
-            const SizedBox(height: 8),
-            _InfoRow(
-              icon: Icons.check_circle_outline,
-              text: l.reportDetailResolvedAt(
-                relativeTimeL10n(context, report.resolvedAt),
+        return Scaffold(
+          appBar: NjukaAppBar(title: l.reportDetailTitle),
+          body: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              _StatusChip(
+                ongoing: ongoing,
+                label: outageStatusLabel(context, report.status),
               ),
-            ),
-          ],
-          if (report.description != null) ...[
-            const SizedBox(height: 16),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFE0E0E0)),
+              const SizedBox(height: 16),
+              _InfoRow(
+                icon: Icons.place_outlined,
+                text:
+                    report.location.label.isEmpty
+                        ? l.reportDetailZoneUnknown
+                        : report.location.label,
+                bold: true,
               ),
-              child: Text(report.description!),
-            ),
-          ],
-          if (report.mediaUrl != null) ...[
-            const SizedBox(height: 16),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                report.mediaUrl!,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              const SizedBox(height: 8),
+              _InfoRow(
+                icon: Icons.bolt_outlined,
+                text: outageTypeLabel(context, report.type),
               ),
-            ),
-          ],
-          const SizedBox(height: 24),
-          // Coupures « en cours » :
-          //   - les tiers peuvent confirmer (« c'est coupé chez moi aussi »)
-          //   - tout le monde (auteur compris) peut déclarer le retour du courant
-          //     → l'auto-résolution est portée par une Cloud Function quand
-          //     le seuil de rétablissements est franchi.
-          if (ongoing) ...[
-            if (!isAuthor)
-              if (provider.iConfirmed(report.id))
-                const _VotedBanner(labelKey: _Vote.confirmed)
-              else
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    final go = await showConfirmDialog(
-                      context,
-                      title: l.confirmOutageTitle,
-                      message: l.confirmOutageBody,
-                      confirmLabel: l.actionConfirm,
-                    );
-                    if (!go || !context.mounted) return;
-                    final ok = await provider.confirm(report.id);
-                    if (context.mounted) {
-                      _snack(
-                        context,
-                        ok
-                            ? l.reportDetailSnackConfirmed
-                            : l.reportDetailSnackConfirmFailed,
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.thumb_up_outlined),
-                  label: Text(l.reportDetailConfirmButton),
+              if (report.authorUsername != null &&
+                  report.authorUsername!.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                _InfoRow(
+                  icon: Icons.person_outline,
+                  text: '@${report.authorUsername}',
                 ),
-            if (!isAuthor) const SizedBox(height: 8),
-            if (provider.iRestored(report.id))
-              const _VotedBanner(labelKey: _Vote.restored)
-            else
-              OutlinedButton.icon(
-                onPressed: () async {
-                  final go = await showConfirmDialog(
-                    context,
-                    title: l.confirmRestoreTitle,
-                    message: l.confirmRestoreBody,
-                    confirmLabel: l.confirmRestoreAction,
-                  );
-                  if (!go || !context.mounted) return;
-                  final ok = await provider.markRestored(report.id);
-                  if (context.mounted) {
-                    _snack(
-                      context,
-                      ok
-                          ? l.reportDetailSnackRestoredOk
-                          : l.reportDetailSnackRestoredFailed,
-                    );
-                  }
-                },
-                icon: const Icon(Icons.lightbulb_outline),
-                label: Text(l.reportDetailMarkRestoredButton),
-              ),
-          ],
-          // Compteur public de rétablissements (sans détails individuels).
-          if (report.restorationCount > 0) ...[
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                const Icon(
-                  Icons.lightbulb,
-                  size: 18,
-                  color: AppColors.resolved,
+              ],
+              const SizedBox(height: 8),
+              _InfoRow(
+                icon: Icons.schedule,
+                text: l.reportDetailReportedAt(
+                  relativeTimeL10n(context, report.reportedAt),
                 ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    l.reportDetailRestorationCount(report.restorationCount),
-                    style: const TextStyle(color: AppColors.gray, fontSize: 13),
+              ),
+              if (!ongoing && report.resolvedAt != null) ...[
+                const SizedBox(height: 8),
+                _InfoRow(
+                  icon: Icons.check_circle_outline,
+                  text: l.reportDetailResolvedAt(
+                    relativeTimeL10n(context, report.resolvedAt),
                   ),
                 ),
               ],
-            ),
-          ],
-          // Action destructive de l'auteur : soft-delete. Disponible quel que
-          // soit le status (l'auteur peut retirer un report même rétabli ou
-          // déjà confirmé). La suppression définitive arrive automatiquement
-          // après 30 jours via le cron `purgeArchivedReports`.
-          if (isAuthor) ...[
-            const SizedBox(height: 16),
-            OutlinedButton.icon(
-              onPressed: () => _confirmAndArchive(context, provider, report.id),
-              icon: const Icon(Icons.delete_outline, color: AppColors.orange),
-              label: Text(
-                l.reportDetailDeleteButton,
-                style: const TextStyle(color: AppColors.orange),
+              if (report.description != null) ...[
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFE0E0E0)),
+                  ),
+                  child: Text(report.description!),
+                ),
+              ],
+              if (report.mediaUrl != null) ...[
+                const SizedBox(height: 16),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(
+                    report.mediaUrl!,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 24),
+              // Coupures « en cours » :
+              //   - les tiers peuvent confirmer (« c'est coupé chez moi aussi »)
+              //   - tout le monde (auteur compris) peut déclarer le retour du courant
+              //     → l'auto-résolution est portée par une Cloud Function quand
+              //     le seuil de rétablissements est franchi.
+              if (ongoing) ...[
+                if (!isAuthor)
+                  if (provider.iConfirmed(report.id))
+                    const _VotedBanner(labelKey: _Vote.confirmed)
+                  else
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        final go = await showConfirmDialog(
+                          context,
+                          title: l.confirmOutageTitle,
+                          message: l.confirmOutageBody,
+                          confirmLabel: l.actionConfirm,
+                        );
+                        if (!go || !context.mounted) return;
+                        final ok = await provider.confirm(report.id);
+                        if (ok && mounted) {
+                          // Feedback immédiat : +1 sans attendre le serveur.
+                          setState(
+                            () =>
+                                _optimisticConfirmCount =
+                                    report.confirmationCount + 1,
+                          );
+                        }
+                        if (context.mounted) {
+                          _snack(
+                            context,
+                            ok
+                                ? l.reportDetailSnackConfirmed
+                                : l.reportDetailSnackConfirmFailed,
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.thumb_up_outlined),
+                      label: Text(l.reportDetailConfirmButton),
+                    ),
+                if (!isAuthor) const SizedBox(height: 8),
+                if (provider.iRestored(report.id))
+                  const _VotedBanner(labelKey: _Vote.restored)
+                else
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      final go = await showConfirmDialog(
+                        context,
+                        title: l.confirmRestoreTitle,
+                        message: l.confirmRestoreBody,
+                        confirmLabel: l.confirmRestoreAction,
+                      );
+                      if (!go || !context.mounted) return;
+                      final ok = await provider.markRestored(report.id);
+                      if (context.mounted) {
+                        _snack(
+                          context,
+                          ok
+                              ? l.reportDetailSnackRestoredOk
+                              : l.reportDetailSnackRestoredFailed,
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.lightbulb_outline),
+                    label: Text(l.reportDetailMarkRestoredButton),
+                  ),
+              ],
+              // Compteur public de rétablissements (sans détails individuels).
+              if (report.restorationCount > 0) ...[
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.lightbulb,
+                      size: 18,
+                      color: AppColors.resolved,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        l.reportDetailRestorationCount(report.restorationCount),
+                        style: const TextStyle(
+                          color: AppColors.gray,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              // Action destructive de l'auteur : soft-delete. Disponible quel que
+              // soit le status (l'auteur peut retirer un report même rétabli ou
+              // déjà confirmé). La suppression définitive arrive automatiquement
+              // après 30 jours via le cron `purgeArchivedReports`.
+              if (isAuthor) ...[
+                const SizedBox(height: 16),
+                OutlinedButton.icon(
+                  onPressed:
+                      () => _confirmAndArchive(context, provider, report.id),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    color: AppColors.orange,
+                  ),
+                  label: Text(
+                    l.reportDetailDeleteButton,
+                    style: const TextStyle(color: AppColors.orange),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.orange),
+                    minimumSize: const Size.fromHeight(44),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 8),
+              Text(
+                l.reportDetailConfirmationsSection,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: AppColors.orange),
-                minimumSize: const Size.fromHeight(44),
-              ),
-            ),
-          ],
-          const SizedBox(height: 24),
-          const Divider(),
-          const SizedBox(height: 8),
-          Text(
-            l.reportDetailConfirmationsSection,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              const SizedBox(height: 12),
+              if (canViewTimeline)
+                _ConfirmationTimeline(
+                  reportId: widget.reportId,
+                  currentUid: provider.currentUid,
+                  stream: provider.watchConfirmations(widget.reportId),
+                )
+              else
+                _CountOnly(count: confirmCount),
+            ],
           ),
-          const SizedBox(height: 12),
-          if (canViewTimeline)
-            _ConfirmationTimeline(
-              reportId: widget.reportId,
-              currentUid: provider.currentUid,
-              stream: provider.watchConfirmations(widget.reportId),
-            )
-          else
-            _CountOnly(count: report.confirmationCount),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -557,9 +605,7 @@ class _DeleteReasonDialogState extends State<_DeleteReasonDialog> {
           // Désactivé tant qu'aucune raison n'est choisie (le texte « autre »
           // reste facultatif).
           onPressed:
-              _reason == null
-                  ? null
-                  : () => Navigator.of(context).pop(_result),
+              _reason == null ? null : () => Navigator.of(context).pop(_result),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.orange,
             foregroundColor: AppColors.white,

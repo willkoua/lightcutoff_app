@@ -37,6 +37,16 @@ class ReportService implements ReportRepository {
   }
 
   @override
+  Stream<Report?> watchReport(String reportId) {
+    return _reports.doc(reportId).snapshots().map((doc) {
+      if (!doc.exists) return null;
+      final r = Report.fromDoc(doc);
+      // Un report archivé est invisible (cohérent avec le filtrage des listes).
+      return r.archivedAt == null ? r : null;
+    });
+  }
+
+  @override
   Future<List<Report>> reportsWithinRadius({
     required double lat,
     required double lng,

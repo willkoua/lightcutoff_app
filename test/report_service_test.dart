@@ -64,6 +64,27 @@ void main() {
     expect(data['geohash'], 's2x9c');
   });
 
+  group('watchReport (repli détail hors liste)', () {
+    test('émet le report quand il existe', () async {
+      await seedReport('r1', confirmations: 2);
+      final r = await service.watchReport('r1').first;
+      expect(r, isNotNull);
+      expect(r!.id, 'r1');
+      expect(r.confirmationCount, 2);
+    });
+
+    test('émet null quand le report n\'existe pas', () async {
+      final r = await service.watchReport('absent').first;
+      expect(r, isNull);
+    });
+
+    test('émet null quand le report est archivé (invisible)', () async {
+      await seedReport('r1', archivedAt: DateTime(2024, 2, 1));
+      final r = await service.watchReport('r1').first;
+      expect(r, isNull);
+    });
+  });
+
   group('confirmReport (transaction, vote unique)', () {
     test('incrémente une seule fois pour un même utilisateur', () async {
       await seedReport('r1');

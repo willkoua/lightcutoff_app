@@ -7,6 +7,12 @@ import '../models/restoration.dart';
 abstract class ReportRepository {
   Stream<List<Report>> watchReports({int limit});
 
+  /// Flux d'**un** report par id (`null` s'il n'existe pas ou est archivé).
+  /// Permet à l'écran détail d'afficher un report même **hors** de la fenêtre
+  /// temps réel : ouverture depuis une notification push, depuis l'anti-doublon
+  /// (« voir mon signalement »), ou un lien profond.
+  Stream<Report?> watchReport(String reportId);
+
   /// Coupures dans un rayon autour d'un point, via requête bornée par geohash
   /// (centre + voisines) affinée par distance exacte. Une seule lecture (pas
   /// de temps réel) ; ne renvoie que les coupures indexées (avec `geohash`).

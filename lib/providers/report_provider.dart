@@ -427,6 +427,10 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Retourne la coupure correspondante dans la liste courante (flux temps réel
   /// ou résultats de proximité), sinon null.
+  /// Flux d'un report par id — repli pour l'écran détail quand le report n'est
+  /// pas dans la liste temps réel (notification, anti-doublon, lien profond).
+  Stream<Report?> watchReport(String id) => _service.watchReport(id);
+
   Report? reportById(String id) {
     for (final r in _reports) {
       if (r.id == id) return r;
