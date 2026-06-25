@@ -5,6 +5,7 @@ import '../models/enums.dart';
 import '../models/report.dart';
 import '../theme/app_colors.dart';
 import '../utils/l10n_helpers.dart';
+import 'service_visuals.dart';
 
 class ReportCard extends StatelessWidget {
   const ReportCard({
@@ -58,6 +59,8 @@ class ReportCard extends StatelessWidget {
                     ongoing: ongoing,
                     label: outageStatusLabel(context, report.status),
                   ),
+                  const SizedBox(width: 6),
+                  _ServiceChip(service: report.serviceType),
                   const Spacer(),
                   Text(
                     relativeTimeL10n(context, report.reportedAt),
@@ -231,17 +234,42 @@ class _StatusChip extends StatelessWidget {
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
       ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+/// Petit chip identifiant le service du signalement (⚡ Électricité / 💧 Eau).
+/// Couleur de marque tirée de `serviceTypeColor` — différencie l'élec (ambre)
+/// de l'eau (bleu sky) au premier coup d'œil dans la liste.
+class _ServiceChip extends StatelessWidget {
+  const _ServiceChip({required this.service});
+
+  final ServiceType service;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = serviceTypeColor(service);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            ongoing ? Icons.flash_off : Icons.flash_on,
-            size: 14,
-            color: color,
-          ),
+          Icon(serviceTypeIcon(service), size: 14, color: color),
           const SizedBox(width: 4),
           Text(
-            label,
+            serviceTypeLabel(context, service),
             style: TextStyle(
               color: color,
               fontSize: 12,

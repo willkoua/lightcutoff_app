@@ -22,4 +22,11 @@ class AppColors {
   // Coupures officielles planifiées (Eneo) — bleu « info », distinct de l'ambre
   // des signalements communautaires.
   static const Color planned = Color(0xFF1B6EF3);
+
+  // --- Multi-service (pivot étape 3 — 2026-06-24) -------------------------
+
+  /// Couleur du service **eau** (Tailwind sky-500). Sa palette ne croise pas
+  /// l'ambre de l'électricité (`primary`/`ongoing`) ni le vert résolu
+  /// (`resolved`) → différenciation immédiate carte + liste.
+  static const Color water = Color(0xFF0EA5E9);
 }

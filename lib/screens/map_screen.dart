@@ -16,6 +16,8 @@ import '../widgets/active_filters_banner.dart';
 import '../widgets/confirm_dialog.dart';
 import '../widgets/njuka_app_bar.dart';
 import '../widgets/report_card.dart';
+import '../widgets/service_filter_bar.dart';
+import '../widgets/service_visuals.dart';
 import 'report_form_screen.dart';
 
 class MapScreen extends StatefulWidget {
@@ -243,13 +245,17 @@ class _MapScreenState extends State<MapScreen> {
                         height: 44,
                         child: GestureDetector(
                           onTap: () => _openDetails(report),
-                          child: Icon(
-                            Icons.location_on,
-                            size: 44,
+                          // Couleur : statut résolu = vert commun ; en cours =
+                          // couleur du service (ambre élec / sky eau).
+                          // Icône : on garde le pin (`location_on`) pour la
+                          // continuité visuelle, et on superpose une mini icône
+                          // service centrée pour différencier d'un coup d'œil.
+                          child: _ServiceMarker(
                             color:
                                 report.status == OutageStatus.ongoing
-                                    ? AppColors.ongoing
+                                    ? serviceTypeColor(report.serviceType)
                                     : AppColors.resolved,
+                            serviceIcon: serviceTypeIcon(report.serviceType),
                           ),
                         ),
                       ),
@@ -328,23 +334,34 @@ class _MapScreenState extends State<MapScreen> {
               child: const Icon(Icons.my_location),
             ),
           ),
-          // Indicateur de filtre actif (proximité/pays/recherche) : sans lui,
-          // sur la carte, des coupures masquées par le filtre passent pour un
-          // bug (« les autres quartiers ne s'affichent pas »). Tap → tout voir.
-          if (restricted && reports.isNotEmpty)
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: SafeArea(
-                bottom: false,
-                child: ActiveFiltersBanner(
-                  count: reports.length,
-                  scope: scope,
-                  onClear: provider.showAll,
-                ),
+          // Bandeau de tête : bannière « filtres actifs » (si applicable) +
+          // sélecteur de service (toujours visible) — empilés sous l'AppBar.
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  if (restricted && reports.isNotEmpty)
+                    ActiveFiltersBanner(
+                      count: reports.length,
+                      scope: scope,
+                      onClear: provider.showAll,
+                    ),
+                  // Material/élévation pour bien détacher le sélecteur des tuiles
+                  // de carte (sinon le SegmentedButton flotte mal sur du fond
+                  // texturé).
+                  Material(
+                    elevation: 2,
+                    color: AppColors.white,
+                    child: const ServiceFilterBar(),
+                  ),
+                ],
               ),
             ),
+          ),
           // État vide explicite : au lieu d'une carte vide trompeuse, on
           // explique pourquoi rien ne s'affiche et on propose de tout réafficher.
           if (reports.isEmpty)
@@ -392,6 +409,39 @@ class _MapScreenState extends State<MapScreen> {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// Marqueur cluster d'un report : pin coloré (selon statut/service) avec une
+/// mini icône service centrée au-dessus pour identifier d'un coup d'œil élec
+/// vs eau.
+class _ServiceMarker extends StatelessWidget {
+  const _ServiceMarker({required this.color, required this.serviceIcon});
+
+  final Color color;
+  final IconData serviceIcon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Icon(Icons.location_on, size: 44, color: color),
+        // Petit cercle blanc en surimpression avec l'icône service.
+        Positioned(
+          top: 6,
+          child: Container(
+            width: 18,
+            height: 18,
+            decoration: const BoxDecoration(
+              color: AppColors.white,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(serviceIcon, size: 12, color: color),
+          ),
+        ),
+      ],
     );
   }
 }

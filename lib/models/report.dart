@@ -7,6 +7,12 @@ class Report {
   final String userId;
   final OutageStatus status;
   final OutageType type;
+
+  /// Service public concerné (électricité par défaut, eau introduit en
+  /// étape 3). Les reports antérieurs n'ont pas le champ → défaut
+  /// `electricity` côté lecture (cf. [ServiceType.fromName]).
+  final ServiceType serviceType;
+
   final GeoPosition position;
   final GeoArea location;
   final String? description;
@@ -41,6 +47,7 @@ class Report {
     required this.userId,
     required this.status,
     this.type = OutageType.unplanned,
+    this.serviceType = ServiceType.electricity,
     required this.position,
     this.location = const GeoArea(),
     this.description,
@@ -63,6 +70,7 @@ class Report {
       userId: map['userId'] as String? ?? '',
       status: OutageStatus.fromName(map['status'] as String?),
       type: OutageType.fromName(map['type'] as String?),
+      serviceType: ServiceType.fromName(map['serviceType'] as String?),
       position: GeoPosition.fromMap(
         (map['position'] as Map<String, dynamic>?) ?? const {},
       ),
@@ -86,6 +94,7 @@ class Report {
     'userId': userId,
     'status': status.name,
     'type': type.name,
+    'serviceType': serviceType.name,
     'position': position.toMap(),
     'location': location.toMap(),
     'description': description,

@@ -1,19 +1,25 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../config/app_constants.dart';
+import '../models/enums.dart';
 import '../models/report.dart';
 import '../providers/auth_provider.dart';
 import '../providers/connectivity_provider.dart';
+import '../providers/region_provider.dart';
 import '../providers/report_provider.dart';
 import '../repositories/location_repository.dart';
 import '../theme/app_colors.dart';
 import 'report_detail_screen.dart';
 import '../utils/l10n_helpers.dart';
 import '../utils/media.dart';
+import '../widgets/anonymous_first_report_sheet.dart';
 import '../widgets/location_permission_sheet.dart';
+import '../widgets/service_visuals.dart';
 
 enum _DupChoice { confirm, anyway, viewMine, cancel }
 
@@ -48,6 +54,18 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
   final _picker = ImagePicker();
   String? _mediaUrl;
   bool _uploadingMedia = false;
+
+  /// Service du signalement. Initialisé en `initState` à partir du filtre actif
+  /// du `RegionProvider` (si l'utilisateur consulte Eau, on présume qu'il
+  /// veut signaler une coupure d'eau) ; défaut `electricity` sinon.
+  ServiceType? _serviceType;
+
+  @override
+  void initState() {
+    super.initState();
+    final region = context.read<RegionProvider>();
+    _serviceType = region.serviceFilter ?? ServiceType.electricity;
+  }
 
   @override
   void dispose() {
@@ -108,8 +126,20 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
   }
 
   void _finish(String message, {required bool success}) {
-    if (success) Navigator.of(context).pop();
-    _snack(message);
+    if (success) {
+      // Capture le navigator parent AVANT de pop la modale : son `context`
+      // reste valide après pop (le navigator est plus haut dans l'arbre que
+      // la bottom-sheet du formulaire) — sert à afficher le hint anonyme.
+      final rootContext = Navigator.of(context, rootNavigator: true).context;
+      Navigator.of(context).pop();
+      _snack(message);
+      // Best-effort, non bloquant : si l'utilisateur est anonyme et que le
+      // flag n'est pas posé, montre la bottom-sheet « Garde tes signalements »
+      // (une seule fois par appareil). Géré dans le helper, no-op sinon.
+      unawaited(showAnonymousFirstReportHintIfNeeded(rootContext));
+    } else {
+      _snack(message);
+    }
   }
 
   Future<void> _submit() async {
@@ -163,7 +193,9 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
   Future<void> _proceed(ReportProvider provider) async {
     final l = AppLocalizations.of(context);
     final authorUsername = context.read<AuthProvider>().profile?.username;
-    final outcome = await provider.prepareReport();
+    final outcome = await provider.prepareReport(
+      serviceType: _serviceType ?? ServiceType.electricity,
+    );
     if (!mounted) return;
     if (outcome.error != null) {
       _snack(appErrorLabel(context, outcome.error!));
@@ -207,6 +239,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
       description: _description.text,
       mediaUrl: _mediaUrl,
       authorUsername: authorUsername,
+      serviceType: _serviceType ?? ServiceType.electricity,
     );
     if (!mounted) return;
     _finish(
@@ -292,6 +325,32 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
+              ),
+              const SizedBox(height: 16),
+              // Sélecteur de service (multi-service, pivot étape 3).
+              Text(
+                l.reportFormServiceLabel,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              SegmentedButton<ServiceType>(
+                segments: [
+                  ButtonSegment(
+                    value: ServiceType.electricity,
+                    label: Text(
+                      serviceTypeLabel(context, ServiceType.electricity),
+                    ),
+                    icon: Icon(serviceTypeIcon(ServiceType.electricity)),
+                  ),
+                  ButtonSegment(
+                    value: ServiceType.water,
+                    label: Text(serviceTypeLabel(context, ServiceType.water)),
+                    icon: Icon(serviceTypeIcon(ServiceType.water)),
+                  ),
+                ],
+                selected: {_serviceType ?? ServiceType.electricity},
+                onSelectionChanged:
+                    (set) => setState(() => _serviceType = set.first),
               ),
               const SizedBox(height: 16),
               Row(

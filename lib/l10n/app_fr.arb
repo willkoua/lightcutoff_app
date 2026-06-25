@@ -48,6 +48,14 @@
   "loginIdentifierLabel": "Pseudo ou email",
   "loginPasswordLabel": "Mot de passe",
   "loginButton": "Se connecter",
+  "loginForgotPassword": "Mot de passe oublié ?",
+
+  "forgotPasswordTitle": "Réinitialiser le mot de passe",
+  "forgotPasswordBody": "Entre ton email ou ton pseudo. On t'envoie un lien pour choisir un nouveau mot de passe.",
+  "forgotPasswordIdentifierLabel": "Email ou pseudo",
+  "forgotPasswordSubmit": "Envoyer le lien",
+  "forgotPasswordSuccess": "Si un compte existe pour cet identifiant, un mail vient d'être envoyé. Pense à vérifier tes spams.",
+  "forgotPasswordBackToLogin": "Retour à la connexion",
   "loginNoAccount": "Pas encore de compte ?",
   "loginRegisterAction": "S'inscrire",
 
@@ -83,6 +91,39 @@
   "emailVerificationResent": "Email de vérification renvoyé.",
   "emailVerificationResendAction": "Renvoyer l'email",
   "tooltipLogout": "Se déconnecter",
+
+  "anonymousRetryTitle": "Connexion",
+  "anonymousRetryHeading": "Impossible de démarrer une session",
+  "anonymousRetryBody": "NJUKA a besoin d'une connexion internet pour s'ouvrir. Vérifie ton réseau, puis réessaie.",
+  "anonymousRetryButton": "Réessayer",
+  "anonymousRetryAlreadyAccount": "J'ai déjà un compte",
+
+  "profileUpgradeWallHeading": "Tire le meilleur de NJUKA",
+  "profileUpgradeWallBody": "Crée un compte pour débloquer ton profil et bien plus encore. Tes signalements et votes existants restent attachés à toi.",
+  "profileUpgradeWallBenefitProfile": "Profil et pseudo",
+  "profileUpgradeWallBenefitStats": "Statistiques perso",
+  "profileUpgradeWallBenefitFollow": "Suivre tes quartiers",
+  "profileUpgradeWallBenefitNotifs": "Notifications de coupures",
+  "profileUpgradeWallCTA": "Créer un compte",
+  "profileUpgradeWallAlreadyAccount": "J'ai déjà un compte",
+  "profileUpgradeWallLoginWarningTitle": "Avant de te connecter",
+  "profileUpgradeWallLoginWarningBody": "Les signalements et votes de cette session anonyme NE seront PAS rattachés à ton compte existant. Continuer ?",
+
+  "upgradeAccountTitle": "Créer un compte",
+  "upgradeAccountIntro": "Tes signalements et votes restent attachés à ton nouveau compte.",
+  "upgradeAccountSubmit": "Créer mon compte",
+  "upgradeAccountEmailInUseTitle": "Email déjà utilisé",
+  "upgradeAccountEmailInUseBody": "Cet email est déjà associé à un compte NJUKA. Tu peux te connecter, mais ⚠️ les signalements et votes de cette session anonyme ne seront PAS rattachés à ton compte existant.",
+
+  "anonymousFirstReportHintTitle": "Garde tes signalements",
+  "anonymousFirstReportHintBody": "Tes signalements et votes sont liés à cet appareil. Crée un compte pour ne rien perdre si tu désinstalles ou changes d'appareil.",
+  "anonymousFirstReportHintCTA": "Créer un compte",
+  "anonymousFirstReportHintLater": "Plus tard",
+
+  "settingsResetAnonymousSession": "Effacer cette session anonyme",
+  "settingsResetAnonymousSessionTitle": "Effacer cette session ?",
+  "settingsResetAnonymousSessionBody": "Tes signalements et votes anonymes resteront visibles sur la carte mais ne seront plus rattachés à cet appareil. Un nouvel utilisateur anonyme sera créé.",
+  "settingsResetAnonymousSessionConfirm": "Effacer",
 
   "profileTitle": "Mon profil",
   "profileTooltipEdit": "Modifier",
@@ -157,6 +198,7 @@
   "securityChangePasswordFailed": "Échec du changement de mot de passe.",
 
   "reportFormTitle": "Signaler une coupure",
+  "reportFormServiceLabel": "Service",
   "reportFormPositionHint": "Votre position actuelle sera utilisée pour localiser la coupure.",
   "reportFormDescriptionLabel": "Description (facultatif)",
   "reportFormDescriptionHint": "Ex. tout le quartier est touché depuis ce matin.",
@@ -299,6 +341,12 @@
 
   "outageTypeUnplanned": "Coupure imprévue",
   "outageTypeScheduled": "Coupure programmée",
+
+  "serviceElectricity": "Électricité",
+  "serviceWater": "Eau",
+  "serviceFilterAll": "Tout",
+  "serviceFilterElectricity": "Élec.",
+  "serviceFilterWater": "Eau",
 
   "roleCitizen": "Citoyen",
   "roleOperator": "Opérateur",

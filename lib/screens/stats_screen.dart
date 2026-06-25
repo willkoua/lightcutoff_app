@@ -4,10 +4,12 @@ import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
+import '../providers/region_provider.dart';
 import '../providers/stats_provider.dart';
 import '../services/analytics_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/outage_stats.dart';
+import '../widgets/service_filter_bar.dart';
 
 /// Écran « Mes statistiques » : agrégats perso (mes coupures) et de zone.
 /// Aucune prédiction — uniquement la donnée déjà collectée, rendue lisible.
@@ -55,6 +57,9 @@ class _StatsScreenState extends State<StatsScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    // Filtre service global (Tout / Élec / Eau) : on respecte le même choix
+    // que la liste/carte (segmented control commun + persistance partagée).
+    final serviceFilter = context.watch<RegionProvider>().serviceFilter;
     return DefaultTabController(
       length: 2,
       child: Scaffold(
@@ -67,36 +72,49 @@ class _StatsScreenState extends State<StatsScreen> {
             ],
           ),
         ),
-        body: ListenableBuilder(
-          listenable: _provider,
-          builder: (context, _) {
-            switch (_provider.status) {
-              case StatsStatus.loading:
-                return const Center(child: CircularProgressIndicator());
-              case StatsStatus.error:
-                return _ErrorState(message: l.statsError, onRetry: _refresh);
-              case StatsStatus.ready:
-                return TabBarView(
-                  children: [
-                    _scrollable(
-                      _Section(
-                        stats: _provider.mine,
-                        emptyText: l.statsEmptyMine,
-                      ),
-                    ),
-                    _scrollable(
-                      _Section(
-                        subtitle: l.statsZoneHint,
-                        stats: _provider.zone,
-                        emptyText: l.statsEmptyZone,
-                        unavailable: _provider.zoneUnavailable,
-                        unavailableText: l.statsZoneUnavailable,
-                      ),
-                    ),
-                  ],
-                );
-            }
-          },
+        body: Column(
+          children: [
+            // Sélecteur de service commun : pose la même grille de lecture que
+            // la liste/carte → si l'utilisateur consulte « Eau », il voit ses
+            // stats eau, sa zone eau. Recalcul à la volée, pas de rechargement.
+            const ServiceFilterBar(),
+            Expanded(
+              child: ListenableBuilder(
+                listenable: _provider,
+                builder: (context, _) {
+                  switch (_provider.status) {
+                    case StatsStatus.loading:
+                      return const Center(child: CircularProgressIndicator());
+                    case StatsStatus.error:
+                      return _ErrorState(
+                        message: l.statsError,
+                        onRetry: _refresh,
+                      );
+                    case StatsStatus.ready:
+                      return TabBarView(
+                        children: [
+                          _scrollable(
+                            _Section(
+                              stats: _provider.mineFor(serviceFilter),
+                              emptyText: l.statsEmptyMine,
+                            ),
+                          ),
+                          _scrollable(
+                            _Section(
+                              subtitle: l.statsZoneHint,
+                              stats: _provider.zoneFor(serviceFilter),
+                              emptyText: l.statsEmptyZone,
+                              unavailable: _provider.zoneUnavailable,
+                              unavailableText: l.statsZoneUnavailable,
+                            ),
+                          ),
+                        ],
+                      );
+                  }
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -172,8 +190,7 @@ class _Body extends StatelessWidget {
         Row(
           children: [
             _StatCard(
-              value:
-                  avg == null ? '—' : _formatDuration(l, avg),
+              value: avg == null ? '—' : _formatDuration(l, avg),
               label: l.statsAvgDuration,
             ),
             const SizedBox(width: 10),

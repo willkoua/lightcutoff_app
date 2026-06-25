@@ -37,6 +37,15 @@ String outageTypeLabel(BuildContext context, OutageType type) {
   };
 }
 
+/// Libellé localisé d'un [ServiceType] (« Électricité » / « Eau »).
+String serviceTypeLabel(BuildContext context, ServiceType service) {
+  final l = AppLocalizations.of(context);
+  return switch (service) {
+    ServiceType.electricity => l.serviceElectricity,
+    ServiceType.water => l.serviceWater,
+  };
+}
+
 /// Libellé localisé d'un [UserRole].
 String userRoleLabel(BuildContext context, UserRole role) {
   final l = AppLocalizations.of(context);

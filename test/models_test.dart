@@ -21,6 +21,8 @@ void main() {
       expect(AccountStatus.fromName('disabled'), AccountStatus.disabled);
       expect(OutageStatus.fromName('resolved'), OutageStatus.resolved);
       expect(OutageType.fromName('scheduled'), OutageType.scheduled);
+      expect(ServiceType.fromName('water'), ServiceType.water);
+      expect(ServiceType.fromName('electricity'), ServiceType.electricity);
     });
 
     test('valeurs inconnues ou nulles -> défaut', () {
@@ -28,6 +30,10 @@ void main() {
       expect(AccountStatus.fromName('???'), AccountStatus.active);
       expect(OutageStatus.fromName(null), OutageStatus.ongoing);
       expect(OutageType.fromName('xyz'), OutageType.unplanned);
+      // Backward compat : reports créés avant l'étape 3 n'ont pas le champ
+      // → électricité (le seul service avant l'ouverture eau).
+      expect(ServiceType.fromName(null), ServiceType.electricity);
+      expect(ServiceType.fromName('gas'), ServiceType.electricity);
     });
   });
 
@@ -96,6 +102,8 @@ void main() {
       expect(map['userId'], 'u1');
       expect(map['status'], 'ongoing');
       expect(map['type'], 'scheduled');
+      // Par défaut : électricité (rétro-compat + service historique).
+      expect(map['serviceType'], 'electricity');
       expect(map['position'], {'lat': 1.0, 'lng': 2.0});
       expect((map['location'] as Map)['city'], 'Douala');
       expect(map['description'], 'test');
@@ -104,6 +112,17 @@ void main() {
       expect(map['restorationCount'], 0);
       expect(map['resolvedAt'], isNull);
       expect(map['archivedAt'], isNull);
+    });
+
+    test('serviceType eau sérialise correctement', () {
+      const report = Report(
+        id: '',
+        userId: 'u1',
+        status: OutageStatus.ongoing,
+        serviceType: ServiceType.water,
+        position: GeoPosition(lat: 1, lng: 2),
+      );
+      expect(report.toCreateMap()['serviceType'], 'water');
     });
   });
 
@@ -147,9 +166,20 @@ void main() {
       expect(r.userId, '');
       expect(r.status, OutageStatus.ongoing); // défaut
       expect(r.type, OutageType.unplanned); // défaut
+      // Legacy (avant ouverture eau) → électricité.
+      expect(r.serviceType, ServiceType.electricity);
       expect(r.confirmationCount, 0);
       expect(r.restorationCount, 0);
       expect(r.geohash, isNull);
+    });
+
+    test('serviceType eau lu correctement', () {
+      final doc = _FakeReportDoc();
+      when(() => doc.id).thenReturn('rid-water');
+      when(
+        () => doc.data(),
+      ).thenReturn({'userId': 'u1', 'serviceType': 'water'});
+      expect(Report.fromDoc(doc).serviceType, ServiceType.water);
     });
   });
 

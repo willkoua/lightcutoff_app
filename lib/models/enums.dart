@@ -45,6 +45,21 @@ enum OutageType {
   );
 }
 
+/// Service public concerné par le signalement. Introduit avec le pivot
+/// multi-service (étape 3 — 2026-06-24). Tous les reports antérieurs à cette
+/// étape n'ont pas le champ → défaut [electricity] pour rester rétro-compat.
+enum ServiceType {
+  electricity,
+  water;
+
+  static ServiceType fromName(String? value) => ServiceType.values.firstWhere(
+    (e) => e.name == value,
+    // Champ absent (legacy) ou valeur inconnue → électricité (le seul
+    // service avant l'ouverture eau).
+    orElse: () => ServiceType.electricity,
+  );
+}
+
 extension UserRoleLabel on UserRole {
   String get label => switch (this) {
     UserRole.citizen => 'Citoyen',

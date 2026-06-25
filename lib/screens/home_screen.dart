@@ -6,7 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../config/app_config.dart';
 import '../config/app_constants.dart';
-import '../config/electricity_providers.dart';
+import '../config/utilities.dart';
 import '../models/report.dart';
 import '../providers/official_outage_provider.dart';
 import '../providers/region_provider.dart';
@@ -15,6 +15,7 @@ import '../services/analytics_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/l10n_helpers.dart';
 import '../widgets/active_filters_banner.dart';
+import '../widgets/service_filter_bar.dart';
 import '../widgets/confirm_dialog.dart';
 import '../widgets/njuka_app_bar.dart';
 import '../widgets/official_outages_view.dart';
@@ -97,6 +98,12 @@ class _HomeScreenState extends State<HomeScreen> {
       body: Column(
         children: [
           const _SurveyBanner(),
+          // Filtre service en TÊTE (Tout / Élec / Eau) : c'est la grille de
+          // lecture globale — il s'applique aussi bien aux signalements
+          // citoyens (en dessous) qu'aux coupures programmées de l'opérateur.
+          const ServiceFilterBar(),
+          // Segmented control « Signalements / Programmées » sous le filtre
+          // service. Visible dès qu'un fournisseur existe pour le pays actif.
           if (showPlanned)
             _SegmentedControl(segment: segment, onChanged: _select),
           Expanded(child: _content(context, reports, provider, segment)),
@@ -108,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _content(
     BuildContext context,
     ReportProvider reports,
-    ElectricityProvider? provider,
+    Utility? provider,
     HomeSegment segment,
   ) {
     switch (segment) {
@@ -117,10 +124,15 @@ class _HomeScreenState extends State<HomeScreen> {
       case HomeSegment.planned:
         // `segment == planned` ⇒ `showPlanned` ⇒ provider non nul.
         final outages = _ensureOutages(provider!.country);
-        // Si le pays actif change (override dev / profil), re-requête après frame.
-        if (outages.country != provider.country) {
+        // Propage les filtres globaux (pays + service) au provider one-shot.
+        // Si l'utilisateur choisit Eau : pas de CAMWATER ingéré → liste vide.
+        final region = context.watch<RegionProvider>();
+        if (outages.country != provider.country ||
+            outages.serviceFilter != region.serviceFilter) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) outages.setCountry(provider.country);
+            if (!mounted) return;
+            outages.setCountry(provider.country);
+            outages.setServiceFilter(region.serviceFilter);
           });
         }
         return ChangeNotifierProvider.value(

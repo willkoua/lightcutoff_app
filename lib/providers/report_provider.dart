@@ -181,6 +181,19 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
+  /// Filtre service public (élec / eau / null = Tout). Alimenté par
+  /// `RegionProvider.serviceFilter` via le proxy d'`AuthGate`. **Filtrage
+  /// client-side** comme le pays — pas d'index Firestore à créer, volume MVP OK.
+  ServiceType? _serviceFilter;
+
+  ServiceType? get serviceFilter => _serviceFilter;
+
+  void setServiceFilter(ServiceType? value) {
+    if (value == _serviceFilter) return;
+    _serviceFilter = value;
+    notifyListeners();
+  }
+
   /// Mode admin « monde » : ignore le cloisonnement pays **ET** la proximité
   /// (sinon le filtre « à proximité » masquerait les coupures lointaines). Par
   /// défaut `false` → comportement normal (proximité respectée).
@@ -223,6 +236,9 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
       _statusFilter != _defaultStatus ||
       _onlyMine ||
       _sort != _defaultSort;
+  // `_serviceFilter` est **exclu** de `hasActiveFilters` : c'est une vue
+  // persistée (via RegionProvider) toujours visible dans le segmented control
+  // — pas un filtre transitoire à exposer dans le bandeau « Filtres actifs ».
 
   /// Liste filtrée + triée selon l'état courant des filtres.
   ///
@@ -244,6 +260,9 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
           // backfillées (scripts/backfillCountryCode.cjs).
           if (_countryFilter != null &&
               r.location.countryCode != _countryFilter) {
+            return false;
+          }
+          if (_serviceFilter != null && r.serviceType != _serviceFilter) {
             return false;
           }
           if (_statusFilter != null && r.status != _statusFilter) return false;
@@ -456,10 +475,12 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
       _service.watchConfirmations(reportId);
 
   /// Crée un signalement à la position courante. Retourne null si OK,
-  /// sinon un [AppError].
+  /// sinon un [AppError]. Le [serviceType] est porté par le report et
+  /// permet la différenciation UI (couleurs/marqueurs) + le filtre liste/carte.
   Future<AppError?> submitReport({
     String? description,
     String? authorUsername,
+    ServiceType serviceType = ServiceType.electricity,
   }) async {
     final uid = _uid;
     if (uid == null) return AppError.notLoggedIn;
@@ -474,6 +495,7 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
         status: OutageStatus.ongoing,
         // Tout signalement citoyen est une coupure imprévue.
         type: OutageType.unplanned,
+        serviceType: serviceType,
         position: loc.position,
         location: loc.area,
         description:
@@ -504,15 +526,21 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
   static const Distance _distance = Distance();
 
   /// Coupure « en cours » la plus proche de [pos] dans le rayon, sinon null.
+  ///
+  /// Si [serviceType] est fourni, **ne considère que les coupures du même
+  /// service** : une coupure d'électricité ne « bloque » pas un signalement
+  /// d'eau dans la même zone (ce sont des incidents distincts).
   Report? findNearbyOngoing(
     GeoPosition pos, {
     double radiusMeters = AppConstants.duplicateRadiusMeters,
+    ServiceType? serviceType,
   }) {
     final origin = LatLng(pos.lat, pos.lng);
     Report? best;
     double bestDistance = double.infinity;
     for (final report in _reports) {
       if (report.status != OutageStatus.ongoing) continue;
+      if (serviceType != null && report.serviceType != serviceType) continue;
       final d = _distance.as(
         LengthUnit.Meter,
         origin,
@@ -543,7 +571,10 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> openLocationSettings() => _location.openSettings();
 
   /// Récupère la position et cherche un éventuel doublon proche.
-  Future<PrepareOutcome> prepareReport() async {
+  /// [serviceType] cible la détection au service du futur signalement —
+  /// sans ça, signaler une coupure d'eau près d'une coupure d'électricité
+  /// ouvre la modale anti-doublon à tort.
+  Future<PrepareOutcome> prepareReport({ServiceType? serviceType}) async {
     if (_uid == null) {
       return const PrepareOutcome(error: AppError.notLoggedIn);
     }
@@ -554,7 +585,7 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
       final draft = ReportDraft(position: loc.position, area: loc.area);
       return PrepareOutcome(
         draft: draft,
-        nearby: findNearbyOngoing(loc.position),
+        nearby: findNearbyOngoing(loc.position, serviceType: serviceType),
       );
     } on LocationException catch (e) {
       return PrepareOutcome(error: e.code);
@@ -592,6 +623,7 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
     String? description,
     String? mediaUrl,
     String? authorUsername,
+    ServiceType serviceType = ServiceType.electricity,
   }) async {
     final uid = _uid;
     if (uid == null) return AppError.notLoggedIn;
@@ -604,6 +636,7 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
         status: OutageStatus.ongoing,
         // Tout signalement citoyen est une coupure imprévue.
         type: OutageType.unplanned,
+        serviceType: serviceType,
         position: draft.position,
         location: draft.area,
         description:

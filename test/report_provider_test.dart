@@ -22,6 +22,7 @@ Report _report({
   String id = 'r1',
   String userId = 'u1',
   OutageStatus status = OutageStatus.ongoing,
+  ServiceType serviceType = ServiceType.electricity,
   double lat = 0,
   double lng = 0,
   String city = '',
@@ -31,6 +32,7 @@ Report _report({
   id: id,
   userId: userId,
   status: status,
+  serviceType: serviceType,
   position: GeoPosition(lat: lat, lng: lng),
   location: GeoArea(city: city, countryCode: countryCode),
   confirmationCount: confirmations,
@@ -257,6 +259,34 @@ void main() {
       );
       expect(found, isNull);
     });
+
+    test(
+      'ignore les coupures d\'un autre service quand serviceType est fourni',
+      () async {
+        // Coupure d'électricité juste à côté du point où on veut signaler
+        // une coupure d'eau → pas de doublon (incidents distincts).
+        final provider = await buildWith([
+          _report(
+            id: 'elec-near',
+            serviceType: ServiceType.electricity,
+            lat: 3.848,
+            lng: 11.502,
+          ),
+        ]);
+        final foundWater = provider.findNearbyOngoing(
+          const GeoPosition(lat: 3.848, lng: 11.502),
+          serviceType: ServiceType.water,
+        );
+        expect(foundWater, isNull);
+
+        // Sans filtre service → on retrouve bien la coupure (comportement
+        // historique préservé).
+        final foundAny = provider.findNearbyOngoing(
+          const GeoPosition(lat: 3.848, lng: 11.502),
+        );
+        expect(foundAny?.id, 'elec-near');
+      },
+    );
   });
 
   group('filteredReports', () {
@@ -460,31 +490,85 @@ void main() {
       expect(provider.nearOnly, isFalse);
     });
 
-    test('proximité reste active même sans coupure proche (pas de repli)', () async {
+    test(
+      'proximité reste active même sans coupure proche (pas de repli)',
+      () async {
+        when(
+          () => location.checkAccess(),
+        ).thenAnswer((_) async => LocationAccess.granted);
+        when(() => location.getCurrentLocation()).thenAnswer(
+          (_) async => const LocationResult(
+            position: GeoPosition(lat: 3.86, lng: 11.51),
+            area: GeoArea(),
+          ),
+        );
+        when(
+          () => service.reportsWithinRadius(
+            lat: any(named: 'lat'),
+            lng: any(named: 'lng'),
+            radiusMeters: any(named: 'radiusMeters'),
+          ),
+        ).thenAnswer((_) async => <Report>[]);
+
+        final provider = build();
+        await Future<void>.delayed(Duration.zero);
+
+        // « À proximité » est le filtre par défaut et le RESTE même vide (état
+        // vide explicite), au lieu de basculer sur la liste complète.
+        expect(provider.nearOnly, isTrue);
+        expect(provider.filteredReports, isEmpty);
+      },
+    );
+  });
+
+  group('filtre service (pivot étape 3)', () {
+    const elecReport = Report(
+      id: 'e1',
+      userId: 'u1',
+      status: OutageStatus.ongoing,
+      // serviceType par défaut = electricity.
+      position: GeoPosition(lat: 0, lng: 0),
+    );
+    const waterReport = Report(
+      id: 'w1',
+      userId: 'u1',
+      status: OutageStatus.ongoing,
+      serviceType: ServiceType.water,
+      position: GeoPosition(lat: 0, lng: 0),
+    );
+
+    test('serviceFilter=null → reports élec ET eau visibles', () async {
       when(
-        () => location.checkAccess(),
-      ).thenAnswer((_) async => LocationAccess.granted);
-      when(() => location.getCurrentLocation()).thenAnswer(
-        (_) async => const LocationResult(
-          position: GeoPosition(lat: 3.86, lng: 11.51),
-          area: GeoArea(),
-        ),
-      );
-      when(
-        () => service.reportsWithinRadius(
-          lat: any(named: 'lat'),
-          lng: any(named: 'lng'),
-          radiusMeters: any(named: 'radiusMeters'),
-        ),
-      ).thenAnswer((_) async => <Report>[]);
+        () => service.watchReports(limit: any(named: 'limit')),
+      ).thenAnswer((_) => Stream.value([elecReport, waterReport]));
 
       final provider = build();
       await Future<void>.delayed(Duration.zero);
-
-      // « À proximité » est le filtre par défaut et le RESTE même vide (état
-      // vide explicite), au lieu de basculer sur la liste complète.
-      expect(provider.nearOnly, isTrue);
-      expect(provider.filteredReports, isEmpty);
+      provider.setServiceFilter(null);
+      expect(provider.filteredReports.map((r) => r.id), ['e1', 'w1']);
     });
+
+    test('serviceFilter=water filtre les reports élec', () async {
+      when(
+        () => service.watchReports(limit: any(named: 'limit')),
+      ).thenAnswer((_) => Stream.value([elecReport, waterReport]));
+
+      final provider = build();
+      await Future<void>.delayed(Duration.zero);
+      provider.setServiceFilter(ServiceType.water);
+      expect(provider.filteredReports.map((r) => r.id), ['w1']);
+    });
+
+    test(
+      'serviceFilter NE compte PAS dans hasActiveFilters (vue persistée)',
+      () {
+        final provider = build();
+        expect(provider.hasActiveFilters, isFalse);
+        provider.setServiceFilter(ServiceType.water);
+        // Vue persistée (segmented control toujours visible) → exclu du
+        // bandeau « filtres actifs » transitoires.
+        expect(provider.hasActiveFilters, isFalse);
+      },
+    );
   });
 }

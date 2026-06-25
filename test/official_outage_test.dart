@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lightcutoff_app/models/enums.dart';
 import 'package:lightcutoff_app/models/official_outage.dart';
 import 'package:lightcutoff_app/providers/official_outage_provider.dart';
 import 'package:lightcutoff_app/repositories/official_outage_repository.dart';
@@ -18,11 +19,13 @@ OfficialOutage _mk({
   String region = 'LITTORAL',
   String ville = 'DOUALA',
   String quartier = 'CITE SIC',
+  ServiceType service = ServiceType.electricity,
 }) => OfficialOutage(
   id: '$region-$quartier',
   region: region,
   ville: ville,
   quartier: quartier,
+  serviceType: service,
 );
 
 void main() {
@@ -48,7 +51,10 @@ void main() {
       expect(o.quartier, 'CITE SIC');
       expect(o.startTime, '06:00');
       // `Timestamp.toDate()` renvoie un DateTime local → on compare l'instant.
-      expect(o.startsAt!.isAtSameMomentAs(DateTime.utc(2026, 6, 10, 5)), isTrue);
+      expect(
+        o.startsAt!.isAtSameMomentAs(DateTime.utc(2026, 6, 10, 5)),
+        isTrue,
+      );
     });
 
     test('champs absents → valeurs par défaut sûres', () async {
@@ -65,12 +71,16 @@ void main() {
     test('ne renvoie que les dates ≥ aujourd\'hui, triées', () async {
       final fake = FakeFirebaseFirestore();
       final col = fake.collection('official_outages');
-      await col.doc('past').set(
-        {'country': 'CM', 'quartier': 'OLD', 'progDate': '2000-01-01'},
-      );
-      await col.doc('future').set(
-        {'country': 'CM', 'quartier': 'NEW', 'progDate': '2099-12-31'},
-      );
+      await col.doc('past').set({
+        'country': 'CM',
+        'quartier': 'OLD',
+        'progDate': '2000-01-01',
+      });
+      await col.doc('future').set({
+        'country': 'CM',
+        'quartier': 'NEW',
+        'progDate': '2099-12-31',
+      });
       final service = OfficialOutageService(firestore: fake);
 
       final list = await service.fetchUpcoming(country: 'CM');
@@ -112,5 +122,31 @@ void main() {
       p.setQuery('cite');
       expect(p.filtered.map((o) => o.quartier), ['CITE SIC']);
     });
+
+    test(
+      'filtre service : eau = vide (CAMWATER pas encore ingéré), élec = Eneo',
+      () async {
+        final p = OfficialOutageProvider(
+          country: 'CM',
+          repository: _FakeRepo([
+            _mk(quartier: 'BASTOS'),
+            _mk(quartier: 'NDOGBONG'),
+          ]),
+        );
+        await p.load();
+
+        p.setServiceFilter(ServiceType.electricity);
+        expect(p.filtered.map((o) => o.quartier), ['BASTOS', 'NDOGBONG']);
+
+        // CAMWATER pas encore ingéré → liste vide (état attendu côté UI).
+        p.setServiceFilter(ServiceType.water);
+        expect(p.filtered, isEmpty);
+        // Et les régions affichées suivent : pas de région d'un service masqué.
+        expect(p.regions, isEmpty);
+
+        p.setServiceFilter(null);
+        expect(p.filtered.length, 2);
+      },
+    );
   });
 }

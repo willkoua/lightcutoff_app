@@ -7,7 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../config/app_config.dart';
 import '../config/app_constants.dart';
-import '../config/electricity_providers.dart';
+import '../config/utilities.dart';
 import '../models/enums.dart';
 import '../providers/auth_provider.dart';
 import '../providers/locale_provider.dart';
@@ -15,6 +15,7 @@ import '../providers/region_provider.dart';
 import '../services/notification_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/l10n_helpers.dart';
+import '../widgets/service_visuals.dart';
 import 'onboarding_gate.dart';
 import 'onboarding_screen.dart';
 
@@ -27,12 +28,17 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final isAnonymous = context.watch<AuthProvider>().isAnonymous;
     return Scaffold(
       appBar: AppBar(title: Text(l.settingsTitle)),
       body: ListView(
         children: [
-          _SectionHeader(l.settingsSectionNotifications),
-          const _NotificationsToggle(),
+          // Notifs : ciblage par homeLocation/quartiers suivis → N/A en
+          // anonyme (pas de profil, le tile est masqué).
+          if (!isAnonymous) ...[
+            _SectionHeader(l.settingsSectionNotifications),
+            const _NotificationsToggle(),
+          ],
           _SectionHeader(l.settingsSectionHelp),
           const _ReplayOnboardingTile(),
           _SectionHeader(l.settingsSectionLegal),
@@ -43,15 +49,24 @@ class SettingsScreen extends StatelessWidget {
             _SectionHeader(l.settingsSectionLanguageDebug),
             const _LanguagePickerTile(),
             _SectionHeader(l.settingsSectionProviderDebug),
-            const _ProviderPickerTile(),
+            const _ProviderPickerTile(service: ServiceType.electricity),
+            const _ProviderPickerTile(service: ServiceType.water),
           ],
           // Section admin : visible uniquement si l'utilisateur est admin.
-          if (context.watch<AuthProvider>().profile?.role == UserRole.admin) ...[
+          if (context.watch<AuthProvider>().profile?.role ==
+              UserRole.admin) ...[
             _SectionHeader(l.settingsSectionAdmin),
             const _WorldwideToggle(),
           ],
           _SectionHeader(l.settingsSectionAccount),
-          const _DeleteAccountTile(),
+          // Anonyme : « Effacer cette session » remplace « Supprimer mon
+          // compte » (qui n'a pas de sens sans compte). Le reset déclenche
+          // signOut puis re-démarre une nouvelle session anonyme via le
+          // listener de l'AuthProvider.
+          if (isAnonymous)
+            const _ResetAnonymousSessionTile()
+          else
+            const _DeleteAccountTile(),
           const _VersionFooter(),
         ],
       ),
@@ -90,8 +105,7 @@ class _VersionFooterState extends State<_VersionFooter> {
     final l = AppLocalizations.of(context);
     if (_version == null) return const SizedBox(height: 48);
     final env = AppConfig.envBannerLabel;
-    final label =
-        env == null ? _version! : '$_version · $env';
+    final label = env == null ? _version! : '$_version · $env';
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
       child: Center(
@@ -250,46 +264,75 @@ class _LanguagePickerTile extends StatelessWidget {
   }
 }
 
-/// Sélecteur debug du fournisseur d'électricité (pays + compagnie). « Auto »
-/// = détection (profil → locale → défaut). Persiste via [RegionProvider].
+/// Résultat de la pop du picker de fournisseur. Permet de **distinguer** une
+/// fermeture du dialog (tap hors zone → `null` natif de showDialog) d'un
+/// choix explicite (« Auto » ou un fournisseur). Sans ce sentinel, on ne
+/// peut pas savoir si l'utilisateur a vraiment voulu repasser en Auto ou
+/// s'il a dismissé la modale — or l'auto-coupling symétrique de
+/// `RegionProvider.setOverride(_, null)` veut connaître l'intention.
+class _ProviderChoice {
+  const _ProviderChoice._(this.utility, this.isAuto);
+  final Utility? utility;
+  final bool isAuto;
+
+  static const _ProviderChoice auto = _ProviderChoice._(null, true);
+  static _ProviderChoice pick(Utility u) => _ProviderChoice._(u, false);
+}
+
+/// Sélecteur debug **par service** (un par tuile dans Paramètres) du
+/// fournisseur (pays + compagnie). « Auto » = résolution standard
+/// (override → GPS → profil → locale → défaut). Sélectionner un fournisseur
+/// d'un pays donné **aligne automatiquement l'autre service** sur le pays
+/// correspondant si un jumeau existe ; repasser un service en « Auto »
+/// bascule **aussi** l'autre en « Auto ». Cf. `RegionProvider.setOverride`.
+/// Persiste via [RegionProvider] (2 clés SharedPreferences distinctes).
 class _ProviderPickerTile extends StatelessWidget {
-  const _ProviderPickerTile();
+  const _ProviderPickerTile({required this.service});
+
+  final ServiceType service;
 
   Future<void> _pick(BuildContext context) async {
     final l = AppLocalizations.of(context);
     final region = context.read<RegionProvider>();
-    final selected = await showDialog<ElectricityProvider?>(
+    final candidates = [
+      for (final u in kSupportedUtilities)
+        if (u.service == service) u,
+    ];
+    final choice = await showDialog<_ProviderChoice>(
       context: context,
       builder:
           (ctx) => SimpleDialog(
-            title: Text(l.settingsSectionProviderDebug),
+            title: Text(serviceTypeLabel(context, service)),
             children: [
               SimpleDialogOption(
-                onPressed: () => Navigator.of(ctx).pop(null),
+                onPressed: () => Navigator.of(ctx).pop(_ProviderChoice.auto),
                 child: Text(l.providerAuto),
               ),
-              for (final p in kSupportedProviders)
+              for (final u in candidates)
                 SimpleDialogOption(
-                  onPressed: () => Navigator.of(ctx).pop(p),
-                  child: Text(p.displayLabel),
+                  onPressed:
+                      () => Navigator.of(ctx).pop(_ProviderChoice.pick(u)),
+                  child: Text(u.displayLabel),
                 ),
             ],
           ),
     );
-    await region.setOverride(selected);
+    if (choice == null || !context.mounted) return; // dismiss → no-op
+    await region.setOverride(service, choice.utility);
   }
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final region = context.watch<RegionProvider>();
+    final override = region.overrideUtility(service);
     final subtitle =
-        region.isOverridden
-            ? region.overrideProvider!.displayLabel
-            : '${l.providerAuto} · ${region.activeProvider?.displayLabel ?? region.activeCountry}';
+        override != null
+            ? override.displayLabel
+            : '${l.providerAuto} · ${region.activeUtility(service)?.displayLabel ?? region.activeCountry}';
     return ListTile(
-      leading: const Icon(Icons.bolt_outlined, color: AppColors.gray),
-      title: Text(l.settingsSectionProviderDebug),
+      leading: Icon(serviceTypeIcon(service), color: AppColors.gray),
+      title: Text(serviceTypeLabel(context, service)),
       subtitle: Text(
         subtitle,
         style: const TextStyle(color: AppColors.gray, fontSize: 13),
@@ -389,6 +432,59 @@ class _NotificationsToggleState extends State<_NotificationsToggle> {
       ),
       value: _enabled ?? true,
       onChanged: (_enabled == null || _busy) ? null : _toggle,
+    );
+  }
+}
+
+/// Tuile « Effacer cette session anonyme » : déconnecte la session anonyme
+/// courante. L'`AuthProvider.logout()` réarme le garde-fou interne, donc une
+/// nouvelle session anonyme est créée automatiquement par le listener
+/// `_onAuthStateChanged`. Les signalements/votes anonymes restent en base
+/// (rattachés à l'ancien uid) mais ne sont plus liés à cet appareil.
+class _ResetAnonymousSessionTile extends StatelessWidget {
+  const _ResetAnonymousSessionTile();
+
+  Future<void> _confirm(BuildContext context) async {
+    final l = AppLocalizations.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: Text(l.settingsResetAnonymousSessionTitle),
+            content: Text(l.settingsResetAnonymousSessionBody),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: Text(l.actionCancel),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.orange,
+                ),
+                child: Text(l.settingsResetAnonymousSessionConfirm),
+              ),
+            ],
+          ),
+    );
+    if (ok != true || !context.mounted) return;
+    await context.read<AuthProvider>().logout();
+    if (!context.mounted) return;
+    // Retour à la racine : l'AuthGate refera le routing
+    // (anonymous → MainShell) une fois la nouvelle session prête.
+    Navigator.of(context).popUntil((r) => r.isFirst);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return ListTile(
+      leading: const Icon(Icons.refresh, color: AppColors.orange),
+      title: Text(
+        l.settingsResetAnonymousSession,
+        style: const TextStyle(color: AppColors.orange),
+      ),
+      onTap: () => _confirm(context),
     );
   }
 }
