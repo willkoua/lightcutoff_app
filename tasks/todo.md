@@ -10,6 +10,584 @@
 
 ---
 
+## 🛠️ PLAN ACTIF — Étape 3 : Service Eau (multi-service)
+
+> Phase suivante du pivot 2026-06-24, à attaquer une fois l'étape 1 validée
+> sur appareil. Pourquoi : double l'utilité de l'app (CAMWATER aussi commun
+> qu'Eneo au Cameroun) sans refaire l'UX — même moteur de signalement,
+> votes, géohash, auto-résolution.
+
+### Invariants à préserver
+- **Le moteur métier ne bouge pas** : géoloc, votes (`confirmations` /
+  `restorations`), auto-résolution Cloud Function, géohash → tous
+  agnostiques au service. On ne refactore PAS ce qui marche.
+- **Backward compat** : tous les reports existants sont **électricité**
+  (le seul service qui existait). Le champ `serviceType` est ajouté avec
+  défaut `electricity` côté lecture (`Report.fromDoc`) pour ne pas casser
+  l'historique.
+- **Ingestion Eneo intacte** : la Cloud Function `ingestEneoOutages`
+  continue de tagger `serviceType = electricity` sur les `official_outages`.
+  Pas d'ingestion eau pour v1 (CAMWATER n'a pas d'API publique connue).
+- **Notifications, follow quartier, App Check** : zéro impact.
+
+### Décisions verrouillées (2026-06-24)
+1. **Modèle fournisseurs** = **unifié** : `Utility { id, service, country,
+   label }` → 1 seule liste mixte `kSupportedUtilities`. Élimine la
+   duplication, scale propre quand on ajoutera Senelec/JIRAMA/etc.
+2. **Persistance filtre service** = mémorisation du **dernier choix**
+   dans SharedPreferences. Démarrage par défaut : `null` (Tout). Le user
+   peut fixer Élec / Eau et son choix est rejoué au prochain lancement.
+3. **Couleur eau** = `#0EA5E9` (sky-500). `AppColors.water` (ongoing) +
+   réutilisation `AppColors.resolved` (vert existant) pour le rétabli.
+4. **Causes** = **statu quo**, pas d'enum `OutageCause`. La `description`
+   libre couvre les deux services. Pas de friction supplémentaire au
+   formulaire.
+
+### Architecture cible
+
+```
+ServiceType { electricity, water }
+   ↓ porté par chaque Report
+Report (existant) {
+   serviceType   ← NOUVEAU, default electricity
+   userId, status, position, location, type,
+   confirmations, restorations, ...
+}
+
+Utility (ou WaterProvider/ElectricityProvider)
+   ↓ rattaché à un pays + un service
+   CM → Eneo (electricity)
+   CM → CAMWATER (water)
+
+RegionProvider {
+   activeCountry           ← inchangé (override → GPS → home → locale → CM)
+   activeProvider(service) ← NOUVEAU getter paramétré par ServiceType
+   activeServiceFilter     ← NOUVEAU : null | ServiceType (persisté)
+}
+
+ReportProvider {
+   setServiceFilter(ServiceType?)  ← NOUVEAU
+   watchReports(...)               ← injecte le where('serviceType', ==) si filtre
+}
+
+UI :
+   ReportFormScreen   → sélecteur radio Électricité / Eau (default elec)
+   HomeScreen / list  → segmented control en haut
+   MapScreen          → segmented control + marqueurs différenciés
+                        (couleur + icône lightning/water_drop)
+   ReportCard         → petit chip de service en tête
+   StatsScreen        → split par service (mes coupures elec / eau)
+```
+
+### Phases (à dérouler dans l'ordre)
+
+#### Phase A — Fondation modèle ✅ (2026-06-24)
+- [x] `ServiceType { electricity, water }` (lib/models/enums.dart) + `fromName`
+      avec défaut `electricity` (rétro-compat).
+- [x] `Report.serviceType` champ + `fromDoc` (parse) + `toCreateMap`
+      (sérialise). Constructeur défaut `electricity`.
+- [x] `OfficialOutage.serviceType` (constant `electricity` pour Eneo).
+- [x] Helper i18n `serviceTypeLabel(context, ServiceType)` + 2 clés FR/EN.
+- [x] 4 tests modèle (parsing, défaut legacy, round-trip eau).
+- [x] **Aucune modif Firestore rules** — défaut `electricity` à la lecture
+      garantit la rétro-compat, aucun backfill nécessaire.
+
+#### Phase B — Région & fournisseurs multi-service ✅ (2026-06-24)
+- [x] Renommage `electricity_providers.dart` → [utilities.dart]
+      (`Utility { id, service, country, label, … }` unifié, décision 1B).
+- [x] Liste `kSupportedUtilities` = **Eneo (CM, elec) + CAMWATER (CM, eau)**.
+- [x] Helpers `utilitiesForCountry`, `utilityForCountryAndService`.
+- [x] `RegionProvider` :
+      - `activeUtility(ServiceType)` getter paramétré.
+      - `activeProvider` conservé comme **alias** electricity (rétro-compat).
+      - `serviceFilter` (`ServiceType?`) + `setServiceFilter` + persistance
+        SharedPreferences clé `service_filter` (décision 2B).
+      - Override sémantique : ne s'applique qu'au service correspondant
+        (poser CAMWATER en override n'affecte PAS la résolution électrique).
+- [x] `settings_screen.dart` picker : liste mixte (Eneo + CAMWATER), commentaire
+      mis à jour.
+- [x] 3 tests RegionProvider (activeUtility paramétré, override CAMWATER ciblé,
+      persistance serviceFilter).
+
+#### Phase C — Création & affichage ✅ (2026-06-24)
+- [x] `AppColors.water = #0EA5E9` (sky-500, décision 3).
+- [x] Helpers `serviceTypeIcon` (bolt / water_drop) + `serviceTypeColor`
+      (lib/widgets/service_visuals.dart).
+- [x] `ReportProvider.submitReport` + `createFromDraft` acceptent
+      `serviceType` (default `electricity`).
+- [x] `ReportFormScreen` : `SegmentedButton<ServiceType>` en tête,
+      `_serviceType` initialisé depuis `region.serviceFilter` (sinon elec).
+- [x] `ReportCard` : nouveau `_ServiceChip` (icône + libellé colorés) à côté
+      du `_StatusChip`. Banalisation auteur anonyme préservée.
+- [x] `MapScreen` : marqueurs via `_ServiceMarker` (pin coloré statut/service +
+      mini icône service centrée en cocarde blanche).
+- [x] Sémantique couleur : résolu = vert commun ; en cours = couleur service.
+- [x] 2 tests widget `ReportCard` (chip Électricité / chip Eau).
+
+#### Phase D — Filtre liste/carte ✅ (2026-06-24)
+- [x] `ReportProvider._serviceFilter` + `setServiceFilter` + filtrage
+      **client-side** dans `filteredReports` (volume MVP OK, pas d'index
+      Firestore à créer — décision plan).
+- [x] `_serviceFilter` exclu de `hasActiveFilters` (vue persistée, segmented
+      control toujours visible — pas un filtre transitoire).
+- [x] `AuthGate` proxy propage `region.serviceFilter` → `ReportProvider`.
+- [x] [service_filter_bar.dart] : SegmentedButton<ServiceType?> à 3 segments
+      (Tout / Élec / Eau) lisant + écrivant `RegionProvider.serviceFilter`.
+- [x] HomeScreen : ServiceFilterBar visible uniquement sur l'onglet « Liste »
+      (les coupures planifiées Eneo sont électricité par construction).
+- [x] MapScreen : overlay Material blanc + élévation 2 sous l'AppBar,
+      empilé sous la bannière « filtres actifs ».
+- [x] 1 clé i18n `serviceFilterAll`.
+- [x] 3 tests ReportProvider (null = tout / water = filtre / pas dans
+      `hasActiveFilters`).
+
+#### Phase E — Stats split + smoke tests ✅ (2026-06-24)
+- [x] `StatsProvider` : refactor pour conserver les **listes brutes**
+      (`_mineReports`, `_zoneReports`) ; calcul des `OutageStats` à la volée
+      via `mineFor(ServiceType?)` / `zoneFor(ServiceType?)`. Pas de
+      rechargement réseau au changement de filtre.
+- [x] `StatsScreen` : `ServiceFilterBar` en tête (cohérent avec liste/carte) ;
+      `mineFor`/`zoneFor` appelés avec `region.serviceFilter` → recalcul
+      instantané.
+- [x] 3 tests StatsProvider (mine tous services / mineFor filtré / pas de
+      rechargement réseau / loading state).
+- [x] **`tasks/TESTS-MANUELS.md`** : section « Multi-service Eau » avec 7
+      scénarios bout-en-bout (sélecteur formulaire → filtre liste/carte →
+      marqueurs → anti-doublon par service → auto-résolution croisée →
+      stats split → sélecteur dev mixte) + régression rétro-compat + pièges
+      (pas d'index, ingestion Eneo non touchée).
+
+### Récap i18n étape 3 (4 clés ajoutées)
+- `serviceElectricity` / `serviceWater` (libellés enum).
+- `serviceFilterAll` (segment « Tout »).
+- `reportFormServiceLabel` (libellé sélecteur formulaire).
+
+### Bilan final étape 3
+- `flutter analyze` clean · `dart format` clean · **180/180 tests Flutter**
+  (+11 nouveaux : 4 modèle + 3 region + 2 ReportCard + 3 ReportProvider + 3
+  StatsProvider — les Phase C/D/E sont couvertes).
+- Backward compat : reports legacy lus comme `electricity` (default
+  `ServiceType.fromName`), aucun backfill nécessaire.
+- Pas d'index Firestore créé (filtrage client-side).
+- Ingestion Eneo : tague toujours `electricity` (CanonicalOutage.serviceType
+  par défaut côté modèle TS). Adaptateur CAMWATER = hors scope étape 3.
+- À faire avant publication : smoke test bout-en-bout sur appareil
+  (cf. `tasks/TESTS-MANUELS.md` § « Multi-service Eau »).
+
+### Risques connus
+- **Index Firestore manquant** : la première requête filtrée lèvera une
+  exception « index required » côté client. Identifier les index nécessaires
+  AVANT déploiement (les créer via Firebase console ou commit dans
+  `firestore.indexes.json` qu'il faudra peut-être créer).
+- **Migration des reports existants** : aucun ne porte `serviceType`. Le
+  défaut `electricity` à la lecture (`fromDoc`) le rend invisible : aucun
+  backfill nécessaire pour v1. Documenter dans `SCHEMA.md`.
+- **Brand NJUKA** : nom évoque l'électricité. Pour v1 on garde — si
+  l'usage eau prend de l'ampleur, repenser le slogan.
+- **Ingestion Eneo** : continue de tagger `serviceType = electricity` à
+  l'écriture — à patcher côté Cloud Function (`functions/src/sources/eneo.ts`).
+
+---
+
+## 🚦 PIVOT STRATÉGIQUE — décidé 2026-06-24
+
+Décision produit en 3 étapes, attaquées dans l'ordre :
+
+1. **Auth anonyme par défaut** (étape 1, planifiée ci-dessous) — supprimer la friction du
+   login obligatoire. Lecture + signalement + vote possibles sans compte, via Firebase
+   Anonymous Auth (uid présent → règles Firestore inchangées, intégrité du vote préservée).
+   Les fonctions sociales (profil, notifs, suivi quartier, stats) deviennent des **murs
+   d'upgrade**. `linkWithCredential` préserve l'uid lors de l'upgrade → l'historique anonyme
+   reste attaché.
+2. **Lecture publique sans aucune auth** (étape 2, optionnelle, à trancher après mesure) —
+   pour partage web / lien direct sur carte. Pas planifiée ici.
+3. **Service Eau** (étape 3, gros chantier, planifié séparément) — introduire `ServiceType
+   { electricity, water }` au-dessus de `OutageType`, refactor `RegionProvider`, filtres carte/
+   liste, couleurs distinctes. **À FAIRE APRÈS étape 1**, pour ne pas mélanger deux refactors.
+
+---
+
+## 🛠️ PLAN ACTIF — Étape 1 : Migration auth anonyme
+
+> Pourquoi : conversion (zéro mur à l'entrée) + friction zéro au 1ʳᵉ signalement, sans casser
+> l'intégrité du vote ni les règles Firestore existantes.
+
+### Invariants à préserver
+- **Règles Firestore actuelles fonctionnent telles quelles** : `isSignedIn()` est vrai pour un
+  anonyme (uid présent). `castsVote` + `bumpsCounterByOne` restent valides → 1 vote / uid /
+  report inchangé. Pas de modif de rules attendue (audit + tests à ajouter quand même).
+- **App Check reste actif** (debug provider en dev, Play Integrity en release). Seule vraie
+  défense anti-spam côté anonyme.
+- **`authorUsername` denormalisé** = `null` en anonyme. UI affiche « Anonyme » via i18n.
+- **Reinstall = nouvel uid anonyme**. On l'accepte pour v1. Mitigations différées : rate limit
+  Cloud Function par App Check token + plafond reports/uid/jour.
+- **Upgrade conserve l'uid** : `linkWithCredential` → tous les reports/votes anonymes restent
+  attachés à l'utilisateur après création du compte.
+
+### Architecture cible
+
+```
+OnboardingGate
+ └─ AuthGate (6 états, +1 : anonymous)
+     ├─ unknown              → SplashScreen
+     ├─ anonymous            → MainShell  ← NOUVEAU, route par défaut
+     ├─ authenticated        → MainShell (avec profil) — inchangé
+     ├─ awaitingVerification → EmailVerificationScreen (post-upgrade only)
+     ├─ profileIncomplete    → CompleteProfileScreen (post-social only)
+     └─ unauthenticated      → écran « Réessayer » (signInAnonymously a échoué)
+                                 LoginScreen reste accessible depuis Profile
+```
+
+`LoginScreen` / `RegisterScreen` ne sont plus la racine : ce sont des destinations
+accessibles depuis le **mur d'upgrade** du Profil.
+
+### Tâches (ordre d'attaque)
+
+#### 1. Console Firebase + audit règles
+- [ ] **À FAIRE par toi (manuel)** : Console `lightcutoff-dev` → Authentication → Sign-in
+      method → **activer Anonymous**. Sans ça, `signInAnonymously()` échoue avec
+      `admin-restricted-operation`.
+- [x] **Helper `isAnonymous()`** ajouté à `firestore.rules` (basé sur
+      `request.auth.token.firebase.sign_in_provider == 'anonymous'`).
+- [x] **Verrouillage côté rules** : interdire en session anonyme la création/MAJ de
+      `users/{uid}`, `usernames/{username}`, `devices/{token}` → force le passage par
+      l'upgrade pour ces ressources sociales. (Inutile sur `reports/` et sous-collections
+      `confirmations`/`restorations` — qui doivent rester ouvertes aux anonymes.)
+- [x] **Tests rules ajoutés** (`rules_tests/test/firestore.spec.js`, helper `asAnonymous`
+      avec `sign_in_provider: "anonymous"`) — 6 cas :
+      1. Un anonyme crée un report avec son propre uid (et ne peut pas mentir sur l'auteur).
+      2. Un anonyme vote (confirm + restore atomique) sur le report d'un autre.
+      3. Un anonyme ne peut PAS créer `users/{son_uid}` (ni `users/{autre_uid}`).
+      4. Un anonyme ne peut PAS réserver `usernames/{x}`.
+      5. Un anonyme ne peut PAS enregistrer `devices/{token}`.
+      6. Régression upgrade : après linkWithCredential (sign_in_provider ≠ anonymous),
+         la création de profil + pseudo redevient OK.
+- [x] **37/37 tests rules verts** (6 nouveaux + 31 existants intacts) via
+      `npm --prefix rules_tests run test:emulator`.
+- [ ] **À déployer** quand tu actives Anonymous Auth : `firebase deploy --only firestore:rules`
+      (pour pousser les nouvelles règles `!isAnonymous()` sur lightcutoff-dev).
+- [ ] App Check : vérifier que les sessions anonymes passent (debug token déjà enregistré)
+      — à confirmer en runtime lors de la tâche 3.
+
+#### 2. AuthRepository / AuthService — nouvelles méthodes ✅ (2026-06-24)
+- [x] `AuthRepository` (interface) :
+      - `bool get isAnonymous` (symétrique à `isEmailVerified`).
+      - `Future<void> signInAnonymously()`.
+      - `Future<void> upgradeAnonymous({email, password, firstName, lastName, username,
+        phoneNumber?, birthDate?})` — link + creation atomique + vérification email.
+- [x] `AuthService` (impl Firebase) :
+      - `signInAnonymously` = `_auth.signInAnonymously()`.
+      - `upgradeAnonymous` :
+        1. Refuse si `currentUser` n'est pas anonyme (`code: 'no-current-user'`).
+        2. Pré-check `isUsernameAvailable` → `username-already-in-use` si pris.
+        3. `user.linkWithCredential(EmailAuthProvider.credential(email, password))` →
+           uid PRÉSERVÉ, sign_in_provider passe à « password ».
+        4. **`getIdToken(true)`** force le rafraîchissement du token avant le batch
+           Firestore (sinon risque PERMISSION_DENIED car le token cache encore
+           sign_in_provider = anonymous → les nouvelles règles `!isAnonymous()`
+           bloqueraient la création de profil).
+        5. `updateDisplayName` + batch atomique (`users/{uid}` + `usernames/{u}`).
+        6. `sendEmailVerification` → bascule auto en `awaitingVerification`.
+- [x] Erreurs Firebase déjà couvertes par le mapper existant d'`AuthProvider`
+      (`email-already-in-use` → `AppError.emailInUse`,
+      `username-already-in-use` → `AppError.usernameInUse`,
+      `credential-already-in-use` → tombe en `AppError.authFailed` par défaut — à
+      affiner si l'UX le demande).
+- [x] **Vérifs** : `flutter analyze` clean · **144/144 tests verts** (aucun cassé) ·
+      `dart format` propre sur les deux fichiers touchés.
+
+#### 3. AuthProvider — état `anonymous` + auto sign-in ✅ (2026-06-24)
+- [x] `AuthStatus.anonymous` ajouté à l'enum (avec docstring : pas de profil, mur
+      d'upgrade côté UI).
+- [x] `_onAuthStateChanged(user)` réécrit :
+      - `user == null` + flag `_anonymousSignInAttempted == false` → status `unknown`,
+        appel `signInAnonymously()`. Le listener re-fire avec le User anonyme (cas
+        nominal) **ou** on bascule en `unauthenticated` + `AppError.networkRequestFailed`
+        (échec offline). Le flag interdit le retry auto = pas de boucle.
+      - `user.isAnonymous` → `AuthStatus.anonymous`, profile null, **pas de fetchProfile,
+        pas de registerForUser** (cohérent avec règles : un anonyme ne peut pas écrire
+        `devices/`).
+      - `user.isAnonymous == false && !user.emailVerified` → `awaitingVerification`
+        (chemin post-upgrade).
+      - `user.isAnonymous == false && user.emailVerified` → fetchProfile + route legacy
+        intacte.
+- [x] `bool get isAnonymous` exposé sur le provider.
+- [x] `Future<bool> upgradeWithEmail(...)` : appelle `_service.upgradeAnonymous`, log
+      `AnalyticsService.logSignUp`, puis **rejoue manuellement** `_onAuthStateChanged
+      (currentUser)` car `linkWithCredential` ne déclenche pas toujours `authStateChanges`
+      (uid inchangé = pas un sign-in event au sens Firebase). Mappe
+      `email-already-in-use` / `username-already-in-use` via `_codeFor`.
+- [x] `Future<bool> retryAnonymousSignIn()` exposé pour le bouton « Réessayer » de
+      l'écran `unauthenticated`.
+- [x] `logout()` **réarme `_anonymousSignInAttempted = false`** avant `signOut()` →
+      la nouvelle session anonyme démarre automatiquement après. C'est aussi le mécanisme
+      derrière « Effacer cette session anonyme » (Paramètres).
+- [x] `AuthGate` : ajout du case `AuthStatus.anonymous` → MainShell (même
+      `ChangeNotifierProxyProvider<RegionProvider, ReportProvider>` que `authenticated`).
+      `unauthenticated` reste sur `LoginScreen` pour l'instant (TODO task-4 :
+      écran « Réessayer »).
+- [x] **Tests provider** (6 nouveaux dans `test/auth_provider_test.dart`) :
+      1. État initial (user null) → `signInAnonymously` appelé exactement 1 fois,
+         status `unknown` (le mock stream ne réémet pas le user anonyme).
+      2. Échec auto sign-in → `unauthenticated` + `AppError.networkRequestFailed`,
+         pas de retry auto (vérifié via `verify(...).called(1)`).
+      3. `retryAnonymousSignIn` succès après échec initial → 2 appels au total.
+      4. `upgradeWithEmail` succès → ok + analytics + délégation correcte au service.
+      5. `upgradeWithEmail` `email-already-in-use` → `AppError.emailInUse`.
+      6. `upgradeWithEmail` `username-already-in-use` → `AppError.usernameInUse`.
+- [x] **Vérifs** : `flutter analyze` clean · `dart format` clean · **149/149 tests verts**
+      (4 nouveaux sur 145).
+
+#### 4. AuthGate — routing ✅ (2026-06-24)
+- [x] Case `AuthStatus.anonymous` → MainShell (mêmes providers que `authenticated`).
+      Déjà posé en tâche 3 pour faire passer `flutter analyze`.
+- [x] Case `AuthStatus.unauthenticated` → nouvel écran [`AnonymousRetryScreen`]
+      (`lib/screens/anonymous_retry_screen.dart`) :
+      - Icône `wifi_off_rounded`, heading + body explicatifs.
+      - Affichage de `auth.error` (localisé via `appErrorLabel`) si présent.
+      - CTA primaire « Réessayer » → `retryAnonymousSignIn()` (spinner pendant `busy`).
+      - CTA secondaire « J'ai déjà un compte » → push de `LoginScreen` (Navigator).
+- [x] `LoginScreen` retiré des imports d'`auth_gate.dart` (plus utilisé directement
+      — il reste accessible via la navigation depuis `AnonymousRetryScreen`, et plus
+      tard depuis le mur d'upgrade du Profil).
+- [x] **i18n FR/EN** : 5 nouvelles clés `anonymousRetryTitle`, `anonymousRetryHeading`,
+      `anonymousRetryBody`, `anonymousRetryButton`, `anonymousRetryAlreadyAccount`.
+      `flutter gen-l10n` régénéré.
+- [x] **Vérifs** : `flutter analyze` clean · `dart format` clean · **149/149 tests verts**.
+
+#### 5. RegionProvider — fallback anonyme ✅ (2026-06-24)
+- [x] **Constat** : la chaîne de résolution actuelle (override → GPS → home → locale → `CM`)
+      gère DÉJÀ le cas anonyme correctement. `app.dart` appelle
+      `region.setHomeCountry(auth.profile?.homeLocation.country)` → `null` quand `profile`
+      est `null` (anonyme) → `_homeCountryIso = null` → fallback chaîne naturelle.
+- [x] Docstring `setHomeCountry` enrichie pour expliciter le cas session anonyme et le
+      fallback dégradé (lib/providers/region_provider.dart:106).
+- [x] **Tests ajoutés** (`test/region_provider_test.dart`, 5 cas, mock SharedPreferences
+      + LocationRepository.denied) :
+      1. `setHomeCountry(null)` ne plante pas après un précédent country.
+      2. Sans override/profil/GPS, `activeCountry` reste valide (ISO ≤ 3 char).
+      3. **Override dev gagne** sur l'absence de profil (test du sélecteur dev en
+         session anonyme).
+      4. Transition anonyme → upgrade : `setHomeCountry('Cameroun')` ⇒ `activeCountry == 'CM'`.
+      5. Documentation : `GeoArea().country == ''` (sentinel utilisé côté `auth_provider`).
+- [x] **Vérifs** : `flutter analyze` clean · **154/154 tests verts** (5 nouveaux).
+
+#### 6. ProfileScreen — mur d'upgrade (mur + accès Paramètres) ✅ (2026-06-24)
+- [x] `ProfileScreen` lit `auth.isAnonymous` → bascule entre le profil classique et le
+      nouveau widget privé `_UpgradeWall` :
+      - Icône `account_circle_outlined`, heading + body explicatifs.
+      - 4 lignes de bénéfices avec icônes (profil, stats, suivi quartiers, notifs).
+      - CTA primaire « Créer un compte » → push `UpgradeAccountScreen` (stub minimal posé
+        pour ce ticket, formulaire réel = tâche 9).
+      - CTA secondaire « J'ai déjà un compte » → **AlertDialog de confirmation** rappelant
+        que les votes/signalements anonymes ne seront PAS rattachés au compte existant
+        (Firebase ne fusionne pas deux uids) avant de push `LoginScreen`.
+- [x] **AppBar du Profil** : icône Paramètres TOUJOURS accessible (y compris en anonyme).
+      Icône Edit cachée en anonyme (déjà guardée par `if (profile != null)`).
+- [x] StatsScreen, FollowQuartier, EditProfile, AccountSecurity : automatiquement
+      inaccessibles en anonyme car routés depuis les tuiles de l'ancien profil — qui ne
+      s'affichent plus.
+- [x] `SettingsScreen` adapté :
+      - Section « Notifications » + toggle FCM cachés en anonyme (pas de ciblage possible
+        sans homeLocation/quartiers suivis).
+      - Section « Compte » : `_DeleteAccountTile` remplacé par `_ResetAnonymousSessionTile`
+        (« Effacer cette session anonyme ») en anonyme. La tuile montre un AlertDialog
+        de confirmation, appelle `auth.logout()` (qui réarme `_anonymousSignInAttempted` →
+        le listener démarre une nouvelle session anonyme automatiquement), puis
+        `Navigator.popUntil(isFirst)`.
+- [x] `UpgradeAccountScreen` placeholder créé (`lib/screens/upgrade_account_screen.dart`,
+      icône `construction_outlined` + i18n `upgradeAccountComingSoon`). Sera complété en
+      tâche 9 avec le formulaire `auth.upgradeWithEmail(...)`.
+- [x] **i18n FR/EN** : 14 nouvelles clés (`profileUpgradeWall*` ×9, `upgradeAccount*` ×2,
+      `settingsResetAnonymousSession*` ×3). `flutter gen-l10n` régénéré.
+- [ ] **À FAIRE en tâche 9** : remplir `UpgradeAccountScreen` (formulaire +
+      `auth.upgradeWithEmail`).
+- [ ] **À FAIRE en tâche 7** : sur les toggles « suivre ce quartier » (officiels Eneo
+      side / map), intercepter le clic anonyme → bottom-sheet upgrade.
+- [x] **Vérifs** : `flutter analyze` clean · `dart format` clean · **154/154 tests verts**.
+
+#### 7. ReportCard / création de report par anonyme ✅ (2026-06-24)
+- [x] `ReportProvider.submitReport` / `createFromDraft` : **aucun changement** — utilisent
+      `auth.uid` (présent en anonyme) et l'`authorUsername` passé par le formulaire (qui
+      vaut `null` quand `profile == null`).
+- [x] **`ReportCard` inchangé** : le bloc existant
+      `if (report.authorUsername != null && report.authorUsername!.isNotEmpty)` couvre
+      déjà le cas anonyme → AUCUNE référence à l'auteur n'est affichée (banalisation).
+      Test ajouté pour figer cet invariant (`test/report_card_test.dart`, 3 cas :
+      null → rien, vide → rien, renseigné → `@username`).
+- [x] **Bottom-sheet « Garde tes signalements »** créée
+      (`lib/widgets/anonymous_first_report_sheet.dart`) :
+      - Widget `AnonymousFirstReportHintSheet` : icône `bookmark_added_outlined`,
+        titre + corps, CTA primaire « Créer un compte » → `UpgradeAccountScreen`,
+        CTA secondaire « Plus tard » → ferme.
+      - Helper `showAnonymousFirstReportHintIfNeeded(BuildContext)` :
+        * No-op si `auth.isAnonymous == false`.
+        * No-op si SharedPrefs key `anonymous_first_report_hint_seen` déjà à `true`.
+        * Sinon : pose le flag (AVANT d'afficher la modale → idempotent même si l'user
+          déclenche un 2ᵉ report très vite), puis `showModalBottomSheet`.
+- [x] **Branchement** dans `report_form_screen.dart` (`_finish`) : sur succès, capture du
+      `rootNavigator.context` AVANT le pop de la modale formulaire, puis appel
+      non-bloquant à `showAnonymousFirstReportHintIfNeeded(rootContext)`. Le `rootContext`
+      reste valide car le navigator parent vit au-dessus de la modale.
+- [x] **i18n FR/EN** : 4 clés `anonymousFirstReportHint{Title,Body,CTA,Later}`.
+      `flutter gen-l10n` régénéré.
+- [x] **Tests** : 3 nouveaux dans `test/anonymous_first_report_sheet_test.dart` :
+      1. Session non anonyme → no-op, flag NON posé.
+      2. Anonyme + flag absent → flag posé + sheet affichée.
+      3. Anonyme + flag déjà posé → sheet NON rejouée.
+- [x] **Vérifs** : `flutter analyze` clean · `dart format` clean · **160/160 tests verts**
+      (6 nouveaux : 3 ReportCard + 3 sheet).
+
+#### 8. NotificationService — N/A en anonyme ✅ (2026-06-24)
+- [x] **Vérifié** : `_onAuthStateChanged` ne touche pas `_notifications.registerForUser`
+      quand `user.isAnonymous == true` (verrouillé en tâche 3, branche dédiée). Idem
+      pour `unregister()` qui est idempotent + silencieux.
+- [x] **Vérifié** : règles Firestore refusent déjà la création de `devices/{token}` en
+      anonyme (`!isAnonymous()`, posé en tâche 1) → double garde-fou si jamais le code
+      tentait quand même un upsert.
+- [x] **Bug latent corrigé** : `refreshVerification()` mettait à `authenticated` sans
+      appeler `registerForUser`. Conséquence : après upgrade + vérif email, l'utilisateur
+      ne recevait aucune notif tant qu'il n'avait pas redémarré l'app (l'auth listener
+      n'est rappelé qu'à l'init). Idem pour le `register` legacy. Fix : à la transition
+      vers `authenticated`, on appelle `registerForUser` directement quand `profile != null`.
+- [x] **Test ajouté** (`auth_provider_test.dart` → `refreshVerification (post-upgrade)
+      → registerForUser appelé`) : mock du `User` avec `emailVerified == true`,
+      vérification que `notifications.registerForUser(userId, homeLocation)` est appelé
+      exactement 1 fois.
+- [x] **Vérifs** : `flutter analyze` clean · `dart format` clean · **161/161 tests verts**
+      (1 nouveau).
+
+#### 9. UpgradeAccountScreen (nouvel écran) ✅ (2026-06-24)
+- [x] Formulaire complet (prénom, nom, pseudo unique, email, mdp + confirmation, tél +
+      indicatif via `IntlPhoneField` CM par défaut, naissance, acceptation CGU). Reprend
+      la structure de `RegisterScreen` pour cohérence UX/accessibilité.
+- [x] Bandeau d'intro en haut du formulaire (chip ambre avec icône check) :
+      « Tes signalements et votes restent attachés à ton nouveau compte. »
+- [x] `_submit` :
+      1. Validate form + acceptation CGU.
+      2. Pré-check pseudo via `auth.isUsernameAvailable`.
+      3. `auth.upgradeWithEmail(...)` (= `linkWithCredential` → uid préservé).
+      4. **Succès** : `Navigator.pop(context)` — l'AuthGate observe `awaitingVerification`
+         et bascule automatiquement vers `EmailVerificationScreen`.
+      5. **Erreur `AppError.emailInUse`** : AlertDialog dédié explicitant que les votes
+         anonymes ne seront PAS rattachés au compte existant ; CTA « Se connecter » →
+         `pushReplacement(LoginScreen())` (pour ne pas empiler sur l'upgrade).
+      6. **Autres erreurs** : snack standard via `appErrorLabel`.
+- [x] **i18n FR/EN** : 4 clés ajoutées (`upgradeAccountIntro`, `upgradeAccountSubmit`,
+      `upgradeAccountEmailInUseTitle`, `upgradeAccountEmailInUseBody`).
+      `upgradeAccountComingSoon` supprimée (plus de placeholder).
+- [x] **Vérifs** : `flutter analyze` clean · `dart format` clean · **161/161 tests verts**
+      (le formulaire en lui-même n'a pas de test dédié — couverture par le smoke test
+      manuel à exécuter sur l'émulateur).
+
+#### 10. i18n FR/EN — récap final ✅ (2026-06-24)
+- [x] **28 clés ajoutées au total** (FR + EN, vérifiées synchrones par diff) :
+      - **Récup connexion** (tâche 4, ×5) : `anonymousRetryTitle`,
+        `anonymousRetryHeading`, `anonymousRetryBody`, `anonymousRetryButton`,
+        `anonymousRetryAlreadyAccount`.
+      - **Mur d'upgrade Profil** (tâche 6, ×10) : `profileUpgradeWallHeading`,
+        `profileUpgradeWallBody`, `profileUpgradeWallBenefit{Profile,Stats,Follow,Notifs}`,
+        `profileUpgradeWallCTA`, `profileUpgradeWallAlreadyAccount`,
+        `profileUpgradeWallLoginWarning{Title,Body}`.
+      - **Reset session Paramètres** (tâche 6, ×4) : `settingsResetAnonymousSession`,
+        `settingsResetAnonymousSession{Title,Body,Confirm}`.
+      - **Bottom-sheet 1ᵉʳ report** (tâche 7, ×4) : `anonymousFirstReportHint{Title,Body,
+        CTA,Later}`.
+      - **UpgradeAccountScreen** (tâche 9, ×5) : `upgradeAccountTitle`,
+        `upgradeAccountIntro`, `upgradeAccountSubmit`, `upgradeAccountEmailInUse{Title,Body}`.
+- [x] ⚠️ Décision finale : **pas de clé `reportAnonymousAuthor`** — les reports anonymes
+      n'affichent AUCUN auteur (banalisation, cf. tâche 7).
+- [x] `flutter gen-l10n` régénéré ; aucun warning. Diff FR/EN clean.
+
+#### 11. Analytics ✅ (2026-06-24)
+- [x] 4 méthodes ajoutées à `AnalyticsService` :
+      - `logAnonymousStarted()` → `anonymous_started`.
+      - `logAnonymousFirstReport()` → `anonymous_first_report`.
+      - `logUpgradeStarted()` → `upgrade_started`.
+      - `logUpgradeCompleted()` → `upgrade_completed`.
+- [x] **Branchement** :
+      - `anonymous_started` : émis dans `AuthProvider._onAuthStateChanged` à la 1ʳᵉ
+        transition vers `AuthStatus.anonymous`. Flag local `_anonymousStartedLogged`
+        évite les doublons (rotation token, reload session) ; réarmé par `logout()`
+        → une nouvelle session anonyme post-reset compte comme un nouvel utilisateur
+        du funnel.
+      - `anonymous_first_report` : émis dans `showAnonymousFirstReportHintIfNeeded`
+        en même temps que le flag SharedPrefs est posé (atomique, 1 fois par appareil).
+      - `upgrade_started` : émis dans `UpgradeAccountScreen.initState` (intention).
+      - `upgrade_completed` : émis dans `AuthProvider.upgradeWithEmail` après succès,
+        en parallèle du `logSignUp()` standard (distingue le funnel upgrade du flow
+        register direct).
+- [x] **Tests** (`test/analytics_service_test.dart`, 4 nouveaux) : un par méthode,
+      verify de l'event name + paramètres `null`.
+- [x] **Lecture funnel attendue** (Firebase Analytics console, post-déploiement) :
+      `anonymous_started` (cohort) → `anonymous_first_report` (engagement) →
+      `upgrade_started` (intention) → `upgrade_completed` (succès). Taux de conversion
+      = `upgrade_completed / anonymous_started`.
+- [x] **Vérifs** : `flutter analyze` clean · `dart format` clean · **165/165 tests verts**
+      (4 nouveaux).
+
+#### 12. Tests — récap ✅ (2026-06-24)
+- [x] **Rules** (`rules_tests/test/firestore.spec.js`, 6 nouveaux + helper
+      `asAnonymous`) : anonyme peut create reports, anonyme peut voter atomique,
+      anonyme refusé sur `users`/`usernames`/`devices`, régression upgrade
+      (sign_in_provider ≠ anonymous → OK).
+- [x] **AuthProvider** (`test/auth_provider_test.dart`, 7 nouveaux) :
+      - état initial (user null) → `signInAnonymously` appelé 1×.
+      - échec sign-in anonyme → `unauthenticated` + `AppError.networkRequestFailed`,
+        pas de retry auto.
+      - `retryAnonymousSignIn` succès après échec → 2 appels au total.
+      - `upgradeWithEmail` succès → délégation au service + analytics.
+      - `upgradeWithEmail` `email-already-in-use` → `AppError.emailInUse`.
+      - `upgradeWithEmail` `username-already-in-use` → `AppError.usernameInUse`.
+      - `refreshVerification` post-upgrade → `registerForUser` appelé.
+- [x] **RegionProvider** (`test/region_provider_test.dart`, 5 nouveaux) : fallback
+      anonyme (setHomeCountry null), override dev qui gagne, transition
+      anonyme → upgrade.
+- [x] **ReportCard** (`test/report_card_test.dart`, 3 nouveaux) : authorUsername
+      null/vide → AUCUNE référence à l'auteur ; renseigné → `@username` affiché.
+- [x] **Bottom-sheet 1ᵉʳ report** (`test/anonymous_first_report_sheet_test.dart`,
+      3 nouveaux) : non anonyme = no-op ; anonyme + flag absent = posé + affichée ;
+      flag déjà posé = pas rejouée.
+- [x] **Analytics** (`test/analytics_service_test.dart`, 4 nouveaux) : 1 test par
+      nouvelle méthode du funnel.
+- [x] **Widget ProfileScreen** (`test/profile_screen_test.dart`, 2 nouveaux) :
+      - anonyme → mur d'upgrade visible (heading + CTAs), profil masqué, icône
+        Edit cachée, icône Paramètres présente.
+      - authentifié + profil → profil classique, mur masqué, icône Edit visible.
+- [x] **Smoke tests manuels** : section ajoutée à `tasks/TESTS-MANUELS.md`
+      avec 8 scénarios bout-en-bout (install fraîche → 1ᵉʳ report → vote →
+      profil → reset session → upgrade → email-déjà-utilisé → offline) +
+      pièges connus (App Check, reinstall = nouvel uid).
+
+**Bilan final** : `flutter analyze` clean · `dart format` clean ·
+**167/167 tests Flutter verts** (+30 nouveaux) · **37/37 tests rules verts**
+(+6 nouveaux).
+
+### Acceptation
+- `flutter analyze` clean · `flutter test` vert (nouveaux tests inclus).
+- **Smoke test manuel** ajouté à `tasks/TESTS-MANUELS.md` :
+  1. Install fraîche → écran d'accueil sans login (anonyme transparent).
+  2. Création d'un report sans login → visible sur carte/liste, étiqueté « Anonyme ».
+  3. Confirmation/restoration d'un autre report → OK.
+  4. Onglet Profil → mur d'upgrade visible.
+  5. Flow « Crée un compte » → mail de vérification → retour app → tous les anciens
+     reports/votes anonymes toujours attachés au nouvel uid.
+  6. Tentative upgrade avec email déjà utilisé → message clair, pas de plantage.
+
+### Risques connus
+- **Réinstall = nouvel uid anonyme** → bot peut respawn. Mitigation v1 : App Check ; v2 :
+  cap reports/uid/jour Cloud Function.
+- **Boucle `signInAnonymously` offline** → flag « pas de retry auto », bouton retry manuel.
+- **`email-already-in-use` sur upgrade** → message explicite, pas de fusion auto (Firebase
+  ne sait pas fusionner deux uids).
+
+### Hors scope étape 1
+- Ouverture lecture publique sans aucune auth (étape 2).
+- Ajout service Eau (étape 3).
+- Rate limit Cloud Function reports/uid/jour (mitigation différée).
+
+---
+
 ## ✅ FAIT (vérifié dans le code)
 
 ### Authentification & profil

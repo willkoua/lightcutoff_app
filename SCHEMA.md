@@ -54,10 +54,11 @@ par **confirmations** (voir sous-collection), pas par création de nouveaux docs
 
 | Champ | Type | MVP | Description |
 |-------|------|-----|-------------|
-| `userId` | string | ✅ | auteur du signalement |
-| `authorUsername` | string \| null | ✅ | pseudo de l'auteur, dénormalisé à la création (attribution publique `@pseudo`) ; immuable. Prénom/nom restent privés. |
+| `userId` | string | ✅ | auteur du signalement (uid Firebase Auth — **y compris anonyme** depuis le pivot 2026-06-24) |
+| `authorUsername` | string \| null | ✅ | pseudo de l'auteur, dénormalisé à la création (attribution publique `@pseudo`) ; immuable. Prénom/nom restent privés. **`null` pour un report anonyme** — l'UI ne montre aucune référence à l'auteur. |
 | `status` | string enum | ✅ | `ongoing` \| `resolved` |
 | `type` | string enum | ✅ | `unplanned` (imprévue) \| `scheduled` (programmée). Tout signalement citoyen est `unplanned` ; les coupures `scheduled` sont alimentées par les opérateurs. |
+| `serviceType` | string enum | ✅ | `electricity` (défaut) \| `water`. Introduit avec le pivot multi-service 2026-06-24. **Rétro-compat** : un report sans le champ est lu comme `electricity` (`ServiceType.fromName(null)`) — aucun backfill nécessaire. Pose la grille de lecture des filtres liste/carte/stats + couleur du chip et du marqueur (ambre = élec, sky = eau ; vert = résolu commun). |
 | `position` | map `{lat, lng}` | ✅ | coordonnées GPS |
 | `location` | map `GeoArea` | ✅ | zone lisible (reverse-géocodage) |
 | `description` | string \| null | ✅ | texte libre |
@@ -140,11 +141,22 @@ Modèle Dart : `lib/models/device.dart`
 
 ## Règles de sécurité (`firestore.rules`)
 
-- **users** : lecture si connecté ; un utilisateur ne crée/modifie que son propre doc ; pas de suppression.
-- **reports** : lecture si connecté ; création réservée à l'auteur ; mise à jour/suppression par l'auteur, sauf `confirmationCount`/`updatedAt` modifiables par tout utilisateur connecté (confirmations).
-- **reports/{id}/confirmations** : lecture si connecté ; création/suppression uniquement par l'utilisateur lui-même (`uid == documentId`).
-- **reports/{id}/restorations** : symétrique aux confirmations. Lecture réservée à l'auteur du report, aux admins, ou au propriétaire de sa propre déclaration. Création/suppression par l'utilisateur lui-même, **y compris l'auteur du report**.
-- **devices** : un utilisateur ne lit/écrit/supprime que ses propres appareils (`userId == uid`) ; la Cloud Function d'envoi utilise l'Admin SDK (contourne les règles) pour lire tous les devices et purger les tokens périmés.
+Helper introduit avec le pivot anonyme (2026-06-24) :
+
+```
+function isAnonymous() {
+  return isSignedIn()
+    && request.auth.token.firebase.sign_in_provider == 'anonymous';
+}
+```
+
+- **users** : lecture par propriétaire ou admin ; un utilisateur ne crée/modifie que son propre doc ; pas de suppression. **`!isAnonymous()`** sur create/update → un anonyme ne peut PAS avoir de profil tant qu'il n'a pas upgradé via `linkWithCredential` (le `sign_in_provider` passe alors à `password`/`google.com`).
+- **usernames** : `get` public (résolution pseudo→email pré-auth) ; `list` interdit (anti-énumération) ; create/update réservé au propriétaire **et non-anonyme**.
+- **reports** : lecture si connecté (y compris anonyme) ; création réservée à l'auteur ; un tiers ne peut faire que **+1** sur un compteur (`bumpsCounterByOne`) **et** uniquement en déposant son propre vote dans le **même commit atomique** (`castsVote`). L'auteur ne peut pas confirmer sa propre coupure (mais peut déclarer son rétablissement).
+- **reports/{id}/confirmations** : lecture par auteur du report / admin / propriétaire de sa propre confirmation ; create par soi-même uniquement et **pas sur sa propre coupure**.
+- **reports/{id}/restorations** : symétrique aux confirmations, lecture limitée comme confirmations. Create par soi-même uniquement, **y compris l'auteur du report**.
+- **devices** : un utilisateur ne lit/écrit/supprime que ses propres appareils ET **non-anonyme** (pas de ciblage notifs sans homeLocation). La Cloud Function d'envoi utilise l'Admin SDK pour lire tous les devices et purger les tokens périmés.
+- **official_outages** : lecture si connecté ; **écriture client interdite** (alimenté par la Cloud Function d'ingestion Eneo via Admin SDK).
 
 ---
 
@@ -156,3 +168,5 @@ Modèle Dart : `lib/models/device.dart`
 - **Soft-delete des reports** via `archivedAt` : l'auteur peut retirer son signalement (disparaît immédiatement de l'app). Hard-delete récursif (sous-collections incluses) automatique après 30 jours via le cron `purgeArchivedReports`. Préserve les confirmations/restorations pour audit pendant la fenêtre de rétention.
 - **Identité publique = `@pseudo` uniquement.** Le prénom/nom vivent dans `users/{uid}` (lecture propriétaire/admin). Les signalements affichent `@pseudo` (champ `authorUsername` dénormalisé, immuable) ; les confirmations restent anonymes (« Vous »/« Un utilisateur »). Le pseudo étant immuable, la dénormalisation ne peut pas devenir incohérente. Pose les bases d'un futur fil social éphémère par coupure.
 - **Suppression de compte (RGPD / exigence stores)** via la Cloud Function callable `deleteAccount` (`Profil → Paramètres → Compte`). Stratégie **« anonymisation »** : les signalements de l'utilisateur sont conservés mais vidés de toute donnée perso (`userId=""`, `authorUsername=null`, `mediaUrl=null`) — la coupure reste un repère communautaire ; **profil**, **index pseudo**, **devices**, **médias Storage** (`report_media/{uid}/`) et **compte Auth** sont supprimés. Le compte Auth est supprimé en dernier (pas de données orphelines en cas d'échec). Procédure publique : `https://lightcutoff-dev.web.app/account-deletion`.
+- **Anonymous Auth « léger »** (pivot 2026-06-24) : `signInAnonymously` au 1ᵉʳ lancement → l'utilisateur peut signaler et voter sans inscription. Les fonctions sociales (profil, statistiques, suivi de quartier, notifs) sont gardées derrière un mur d'upgrade ; `linkWithCredential` préserve l'uid → l'historique anonyme reste attaché. Limite acceptée v1 : **réinstaller l'app = nouvel uid** (mitigée par App Check, à durcir avec un rate limit Cloud Function si besoin).
+- **Multi-service** (`ServiceType { electricity, water }`, pivot 2026-06-24) : un même schéma de report sert les deux services. Filtre persistant (`SharedPreferences` côté client) Tout / Électricité / Eau commun à la liste, la carte et les stats. Modèle de fournisseurs unifié `Utility { id, service, country, label, … }` ([`lib/config/utilities.dart`](lib/config/utilities.dart)) couvre Eneo (CM, élec) + CAMWATER (CM, eau) ; **adaptateur d'ingestion CAMWATER non implémenté** (l'ingestion Eneo continue de poser `serviceType = electricity`).

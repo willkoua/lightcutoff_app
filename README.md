@@ -1,6 +1,8 @@
 # NJUKA
 
-Application mobile de **signalement de coupures de courant** (Android & iOS), construite avec Flutter et Firebase. Les utilisateurs signalent les coupures dans leur zone (géolocalisées), confirment celles existantes, déclarent le retour du courant, suivent la résolution — et consultent les **coupures planifiées officielles** de leur fournisseur d'électricité (Eneo au Cameroun).
+Application mobile de **signalement de coupures de service public — électricité et eau** (Android & iOS), construite avec Flutter et Firebase. Les utilisateurs signalent les coupures dans leur zone (géolocalisées), confirment celles existantes, déclarent le retour du service, suivent la résolution — et consultent les **coupures planifiées officielles** de leur fournisseur d'électricité (Eneo au Cameroun).
+
+**Auth-light** (pivot 2026-06-24) : la lecture, le signalement et le vote sont accessibles **sans inscription** via Firebase Anonymous Auth ; la création d'un compte (profil, statistiques, suivi de quartier, notifications) reste optionnelle et **préserve l'historique anonyme** via `linkWithCredential`.
 
 - **Nom de l'app** : NJUKA — *« Le service, l'information. »*
 - **Package / module** : `lightcutoff_app`
@@ -28,20 +30,21 @@ Sans `APP_ENV` → `staging` (comportement historique) ; `USE_EMULATOR=true` →
 
 | Domaine | Livré |
 |---------|-------|
-| Authentification | login pseudo **ou** email, inscription (pseudo unique), vérif. email obligatoire, changement email/mdp, **suppression de compte RGPD** |
+| Authentification | **Anonymous Auth par défaut** (lecture/signalement/vote sans inscription) ; upgrade `linkWithCredential` préserve l'historique ; login pseudo **ou** email, inscription (pseudo unique), vérif. email obligatoire, changement email/mdp, **suppression de compte RGPD** |
+| Multi-service | **électricité + eau** (`ServiceType { electricity, water }`) — sélecteur formulaire, chips couleurs, marqueurs carte différenciés, filtre liste/carte/stats persistant |
 | Signalements | géoloc + reverse-geocoding, liste temps réel **paginée**, filtres/tri/recherche, anti-doublon 500 m, médias photo/GIF |
-| Crowd | **confirmations** & **« courant revenu »** (1 vote/user, transactionnel, **indicateur « tu as déjà voté »**), **auto-résolution** par seuil, archivage soft-delete + purge 30 j |
-| Statistiques | écran perso **« mes coupures »** + **« ma zone »** (compte, durées, répartition heure/jour) — agrégats anonymes |
-| Mesure | **Firebase Analytics** (funnel : inscription, signalement, confirmation… + screen views), collecte coupée en dev |
+| Crowd | **confirmations** & **« courant revenu »** (1 vote/uid, transactionnel — y compris anonyme, **indicateur « tu as déjà voté »**), **auto-résolution** par seuil, archivage soft-delete + purge 30 j |
+| Statistiques | écran perso **« mes coupures »** + **« ma zone »** (compte, durées, répartition heure/jour), **splittables par service** — agrégats anonymes |
+| Mesure | **Firebase Analytics** (funnel : `anonymous_started` → `anonymous_first_report` → `upgrade_started` → `upgrade_completed` + signalement/confirmation/restauration + screen views), collecte coupée en dev |
 | Coupures officielles | **programme Eneo ingéré quotidiennement** (Cloud Function) → segment « Programmées » (recherche quartier + filtre région), **suivre un quartier** + alerte push la veille |
-| Multi-pays | fournisseur résolu automatiquement (profil → locale → défaut), registre extensible ([`lib/config/electricity_providers.dart`](lib/config/electricity_providers.dart)) |
-| Carte | `flutter_map` + tuiles Stadia Maps (repli OSM) + clustering |
-| Notifications | FCM (foreground/background/app tuée + navigation), préférence opt-out |
+| Multi-pays | fournisseurs résolus automatiquement (profil → locale → défaut), registre extensible ([`lib/config/utilities.dart`](lib/config/utilities.dart) — `Utility { id, service, country, … }` unifié élec/eau) |
+| Carte | `flutter_map` + tuiles Stadia Maps (repli OSM) + clustering + marqueurs par service |
+| Notifications | FCM (foreground/background/app tuée + navigation), préférence opt-out, **N/A en anonyme** (pas de ciblage sans homeLocation) |
 | i18n | **FR / EN** complet (UI + erreurs), ARB + `flutter gen-l10n` |
-| Hors-ligne | persistance Firestore + bandeau global « Hors ligne » |
-| Qualité | App Check, Crashlytics, règles Firestore/Storage **testées** (compteurs durcis : +1 lié au vote), CI 3 jobs, 134 tests Dart + 21 tests functions + 31 tests de règles |
+| Hors-ligne | persistance Firestore + bandeau global « Hors ligne », écran « Réessayer » dédié si Anonymous Auth échoue au démarrage |
+| Qualité | App Check, Crashlytics, règles Firestore/Storage **testées** (compteurs durcis : +1 lié au vote ; `!isAnonymous()` sur `users`/`usernames`/`devices`), CI 3 jobs, **184 tests Dart** + 21 tests functions + **37 tests de règles** |
 
-Pistes restantes : APNs iOS (gelé — accès Apple Developer), prédiction de délestage, photo de profil.
+Pistes restantes : APNs iOS (gelé — accès Apple Developer), prédiction de délestage, photo de profil, ingestion CAMWATER (eau).
 
 ---
 
@@ -118,21 +121,26 @@ flutterfire configure --project=lightcutoff-dev --platforms=android,ios
 
 ## Authentification
 
-Flux géré par `AuthProvider` + `AuthGate`. Trois états :
+Flux géré par `AuthProvider` + `AuthGate`. **6 états** depuis le pivot 2026-06-24 :
 
-| État | Écran affiché |
-|------|---------------|
-| Non connecté | Login (`login_screen.dart`) |
-| Connecté, email non vérifié | Vérification (`email_verification_screen.dart`) |
-| Connecté, email vérifié | Home (`home_screen.dart`) |
+| État | Quand | Écran affiché |
+|------|-------|---------------|
+| `unknown` | Init, ou attente de `signInAnonymously` | `SplashScreen` |
+| `anonymous` | Session Firebase Anonymous Auth (défaut au 1ᵉʳ lancement) | `MainShell` (Home/Map/Profil) — mur d'upgrade côté Profil |
+| `awaitingVerification` | Compte créé, email non vérifié | `EmailVerificationScreen` |
+| `profileIncomplete` | 1ᵉʳ login social sans profil | `CompleteProfileScreen` |
+| `authenticated` | Compte vérifié + profil chargé | `MainShell` |
+| `unauthenticated` | `signInAnonymously` a échoué (offline / Anonymous Auth pas activé) | `AnonymousRetryScreen` (« Réessayer » + « J'ai déjà un compte ») |
 
-- **Inscription** : crée le compte Auth + le doc `users/{uid}` dans Firestore, puis envoie un email de vérification.
-- **Vérification email obligatoire** : l'accès à l'app est bloqué tant que l'email n'est pas confirmé.
-  - En **production** : un vrai email est envoyé.
-  - Avec les **émulateurs** : aucun email réel — récupérer le lien dans l'Emulator UI (Auth) ou via
-    `curl http://localhost:9099/emulator/v1/projects/lightcutoff-dev/oobCodes`.
-- **Téléphone** : champ avec sélecteur d'indicatif international (`intl_phone_field`), défaut Cameroun (+237). Le numéro est stocké au format complet (`+237...`).
+- **Lecture / signalement / vote** : possibles dès `anonymous` (uid présent, App Check + règles `castsVote` intactes). **Aucune référence à l'auteur** n'est affichée sur les reports anonymes.
+- **Upgrade** : depuis le mur du Profil → `UpgradeAccountScreen` → `auth.upgradeWithEmail(...)` (`linkWithCredential` → uid préservé → tous les reports/votes anonymes restent attachés). Bascule auto vers `awaitingVerification`.
+- **Inscription classique** (sans passer par l'anonyme) : reste disponible via « J'ai déjà un compte » → `LoginScreen` → `RegisterScreen`.
+- **Vérification email obligatoire** : pour les comptes réels uniquement (pas en anonyme). Avec les émulateurs : récupérer le lien dans l'Emulator UI (Auth) ou via `curl http://localhost:9099/emulator/v1/projects/lightcutoff-dev/oobCodes`.
+- **Téléphone** : champ avec sélecteur d'indicatif international (`intl_phone_field`), défaut Cameroun (+237).
+- **Reset session anonyme** : Paramètres → « Effacer cette session anonyme » → `signOut` + nouvelle session anonyme. **Réinstaller l'app = nouvel uid anonyme** (perte de l'historique device — limite acceptée v1, mitigée par App Check).
 - **Compte désactivé** : un utilisateur dont le profil a `status: disabled` est déconnecté avec un message.
+
+> ⚠️ Anonymous Auth doit être activé côté console Firebase (`lightcutoff-dev` → Authentication → Sign-in method → Anonymous). Sinon `signInAnonymously` renvoie `admin-restricted-operation` et l'app reste sur `AnonymousRetryScreen`.
 
 ---
 
@@ -177,7 +185,7 @@ flutter run --dart-define=APP_ENV=prod
 
 - La **clé Stadia** est nécessaire pour la carte : ajouter `--dart-define=STADIA_API_KEY=…` (sinon repli OSM, acceptable en dev).
 - En `dev`, l'hôte des émulateurs est résolu automatiquement : `10.0.2.2` sur émulateur Android, `localhost` sinon. Override : `--dart-define=EMULATOR_HOST=192.168.x.x` (appareil physique). Démarrer les émulateurs avant (`firebase emulators:start`).
-- Les **outils dev** (sélecteur de langue, sélecteur pays/compagnie d'électricité dans Paramètres) sont visibles en dev **et** staging, jamais en prod.
+- Les **outils dev** dans Paramètres (sélecteur de langue, sélecteurs pays/compagnie **par service** — un champ Électricité + un champ Eau avec auto-coupling symétrique sur le pays) sont visibles en dev **et** staging, jamais en prod.
 
 Config : [`lib/config/app_config.dart`](lib/config/app_config.dart), branchement dans [`lib/main.dart`](lib/main.dart).
 
@@ -296,16 +304,16 @@ Types de tests :
   ├── main.dart            # point d'entrée + init Firebase + garde prod + bascule émulateurs
   ├── app.dart             # MaterialApp, thème, MultiProvider, bannière d'env
   ├── firebase_options.dart
-  ├── config/              # AppConfig (APP_ENV, hôte, ports), AppConstants, electricity_providers
+  ├── config/              # AppConfig (APP_ENV, hôte, ports), AppConstants, utilities (Eneo/CAMWATER)
   ├── l10n/                # ARB FR/EN → généré dans l10n/generated/ (gitignoré)
-  ├── models/              # modèles de données + enums (voir SCHEMA.md)
+  ├── models/              # modèles de données + enums (ServiceType, voir SCHEMA.md)
   ├── repositories/        # contrats abstraits (AuthRepository, ReportRepository, OfficialOutage…)
   ├── services/            # implémentations concrètes (Firebase/geolocator)
-  ├── providers/           # gestion d'état (Auth, Report, Locale, Connectivity, Region…)
-  ├── screens/             # écrans / pages
-  ├── widgets/             # composants réutilisables
-  ├── theme/               # couleurs + ThemeData (charte graphique)
-  └── utils/               # helpers (validators, formatting, l10n_helpers…)
+  ├── providers/           # gestion d'état (Auth, Report, Locale, Connectivity, Region, Stats…)
+  ├── screens/             # écrans / pages (anonymous_retry, upgrade_account…)
+  ├── widgets/             # composants (service_filter_bar, anonymous_first_report_sheet…)
+  ├── theme/               # couleurs + ThemeData (charte graphique, AppColors.water)
+  └── utils/               # helpers (validators, formatting, l10n_helpers, service_visuals…)
   ```
 - **Architecture en couches** : `Provider → Repository (interface) → Service (impl) → Firebase`.
   Les providers dépendent des **interfaces** (`repositories/`), pas des implémentations
@@ -362,16 +370,16 @@ lightcutoff_app/
 │   ├── main.dart              # Point d'entrée + init Firebase + garde prod + émulateurs
 │   ├── app.dart               # MaterialApp, thème, MultiProvider, bannière d'env
 │   ├── firebase_options.dart  # Config Firebase (généré)
-│   ├── config/                # AppConfig (3 envs), AppConstants, electricity_providers
+│   ├── config/                # AppConfig (3 envs), AppConstants, utilities (Eneo + CAMWATER)
 │   ├── l10n/                  # ARB FR/EN (généré dans l10n/generated/, gitignoré)
-│   ├── models/                # AppUser, Report, Confirmation, OfficialOutage, enums, geo
+│   ├── models/                # AppUser, Report (+serviceType), Confirmation, OfficialOutage, enums
 │   ├── repositories/          # interfaces Auth/Report/Location/OfficialOutage
 │   ├── services/              # implémentations Firebase/geolocator
-│   ├── providers/             # Auth, Report, Locale, Connectivity, Region, OfficialOutage
-│   ├── screens/               # onboarding, login, home (segments), carte, profil, settings, détail
-│   ├── widgets/               # report_card, official_outage(s)_*, offline_banner…
-│   ├── theme/                 # AppColors, AppTheme (charte graphique)
-│   └── utils/                 # validators, formatting, l10n_helpers, geohash
+│   ├── providers/             # Auth, Report, Locale, Connectivity, Region (+ serviceFilter), Stats, OfficialOutage
+│   ├── screens/               # onboarding, login, home, carte, profil, settings, anonymous_retry, upgrade_account…
+│   ├── widgets/               # report_card, service_filter_bar, anonymous_first_report_sheet, official_outage…
+│   ├── theme/                 # AppColors (+water), AppTheme (charte graphique)
+│   └── utils/                 # validators, formatting, l10n_helpers, geohash, service_visuals
 ├── functions/                 # Cloud Functions (Node 22, TS) — FCM, ingestion Eneo, RGPD
 │   └── src/sources/           # adaptateurs fournisseurs (eneo.ts) — multi-pays
 ├── android/                   # Projet Android (minSdk 23, Kotlin 2.1.0)

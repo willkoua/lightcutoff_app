@@ -58,26 +58,39 @@ Providers hold `ChangeNotifier` state and call repository interfaces — never s
 ### Navigation flow
 
 ```
-NjukaApp (MultiProvider: AuthProvider + LocaleProvider)
+NjukaApp (MultiProvider: AuthProvider + LocaleProvider + ConnectivityProvider + RegionProvider)
   └─ OnboardingGate          checks SharedPrefs "onboarding_seen"
        ├─ OnboardingScreen   first launch only
-       └─ AuthGate           listens to AuthProvider.status
-            ├─ SplashScreen  (unknown)
-            ├─ LoginScreen   (unauthenticated)
-            ├─ EmailVerificationScreen  (awaitingVerification)
-            └─ MainShell     (authenticated) — scopes ReportProvider here
-                 ├─ HomeScreen   (tab 0)
-                 ├─ MapScreen    (tab 1)
-                 └─ ProfileScreen (tab 2)
+       └─ AuthGate           listens to AuthProvider.status (6 states since 2026-06-24)
+            ├─ SplashScreen           (unknown)
+            ├─ MainShell              (anonymous)     — Firebase Anonymous Auth, profile wall
+            ├─ MainShell              (authenticated) — full profile
+            ├─ EmailVerificationScreen (awaitingVerification)  — post-register or post-upgrade
+            ├─ CompleteProfileScreen  (profileIncomplete)      — post first social sign-in
+            └─ AnonymousRetryScreen   (unauthenticated)        — signInAnonymously failed
+                 └─ MainShell tabs : HomeScreen / MapScreen / ProfileScreen
 ```
 
 `MainShell` is also where FCM push tap → `ReportDetailScreen` navigation happens via `NotificationService.pendingReportId` (a `ValueNotifier`). Direct navigation with `navigatorKey` is avoided because `ReportProvider` is scoped under `AuthGate`.
 
+### Anonymous auth (pivot 2026-06-24)
+
+`AuthProvider._onAuthStateChanged(null)` triggers `signInAnonymously()` once per provider lifetime (anti-loop flag). The resulting anonymous user reaches `AuthStatus.anonymous` and is allowed to **read, signal, and vote** — Firestore rules require only `request.auth != null`. Social features (profile, stats, follow quartier, FCM) are gated by `!isAnonymous()` rules (firestore.rules helper `isAnonymous() = sign_in_provider == 'anonymous'`). Upgrade flow:
+
+- `ProfileScreen` shows `_UpgradeWall` when `auth.isAnonymous` → `UpgradeAccountScreen` (full form).
+- `auth.upgradeWithEmail(...)` calls `_service.upgradeAnonymous(...)` which does `linkWithCredential` + `getIdToken(true)` (force refresh so `sign_in_provider` flips before the Firestore batch) + atomic `users/{uid}` + `usernames/{u}` write + `sendEmailVerification`.
+- `linkWithCredential` does NOT always fire `authStateChanges` (same uid) → `upgradeWithEmail` manually replays `_onAuthStateChanged(currentUser)` to transition `anonymous → awaitingVerification`.
+
+### Multi-service (pivot 2026-06-24)
+
+`ServiceType { electricity, water }` lives on each report (default `electricity` at read for backward compat). `Utility { id, service, country, label }` in `lib/config/utilities.dart` replaces the old `ElectricityProvider` — Eneo (CM, elec) + CAMWATER (CM, water). `RegionProvider` exposes `activeUtility(ServiceType)` and a persistent `serviceFilter` (`SharedPreferences`). The settings picker has **two tiles** (one per service) with **symmetric auto-coupling**: setting one slot aligns the other on the same country; picking "Auto" on either side resets both.
+
 ### Key providers
 
-- **`AuthProvider`** — wraps `AuthRepository`, drives `AuthGate`. Calls `NotificationService.registerForUser` / `unregister` on auth state changes.
-- **`ReportProvider`** — owns the real-time Firestore stream (`watchReports`), filters/sort state, proximity queries, and all report mutations (confirm, restore, archive). Also implements `WidgetsBindingObserver` to pause/resume the proximity refresh timer when the app goes to background. Tracks the current user's own votes (`iConfirmed`/`iRestored`, set optimistically on action and hydrated from the server via `hydrateMyVotes`) so the UI shows "you already voted".
-- **`StatsProvider`** — personal statistics (Profile → Stats): "my outages" (`reportsByAuthor`) and "my area" (`reportsWithinRadius`). Aggregation logic is a pure, tested function in `lib/utils/outage_stats.dart`.
+- **`AuthProvider`** — wraps `AuthRepository`, drives `AuthGate`. Auto sign-in anonymous on null user (with anti-loop flag); calls `NotificationService.registerForUser` / `unregister` on auth state changes (skipped for anonymous). `refreshVerification` ALSO calls `registerForUser` to enable notifs immediately after email verification (fixed a latent bug where notifs required an app restart).
+- **`ReportProvider`** — owns the real-time Firestore stream (`watchReports`), filters/sort state, proximity queries, and all report mutations (confirm, restore, archive). Holds a `_serviceFilter: ServiceType?` (fed from `RegionProvider.serviceFilter` via `AuthGate` proxy) applied **client-side** in `filteredReports` — no Firestore composite index needed. Also implements `WidgetsBindingObserver` to pause/resume the proximity refresh timer when the app goes to background. Tracks the current user's own votes (`iConfirmed`/`iRestored`, set optimistically on action and hydrated from the server via `hydrateMyVotes`) so the UI shows "you already voted".
+- **`RegionProvider`** — active country (override → GPS → profile → locale → CM) + `activeUtility(ServiceType)` + persistent `serviceFilter` + 2 dev overrides (one per service) with symmetric auto-coupling.
+- **`StatsProvider`** — personal statistics (Profile → Stats): "my outages" (`reportsByAuthor`) and "my area" (`reportsWithinRadius`). Keeps **raw lists**, computes `OutageStats` on demand via `mineFor(ServiceType?)` / `zoneFor(ServiceType?)` — no network reload when the service filter changes. Aggregation logic is a pure, tested function in `lib/utils/outage_stats.dart`.
 
 Cross-cutting services accessed as singletons (not via repositories, like `NotificationService`): `AnalyticsService.instance` (Firebase Analytics — funnel events + `navigatorObservers` screen views; **collection disabled in dev**, never throws into a user flow).
 
@@ -103,7 +116,14 @@ validator: AppLocalizations.of(context).validateEmail
 ```dart
 outageStatusLabel(context, report.status)
 outageTypeLabel(context, report.type)
+serviceTypeLabel(context, report.serviceType)
 relativeTimeL10n(context, report.reportedAt)
+```
+
+**Service visuals** (icon + color, shared between form selector, chips, markers) go through `lib/widgets/service_visuals.dart`:
+```dart
+serviceTypeIcon(ServiceType.water)   // Icons.water_drop
+serviceTypeColor(ServiceType.water)  // AppColors.water (sky-500)
 ```
 
 When adding a new string: add the key to `lib/l10n/app_fr.arb` (template) **and** `lib/l10n/app_en.arb`, then run `flutter gen-l10n`.
@@ -160,8 +180,10 @@ final l = await AppLocalizations.delegate.load(const Locale('fr'));
 See `SCHEMA.md` for the full Firestore schema. Key points for code work:
 
 - **Report soft-delete**: `archivedAt != null` means deleted — filter it in every query. Hard-purge runs via Cloud Function cron after 30 days.
-- **Confirmations / Restorations**: subcollections of `reports/{id}`, document ID = `uid` (one vote per user). Counter on the parent doc is incremented **client-side in the same atomic transaction** that creates the vote doc. ⚠️ **Security invariant** (`firestore.rules`): a non-author may change a counter only by **+1** *and* only while creating their own vote doc in the same commit (`bumpsCounterByOne` + `castsVote` via `exists`/`existsAfter`). If you ever move the increment elsewhere (e.g. a Cloud Function), you **must** update these rules or the write will be rejected.
-- **Auto-resolution**: `onRestorationCreated` Cloud Function triggers when `restorationCount` crosses `max(restorationMinVotes, ceil(confirmationCount × restorationRatio))`. Constants live in `AppConstants`.
+- **Confirmations / Restorations**: subcollections of `reports/{id}`, document ID = `uid` (one vote per user — including anonymous uid). Counter on the parent doc is incremented **client-side in the same atomic transaction** that creates the vote doc. ⚠️ **Security invariant** (`firestore.rules`): a non-author may change a counter only by **+1** *and* only while creating their own vote doc in the same commit (`bumpsCounterByOne` + `castsVote` via `exists`/`existsAfter`). If you ever move the increment elsewhere (e.g. a Cloud Function), you **must** update these rules or the write will be rejected.
+- **Auto-resolution**: `onRestorationCreated` Cloud Function triggers when `restorationCount` crosses `max(restorationMinVotes, ceil(confirmationCount × restorationRatio))`. Service-agnostic (works for electricity AND water). Constants live in `AppConstants`.
 - **Geohash** precision 6 (≈1.2 km cell) is stored on every report for proximity queries. The `geohash.dart` utility is pure Dart (no plugin dependency).
-- **`authorUsername`** on reports is denormalized at creation and immutable — do not update it on profile edits.
-- **`AppColors.primary`** is `#F88E01` (amber); `AppColors.dark` is `#1A1A1A` (charcoal).
+- **`authorUsername`** on reports is denormalized at creation and immutable — do not update it on profile edits. **`null` for anonymous reports** — `ReportCard` shows NO author reference at all in that case (no chip, no "Anonymous" label — explicit decision 2026-06-24).
+- **`serviceType`** on reports: `electricity` (default) or `water`. Legacy reports without the field are read as `electricity` (`ServiceType.fromName(null)`) — no backfill needed. `ReportCard._ServiceChip` shows the service in tile color; map markers (`_ServiceMarker`) overlay a service icon (bolt / water_drop) on the colored pin.
+- **`!isAnonymous()`** rule on `users`/`usernames`/`devices` create/update: an anonymous session cannot have a profile, pseudo, or device doc until it upgrades via `linkWithCredential` (which flips `sign_in_provider` to `password` or `google.com`).
+- **`AppColors.primary`** is `#F88E01` (amber); `AppColors.dark` is `#1A1A1A` (charcoal); `AppColors.water` is `#0EA5E9` (sky-500).
