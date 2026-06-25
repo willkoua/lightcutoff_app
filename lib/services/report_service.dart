@@ -142,13 +142,16 @@ class ReportService implements ReportRepository {
   /// Confirme une coupure : un vote unique par utilisateur, compteur incrémenté
   /// de façon atomique. Sans effet si l'utilisateur a déjà confirmé.
   @override
-  Future<void> confirmReport(String reportId, String uid) {
+  Future<void> confirmReport(String reportId, String uid, {String? geohash}) {
     final reportRef = _reports.doc(reportId);
     final confRef = reportRef.collection('confirmations').doc(uid);
     return _db.runTransaction((tx) async {
       final existing = await tx.get(confRef);
       if (existing.exists) return;
-      tx.set(confRef, {'createdAt': FieldValue.serverTimestamp()});
+      tx.set(confRef, {
+        'createdAt': FieldValue.serverTimestamp(),
+        if (geohash != null) 'geohash': geohash,
+      });
       tx.update(reportRef, {
         'confirmationCount': FieldValue.increment(1),
         'updatedAt': FieldValue.serverTimestamp(),

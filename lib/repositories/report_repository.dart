@@ -39,7 +39,10 @@ abstract class ReportRepository {
 
   Future<bool> hasConfirmed(String reportId, String uid);
 
-  Future<void> confirmReport(String reportId, String uid);
+  /// Confirme une coupure. [geohash] = cellule grossière (≈1,2 km) de la
+  /// position du confirmeur au moment du vote, conservée sur le doc de vote pour
+  /// une éventuelle estimation d'étendue ultérieure ; `null` si indisponible.
+  Future<void> confirmReport(String reportId, String uid, {String? geohash});
 
   /// Déclare que le courant est revenu chez [uid] pour cette coupure.
   /// Un seul vote par utilisateur — sans effet si déjà déclaré. Incrémente

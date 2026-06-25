@@ -667,7 +667,12 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
     // Garde : on ne confirme pas sa propre coupure.
     if (reportById(reportId)?.userId == uid) return false;
     try {
-      await _service.confirmReport(reportId, uid);
+      // Position grossière du confirmeur (geohash ≈1,2 km), conservée sur le
+      // vote pour estimer plus tard l'étendue d'une coupure. Best-effort : si la
+      // position n'est pas dispo, on confirme quand même sans geohash.
+      final pos = await myPosition();
+      final geohash = pos == null ? null : encodeGeohash(pos.lat, pos.lng);
+      await _service.confirmReport(reportId, uid, geohash: geohash);
       _myConfirmedIds.add(reportId);
       AnalyticsService.instance.logReportConfirmed();
       // En mode proximité (requête ponctuelle), on resynchronise tout de suite.
