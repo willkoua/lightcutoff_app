@@ -82,4 +82,24 @@ class AnalyticsService {
   /// L'utilisateur (dé)suit un quartier pour les alertes planifiées.
   Future<void> logQuartierFollowed({required bool following}) =>
       _log('quartier_follow_toggled', {'following': following});
+
+  // --- Funnel session anonyme (migration pivot 2026-06-24) -----------------
+
+  /// Une session **Firebase Anonymous Auth** vient de démarrer (1 par lancement
+  /// d'app au plus, géré côté `AuthProvider` via flag local). Sert de
+  /// dénominateur pour mesurer le taux de conversion anonyme → compte réel.
+  Future<void> logAnonymousStarted() => _log('anonymous_started');
+
+  /// Le **1ᵉʳ signalement** d'une session anonyme vient d'être créé.
+  /// Indicateur d'engagement réel (l'utilisateur a franchi la friction d'un
+  /// vrai usage métier). Posé une seule fois par appareil — même flag
+  /// SharedPrefs que la bottom-sheet « Garde tes signalements ».
+  Future<void> logAnonymousFirstReport() => _log('anonymous_first_report');
+
+  /// L'utilisateur a ouvert `UpgradeAccountScreen` (intention d'upgrade).
+  Future<void> logUpgradeStarted() => _log('upgrade_started');
+
+  /// `linkWithCredential` a réussi : l'utilisateur a réellement upgradé.
+  /// Avec `anonymous_started` au dénominateur = taux de conversion.
+  Future<void> logUpgradeCompleted() => _log('upgrade_completed');
 }

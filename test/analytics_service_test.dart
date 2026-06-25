@@ -53,4 +53,37 @@ void main() {
     await service.logSignUp();
     verify(() => analytics.logSignUp(signUpMethod: 'email')).called(1);
   });
+
+  group('funnel session anonyme', () {
+    test('logAnonymousStarted émet anonymous_started', () async {
+      await service.logAnonymousStarted();
+      verify(
+        () => analytics.logEvent(name: 'anonymous_started', parameters: null),
+      ).called(1);
+    });
+
+    test('logAnonymousFirstReport émet anonymous_first_report', () async {
+      await service.logAnonymousFirstReport();
+      verify(
+        () => analytics.logEvent(
+          name: 'anonymous_first_report',
+          parameters: null,
+        ),
+      ).called(1);
+    });
+
+    test('logUpgradeStarted émet upgrade_started', () async {
+      await service.logUpgradeStarted();
+      verify(
+        () => analytics.logEvent(name: 'upgrade_started', parameters: null),
+      ).called(1);
+    });
+
+    test('logUpgradeCompleted émet upgrade_completed', () async {
+      await service.logUpgradeCompleted();
+      verify(
+        () => analytics.logEvent(name: 'upgrade_completed', parameters: null),
+      ).called(1);
+    });
+  });
 }

@@ -147,6 +147,14 @@ class _FollowButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    // En session anonyme : `users/{uid}` n'existe pas (règle `!isAnonymous()`),
+    // donc `toggleFollowQuartier` taperait dans le mur Firestore. On masque le
+    // bouton — l'utilisateur passe par le mur d'upgrade du Profil pour
+    // débloquer les notifs et le suivi de quartier.
+    final isAnonymous = context.select<AuthProvider, bool>(
+      (a) => a.isAnonymous,
+    );
+    if (isAnonymous) return const SizedBox.shrink();
     final following = context.select<AuthProvider, bool>(
       (a) => a.isFollowingQuartier(outageKey),
     );

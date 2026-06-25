@@ -8,15 +8,19 @@ import '../utils/formatting.dart';
 import '../utils/l10n_helpers.dart';
 import 'account_security_screen.dart';
 import 'edit_profile_screen.dart';
+import 'login_screen.dart';
 import 'settings_screen.dart';
 import 'stats_screen.dart';
+import 'upgrade_account_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final profile = context.watch<AuthProvider>().profile;
+    final auth = context.watch<AuthProvider>();
+    final profile = auth.profile;
+    final isAnonymous = auth.isAnonymous;
     final l = AppLocalizations.of(context);
 
     return Scaffold(
@@ -34,6 +38,9 @@ class ProfileScreen extends StatelessWidget {
                     ),
                   ),
             ),
+          // Paramètres TOUJOURS accessibles, y compris en session anonyme :
+          // langue, légal, env dev, "Effacer cette session" → décision pivot
+          // 2026-06-24, on ne bloque pas l'accès aux réglages derrière l'upgrade.
           IconButton(
             tooltip: l.profileTooltipSettings,
             icon: const Icon(Icons.settings_outlined),
@@ -45,7 +52,9 @@ class ProfileScreen extends StatelessWidget {
         ],
       ),
       body:
-          profile == null
+          isAnonymous
+              ? const _UpgradeWall()
+              : profile == null
               ? const Center(child: CircularProgressIndicator())
               : ListView(
                 padding: const EdgeInsets.all(20),
@@ -199,6 +208,132 @@ class _Avatar extends StatelessWidget {
             color: AppColors.dark,
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Mur d'upgrade affiché à la place du profil pour une session anonyme.
+/// 2 CTA : « Créer un compte » (→ [UpgradeAccountScreen] via
+/// `linkWithCredential`, préserve l'historique anonyme) et « J'ai déjà un
+/// compte » (→ [LoginScreen], **après confirmation** : on perd l'historique
+/// car Firebase ne fusionne pas deux uid).
+class _UpgradeWall extends StatelessWidget {
+  const _UpgradeWall();
+
+  Future<void> _confirmLoginSwitch(BuildContext context) async {
+    final l = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: Text(l.profileUpgradeWallLoginWarningTitle),
+            content: Text(l.profileUpgradeWallLoginWarningBody),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: Text(l.actionCancel),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: Text(l.actionConfirm),
+              ),
+            ],
+          ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const LoginScreen()));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return SafeArea(
+      child: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          const SizedBox(height: 16),
+          const Icon(
+            Icons.account_circle_outlined,
+            size: 72,
+            color: AppColors.primary,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            l.profileUpgradeWallHeading,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            l.profileUpgradeWallBody,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AppColors.gray),
+          ),
+          const SizedBox(height: 24),
+          _BenefitRow(
+            icon: Icons.badge_outlined,
+            label: l.profileUpgradeWallBenefitProfile,
+          ),
+          _BenefitRow(
+            icon: Icons.insights_outlined,
+            label: l.profileUpgradeWallBenefitStats,
+          ),
+          _BenefitRow(
+            icon: Icons.location_searching,
+            label: l.profileUpgradeWallBenefitFollow,
+          ),
+          _BenefitRow(
+            icon: Icons.notifications_active_outlined,
+            label: l.profileUpgradeWallBenefitNotifs,
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed:
+                () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const UpgradeAccountScreen(),
+                  ),
+                ),
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size.fromHeight(50),
+            ),
+            child: Text(l.profileUpgradeWallCTA),
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: () => _confirmLoginSwitch(context),
+            child: Text(l.profileUpgradeWallAlreadyAccount),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BenefitRow extends StatelessWidget {
+  const _BenefitRow({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Icon(icon, color: AppColors.primary, size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(fontSize: 15, color: AppColors.dark),
+            ),
+          ),
+        ],
       ),
     );
   }

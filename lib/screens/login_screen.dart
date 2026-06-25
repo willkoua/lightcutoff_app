@@ -7,6 +7,7 @@ import '../providers/auth_provider.dart';
 import '../theme/app_colors.dart';
 import '../utils/l10n_helpers.dart';
 import '../utils/validators.dart';
+import 'forgot_password_screen.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -127,7 +128,32 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     validator: l.validatePassword,
                   ),
-                  const SizedBox(height: 24),
+                  // « Mot de passe oublié ? » — pré-rempli avec l'identifiant
+                  // déjà saisi pour éviter une double saisie.
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed:
+                          busy
+                              ? null
+                              : () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder:
+                                      (_) => ForgotPasswordScreen(
+                                        initialIdentifier:
+                                            _identifier.text.trim(),
+                                      ),
+                                ),
+                              ),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        minimumSize: const Size(0, 32),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(l.loginForgotPassword),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: busy ? null : _submit,
                     child:

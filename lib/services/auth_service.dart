@@ -23,6 +23,8 @@ class AuthService implements AuthRepository {
   User? get currentUser => _auth.currentUser;
   @override
   bool get isEmailVerified => _auth.currentUser?.emailVerified ?? false;
+  @override
+  bool get isAnonymous => _auth.currentUser?.isAnonymous ?? false;
 
   CollectionReference<Map<String, dynamic>> get _users =>
       _firestore.collection('users');
@@ -201,6 +203,67 @@ class AuthService implements AuthRepository {
   }
 
   @override
+  Future<void> signInAnonymously() async {
+    await _auth.signInAnonymously();
+  }
+
+  @override
+  Future<void> upgradeAnonymous({
+    required String email,
+    required String password,
+    required String firstName,
+    required String lastName,
+    required String username,
+    String? phoneNumber,
+    DateTime? birthDate,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null || !user.isAnonymous) {
+      throw FirebaseAuthException(code: 'no-current-user');
+    }
+    final uname = _normUsername(username);
+    // Best-effort avant le link : si pris, on échoue tôt (le compte anonyme
+    // reste intact, l'utilisateur peut réessayer avec un autre pseudo).
+    if (!await isUsernameAvailable(uname)) {
+      throw FirebaseAuthException(code: 'username-already-in-use');
+    }
+    final emailCred = EmailAuthProvider.credential(
+      email: email.trim(),
+      password: password,
+    );
+    // Link : l'uid est PRÉSERVÉ, l'historique anonyme (reports/votes) reste
+    // attaché. Le sign_in_provider passe d'« anonymous » à « password » →
+    // les règles Firestore autorisent à présent la création de profil/pseudo.
+    final cred = await user.linkWithCredential(emailCred);
+    final upgraded = cred.user!;
+    // Force le rafraîchissement du token pour que le prochain commit Firestore
+    // porte bien le nouveau `sign_in_provider` (sinon risque de PERMISSION_DENIED
+    // sur la création de profil avec un token encore « anonymous »).
+    await upgraded.getIdToken(true);
+
+    final uid = upgraded.uid;
+    final appUser = AppUser(
+      uid: uid,
+      email: email.trim(),
+      username: uname,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      birthDate: birthDate,
+      phoneNumber: phoneNumber?.trim(),
+      role: UserRole.citizen,
+      status: AccountStatus.active,
+    );
+    await upgraded.updateDisplayName(appUser.fullName);
+
+    final batch = _firestore.batch();
+    batch.set(_users.doc(uid), appUser.toCreateMap());
+    batch.set(_usernamesRef.doc(uname), {'uid': uid, 'email': email.trim()});
+    await batch.commit();
+
+    await upgraded.sendEmailVerification();
+  }
+
+  @override
   Future<void> updateProfile({
     required String firstName,
     required String lastName,
@@ -289,6 +352,36 @@ class AuthService implements AuthRepository {
       _auth.currentUser?.sendEmailVerification() ?? Future.value();
   @override
   Future<void> reloadUser() => _auth.currentUser?.reload() ?? Future.value();
+
+  @override
+  Future<void> sendPasswordResetEmail({required String identifier}) async {
+    final id = identifier.trim();
+    if (id.isEmpty) {
+      throw FirebaseAuthException(code: 'invalid-email');
+    }
+    String? email;
+    if (id.contains('@')) {
+      email = id;
+    } else {
+      // Pseudo → email via l'index public (même chemin que signInWithIdentifier).
+      final doc = await _usernamesRef.doc(_normUsername(id)).get();
+      email = doc.data()?['email'] as String?;
+      if (email == null) {
+        // Pseudo inexistant : silencieux pour ne pas révéler l'existence
+        // (ou non) du compte.
+        return;
+      }
+    }
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+    } on FirebaseAuthException catch (e) {
+      // `user-not-found` (email inconnu) : silencieux — pas de leak.
+      // Autres codes (`invalid-email`, `network-request-failed`…) : on
+      // propage pour mappage `AppError` côté provider.
+      if (e.code == 'user-not-found') return;
+      rethrow;
+    }
+  }
 
   @override
   Future<void> signOut() async {

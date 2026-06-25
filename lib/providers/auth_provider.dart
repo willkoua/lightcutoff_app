@@ -14,6 +14,12 @@ import '../utils/crash_reporter.dart';
 
 enum AuthStatus {
   unknown,
+
+  /// Session **Firebase Anonymous Auth** (uid présent, sans email/profil).
+  /// L'utilisateur peut signaler et voter ; les fonctions sociales (profil,
+  /// stats, notifs, suivi quartier) sont gardées derrière un mur d'upgrade.
+  anonymous,
+
   authenticated,
   awaitingVerification,
 
@@ -21,6 +27,11 @@ enum AuthStatus {
   /// login social (Google) → l'utilisateur doit choisir un pseudo et compléter
   /// son profil avant d'entrer dans l'app.
   profileIncomplete,
+
+  /// Aucune session active **et** la tentative de signInAnonymously a échoué
+  /// (souvent : hors-ligne, ou Anonymous Auth non activé côté console). L'UI
+  /// affiche un écran « Réessayer », ne re-tente PAS automatiquement (évite la
+  /// boucle). Le bouton « J'ai déjà un compte » reste accessible.
   unauthenticated,
 }
 
@@ -42,25 +53,71 @@ class AuthProvider extends ChangeNotifier {
   bool _busy = false;
   AppError? _error;
 
+  /// Vrai si une tentative d'auto-`signInAnonymously` a déjà été lancée pendant
+  /// cette session de provider. Garde-fou anti-boucle : on ne retente pas
+  /// automatiquement après un échec — c'est à l'UI (écran « Réessayer »)
+  /// d'appeler [retryAnonymousSignIn].
+  bool _anonymousSignInAttempted = false;
+
+  /// Vrai si l'event analytics `anonymous_started` a déjà été émis pour la
+  /// session courante. Évite les doublons quand le listener d'auth re-fire sur
+  /// la même session anonyme (rotation de token, reload, etc.).
+  bool _anonymousStartedLogged = false;
+
   AuthStatus get status => _status;
   AppUser? get profile => _profile;
   bool get busy => _busy;
   AppError? get error => _error;
 
+  /// `true` si la session courante est anonyme (Firebase Anonymous Auth).
+  bool get isAnonymous => _service.isAnonymous;
+
   Future<void> _onAuthStateChanged(User? user) async {
     CrashReporter.setUser(user?.uid);
     if (user == null) {
       _profile = null;
-      _status = AuthStatus.unauthenticated;
       // Désinscription du device pour ne plus recevoir de notifs.
       unawaited(_notifications.unregister());
+      // Première arrivée sans session → on tente une session anonyme
+      // transparente. Le listener sera rappelé avec le User anonyme.
+      if (!_anonymousSignInAttempted) {
+        _anonymousSignInAttempted = true;
+        _status = AuthStatus.unknown;
+        notifyListeners();
+        try {
+          await _service.signInAnonymously();
+          // Pas de notifyListeners ici : le listener re-fire avec le User.
+          return;
+        } catch (e, st) {
+          CrashReporter.recordError(e, st, reason: 'anonymous sign-in');
+          _status = AuthStatus.unauthenticated;
+          _error = AppError.networkRequestFailed;
+        }
+      } else {
+        // Échec déjà passé OU déconnexion explicite : on reste en
+        // unauthenticated, l'UI affiche « Réessayer ».
+        _status = AuthStatus.unauthenticated;
+      }
+    } else if (user.isAnonymous) {
+      // Session anonyme : pas de profil, pas de device notifs. L'utilisateur
+      // peut signaler et voter ; les fonctions sociales sont gardées par un
+      // mur d'upgrade dans l'UI.
+      _profile = null;
+      _status = AuthStatus.anonymous;
+      // Analytics : dénominateur du funnel de conversion. Une seule fois par
+      // session de provider (réarmé par logout).
+      if (!_anonymousStartedLogged) {
+        _anonymousStartedLogged = true;
+        unawaited(AnalyticsService.instance.logAnonymousStarted());
+      }
     } else if (!user.emailVerified) {
       _profile = null;
       _status = AuthStatus.awaitingVerification;
     } else {
-      // Email vérifié : on charge le profil. Absent (1er login social) →
-      // profileIncomplete. En cas d'erreur réseau, on ne bloque pas un
-      // utilisateur existant (on reste authenticated avec le profil connu).
+      // Email vérifié : on charge le profil. Absent (1er login social ou
+      // upgrade en cours de finition) → profileIncomplete. En cas d'erreur
+      // réseau, on ne bloque pas un utilisateur existant (on reste
+      // authenticated avec le profil connu).
       try {
         final profile = await _service.fetchProfile(user.uid);
         _profile = profile;
@@ -83,6 +140,30 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Re-tente une session anonyme après un échec initial (bouton « Réessayer »
+  /// de l'écran [AuthStatus.unauthenticated]). Réinitialise le garde-fou et
+  /// rejoue le chemin standard via le listener.
+  Future<bool> retryAnonymousSignIn() async {
+    _busy = true;
+    _error = null;
+    notifyListeners();
+    try {
+      _anonymousSignInAttempted = true;
+      await _service.signInAnonymously();
+      // Le listener `_onAuthStateChanged` posera le statut final ;
+      // on ne touche pas _status ici.
+      return true;
+    } catch (e, st) {
+      CrashReporter.recordError(e, st, reason: 'anonymous sign-in retry');
+      _error = AppError.networkRequestFailed;
+      _status = AuthStatus.unauthenticated;
+      return false;
+    } finally {
+      _busy = false;
+      notifyListeners();
+    }
+  }
+
   String? get pendingEmail => _service.currentUser?.email;
 
   /// Nom affiché du compte courant (ex. fourni par Google) — sert à préremplir
@@ -91,14 +172,36 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> resendVerificationEmail() => _service.sendEmailVerification();
 
+  /// Demande un mail de réinitialisation de mot de passe. UI : toujours
+  /// présenter un message générique de succès (pas de leak de l'existence
+  /// du compte). Retourne `true` si le service n'a rien levé, `false` sur
+  /// erreur réelle (format email invalide, réseau coupé…).
+  Future<bool> requestPasswordReset({required String identifier}) {
+    return _run(() => _service.sendPasswordResetEmail(identifier: identifier));
+  }
+
   /// Recharge l'utilisateur ; si l'email est vérifié, bascule sur authenticated.
+  /// Sert à la fois au flow `register` classique et à l'upgrade post-anonyme :
+  /// dans les deux cas, le device n'avait PAS été enregistré jusqu'ici (anonyme
+  /// → bloqué par règles ; authentifié non vérifié → pas registerForUser). On
+  /// l'enregistre maintenant pour activer les notifs sans attendre un
+  /// redémarrage de l'app.
   Future<bool> refreshVerification() async {
     await _service.reloadUser();
     final user = _service.currentUser;
     if (user != null && user.emailVerified) {
-      _profile = await _service.fetchProfile(user.uid);
+      final profile = await _service.fetchProfile(user.uid);
+      _profile = profile;
       _status = AuthStatus.authenticated;
       notifyListeners();
+      if (profile != null) {
+        unawaited(
+          _notifications.registerForUser(
+            userId: user.uid,
+            homeLocation: profile.homeLocation,
+          ),
+        );
+      }
       return true;
     }
     return false;
@@ -145,6 +248,55 @@ class AuthProvider extends ChangeNotifier {
     );
     if (ok) AnalyticsService.instance.logSignUp();
     return ok;
+  }
+
+  /// Upgrade d'une session anonyme vers un compte email/mot de passe : préserve
+  /// l'uid (donc l'historique reports/votes anonymes), crée le profil + pseudo,
+  /// envoie le mail de vérification → bascule en [AuthStatus.awaitingVerification].
+  ///
+  /// Note : `linkWithCredential` ne déclenche pas toujours `authStateChanges`
+  /// (l'uid ne change pas — ce n'est pas un sign-in event au sens Firebase).
+  /// On rejoue donc explicitement le routage avec le user courant pour passer
+  /// de `anonymous` à `awaitingVerification`.
+  Future<bool> upgradeWithEmail({
+    required String firstName,
+    required String lastName,
+    required String username,
+    required String email,
+    required String password,
+    String? phoneNumber,
+    DateTime? birthDate,
+  }) async {
+    _busy = true;
+    _error = null;
+    notifyListeners();
+    try {
+      await _service.upgradeAnonymous(
+        email: email,
+        password: password,
+        firstName: firstName,
+        lastName: lastName,
+        username: username,
+        phoneNumber: phoneNumber,
+        birthDate: birthDate,
+      );
+      AnalyticsService.instance.logSignUp();
+      // Marqueur funnel dédié : permet de distinguer un upgrade post-anonyme
+      // d'un `register` direct (différentes audiences, différents KPIs).
+      unawaited(AnalyticsService.instance.logUpgradeCompleted());
+      await _onAuthStateChanged(_service.currentUser);
+      return true;
+    } on FirebaseAuthException catch (e) {
+      _error = _codeFor(e);
+      return false;
+    } catch (e, st) {
+      CrashReporter.recordError(e, st, reason: 'upgrade anonymous');
+      _error = AppError.authFailed;
+      return false;
+    } finally {
+      _busy = false;
+      notifyListeners();
+    }
   }
 
   /// Connexion **Google**. Au succès, le listener d'auth bascule vers
@@ -235,7 +387,18 @@ class AuthProvider extends ChangeNotifier {
     );
   }
 
-  Future<void> logout() => _service.signOut();
+  /// Déconnecte la session courante. Pour une session anonyme : équivaut à
+  /// « effacer cette session » (un nouvel anonyme sera créé automatiquement
+  /// au prochain démarrage). Pour un compte réel : retour à l'anonyme aussi.
+  /// On RÉARME `_anonymousSignInAttempted` pour autoriser la nouvelle
+  /// tentative anonyme via le listener.
+  Future<void> logout() async {
+    _anonymousSignInAttempted = false;
+    // Si l'utilisateur s'efface puis revient en anonyme, c'est une **nouvelle**
+    // session côté analytics → on rejoue logAnonymousStarted.
+    _anonymousStartedLogged = false;
+    await _service.signOut();
+  }
 
   /// Suppression définitive du compte. Au succès, la déconnexion serveur fait
   /// basculer [status] sur `unauthenticated` via le listener d'auth (l'AuthGate
@@ -295,7 +458,11 @@ class AuthProvider extends ChangeNotifier {
     final uid = _service.currentUser?.uid;
     if (uid == null) return;
     final following = isFollowingQuartier(key);
-    await _service.setQuartierFollowed(uid: uid, key: key, followed: !following);
+    await _service.setQuartierFollowed(
+      uid: uid,
+      key: key,
+      followed: !following,
+    );
     _profile = await _service.fetchProfile(uid);
     AnalyticsService.instance.logQuartierFollowed(following: !following);
     notifyListeners();

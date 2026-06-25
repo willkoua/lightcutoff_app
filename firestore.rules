@@ -11,6 +11,14 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    // Vrai pour une session Firebase Anonymous Auth. Les utilisateurs anonymes
+    // peuvent signaler et voter, mais N'ONT PAS de profil/pseudo/device : ils
+    // doivent d'abord upgrader (linkWithCredential) pour créer ces ressources.
+    function isAnonymous() {
+      return isSignedIn()
+        && request.auth.token.firebase.sign_in_provider == 'anonymous';
+    }
+
     function isAdmin() {
       return isSignedIn()
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
@@ -41,11 +49,13 @@ service cloud.firestore {
 
     // Profils utilisateurs : lecture limitée au propriétaire (ou admin).
     // Empêche la ré-identification d'un confirmant via son uid.
+    // ⚠️ Création/MAJ INTERDITE en session anonyme : il faut d'abord upgrader
+    // (linkWithCredential) — le `sign_in_provider` passe alors à `password`/`google`.
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId);
+      allow create: if isOwner(userId) && !isAnonymous();
       // Mise à jour limitée aux champs de profil (pas de role/status par l'utilisateur).
-      allow update: if isOwner(userId)
+      allow update: if isOwner(userId) && !isAnonymous()
                     && request.resource.data.diff(resource.data).affectedKeys()
                        .hasOnly(['firstName', 'lastName', 'birthDate',
                                  'phoneNumber', 'photoURL', 'homeLocation',
@@ -57,12 +67,13 @@ service cloud.firestore {
     // Index pseudo → { uid, email } : permet la connexion par pseudo
     // (résolution pseudo→email avant authentification). Lecture par id
     // uniquement (pas d'énumération) ; chaque pseudo appartient à un uid.
+    // ⚠️ Réservé aux comptes upgradés (un anonyme n'a pas de pseudo).
     match /usernames/{username} {
       allow get: if true;
       allow list: if false;
-      allow create: if isSignedIn()
+      allow create: if isSignedIn() && !isAnonymous()
                     && request.resource.data.uid == request.auth.uid;
-      allow update, delete: if isSignedIn()
+      allow update, delete: if isSignedIn() && !isAnonymous()
                             && resource.data.uid == request.auth.uid;
     }
 
@@ -129,11 +140,13 @@ service cloud.firestore {
     // Un utilisateur ne gère que ses propres appareils. La Cloud Function
     // d'envoi utilise l'Admin SDK (qui contourne ces règles) pour lire tous
     // les devices et purger les tokens périmés.
+    // ⚠️ Les anonymes ne reçoivent pas de notifs (pas de ciblage possible
+    // sans homeLocation/quartiers suivis) → enregistrement device interdit.
     match /devices/{token} {
       allow read: if isAdmin() || isOwner(resource.data.userId);
-      allow create: if isSignedIn()
+      allow create: if isSignedIn() && !isAnonymous()
                     && request.resource.data.userId == request.auth.uid;
-      allow update: if isOwner(resource.data.userId)
+      allow update: if isOwner(resource.data.userId) && !isAnonymous()
                     && request.resource.data.userId == request.auth.uid;
       allow delete: if isOwner(resource.data.userId);
     }

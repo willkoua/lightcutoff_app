@@ -17,6 +17,16 @@ let env;
 const as = (uid) => env.authenticatedContext(uid).firestore();
 const anon = () => env.unauthenticatedContext().firestore();
 
+// Firestore d'un utilisateur **Firebase Anonymous Auth** (uid présent,
+// sign_in_provider = "anonymous"). Distinct d'`anon()` (totalement non
+// authentifié) et de `as(uid)` (par défaut sign_in_provider = "custom").
+const asAnonymous = (uid) =>
+  env
+    .authenticatedContext(uid, {
+      firebase: { sign_in_provider: "anonymous", identities: {} },
+    })
+    .firestore();
+
 // Écrit des données de départ en contournant les règles.
 async function seed(fn) {
   await env.withSecurityRulesDisabled(async (ctx) => fn(ctx.firestore()));
@@ -382,6 +392,111 @@ describe("Firestore — usernames (index pseudo)", () => {
       setDoc(doc(as("alice"), "usernames/bobby"), {
         uid: "bob",
         email: "x@b.com",
+      }),
+    );
+  });
+});
+
+describe("Firestore — sessions anonymes (Firebase Anonymous Auth)", () => {
+  // Les anonymes peuvent participer au cœur métier (signaler + voter) mais ne
+  // peuvent PAS créer de profil, pseudo, ou enregistrer un device. Ils doivent
+  // upgrader (linkWithCredential) — le sign_in_provider passe alors à
+  // "password"/"google.com" et la création des docs sociaux redevient possible.
+
+  it("un anonyme peut créer un report (avec son uid)", async () => {
+    await assertSucceeds(
+      setDoc(doc(asAnonymous("anon1"), "reports/r1"), {
+        userId: "anon1",
+        status: "ongoing",
+        confirmationCount: 0,
+        restorationCount: 0,
+      }),
+    );
+    // Ne peut toujours pas mentir sur l'auteur.
+    await assertFails(
+      setDoc(doc(asAnonymous("anon1"), "reports/r2"), { userId: "someone" }),
+    );
+  });
+
+  it("un anonyme peut voter (confirm + restore atomique)", async () => {
+    await seed((db) =>
+      setDoc(doc(db, "reports/r1"), {
+        userId: "alice",
+        confirmationCount: 0,
+        restorationCount: 0,
+      }),
+    );
+    // ⚠️ Capture le Firestore instance UNE FOIS par contexte : `asAnonymous`
+    // crée une instance fraîche à chaque appel et on ne peut pas mixer des
+    // doc refs venant d'instances différentes dans un même batch.
+    const anon1 = asAnonymous("anon1");
+    const b1 = writeBatch(anon1);
+    b1.set(doc(anon1, "reports/r1/confirmations/anon1"), {
+      createdAt: serverTimestamp(),
+    });
+    b1.update(doc(anon1, "reports/r1"), {
+      confirmationCount: increment(1),
+      updatedAt: serverTimestamp(),
+    });
+    await assertSucceeds(b1.commit());
+    // Restoration par un autre anonyme.
+    const anon2 = asAnonymous("anon2");
+    const b2 = writeBatch(anon2);
+    b2.set(doc(anon2, "reports/r1/restorations/anon2"), {
+      createdAt: serverTimestamp(),
+    });
+    b2.update(doc(anon2, "reports/r1"), {
+      restorationCount: increment(1),
+      updatedAt: serverTimestamp(),
+    });
+    await assertSucceeds(b2.commit());
+  });
+
+  it("un anonyme ne peut PAS créer de profil users/{uid}", async () => {
+    // Même sur son propre uid : la création est réservée aux comptes upgradés.
+    await assertFails(
+      setDoc(doc(asAnonymous("anon1"), "users/anon1"), {
+        firstName: "Anon",
+        lastName: "User",
+      }),
+    );
+    // Toujours interdit sur un autre uid (régression).
+    await assertFails(
+      setDoc(doc(asAnonymous("anon1"), "users/bob"), { firstName: "Bob" }),
+    );
+  });
+
+  it("un anonyme ne peut PAS réserver de pseudo", async () => {
+    await assertFails(
+      setDoc(doc(asAnonymous("anon1"), "usernames/cooluser"), {
+        uid: "anon1",
+        email: "anon@example.com",
+      }),
+    );
+  });
+
+  it("un anonyme ne peut PAS enregistrer un device", async () => {
+    await assertFails(
+      setDoc(doc(asAnonymous("anon1"), "devices/tokenA"), {
+        userId: "anon1",
+        platform: "android",
+      }),
+    );
+  });
+
+  // Régression upgrade : après linkWithCredential, le sign_in_provider passe
+  // de "anonymous" à "password" → la création de profil/pseudo redevient OK.
+  it("après upgrade (sign_in_provider != anonymous), la création de profil + pseudo est OK", async () => {
+    await assertSucceeds(
+      setDoc(doc(as("upgraded1"), "users/upgraded1"), {
+        firstName: "Up",
+        lastName: "Graded",
+      }),
+    );
+    await assertSucceeds(
+      setDoc(doc(as("upgraded1"), "usernames/upgraded1"), {
+        uid: "upgraded1",
+        email: "u@e.com",
       }),
     );
   });

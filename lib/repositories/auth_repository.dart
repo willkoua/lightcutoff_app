@@ -21,6 +21,10 @@ abstract class AuthRepository {
   User? get currentUser;
   bool get isEmailVerified;
 
+  /// `true` si la session courante est une **session anonyme Firebase**
+  /// (`signInAnonymously`). Lecture pure : ne déclenche aucune requête réseau.
+  bool get isAnonymous;
+
   Future<AppUser?> fetchProfile(String uid);
 
   /// `true` si le pseudo (normalisé en minuscules) n'est pas déjà pris.
@@ -63,8 +67,42 @@ abstract class AuthRepository {
     DateTime? birthDate,
   });
 
+  /// Démarre une **session anonyme Firebase** (uid présent, sans email/profil).
+  /// Permet à l'utilisateur de signaler/voter sans créer de compte. L'historique
+  /// (reports/votes) est rattaché à cet uid et **conservé** lors d'un upgrade
+  /// ultérieur via [upgradeAnonymous].
+  ///
+  /// **Prérequis** : Anonymous Auth activé dans la console Firebase (sinon
+  /// `admin-restricted-operation`).
+  Future<void> signInAnonymously();
+
+  /// **Upgrade** d'une session anonyme vers un compte email/mot de passe :
+  /// `linkWithCredential` (préserve l'uid → l'historique anonyme reste attaché),
+  /// création atomique du profil + index pseudo (`users/{uid}` + `usernames/{u}`),
+  /// puis envoi du mail de vérification.
+  ///
+  /// Lève si la session courante n'est pas anonyme, si l'email est déjà utilisé
+  /// (`email-already-in-use` / `credential-already-in-use`) ou si le pseudo est
+  /// pris (`username-already-in-use`).
+  Future<void> upgradeAnonymous({
+    required String email,
+    required String password,
+    required String firstName,
+    required String lastName,
+    required String username,
+    String? phoneNumber,
+    DateTime? birthDate,
+  });
+
   Future<void> sendEmailVerification();
   Future<void> reloadUser();
+
+  /// Envoie un mail de réinitialisation de mot de passe à l'email associé à
+  /// [identifier] (email direct, ou pseudo résolu via la collection
+  /// `usernames/`). **N'expose pas l'existence du compte** : si l'identifiant
+  /// n'est pas reconnu, l'appel se termine silencieusement (la couche UI
+  /// affiche un message générique « si un compte existe, un mail a été envoyé »).
+  Future<void> sendPasswordResetEmail({required String identifier});
 
   Future<void> updateProfile({
     required String firstName,
