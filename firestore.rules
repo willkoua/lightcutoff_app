@@ -54,13 +54,29 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId) && !isAnonymous();
-      // Mise à jour limitée aux champs de profil (pas de role/status par l'utilisateur).
+      // Mise à jour limitée aux champs de profil (pas de role/status par
+      // l'utilisateur). Le PSEUDO est un cas à part : changeable UNE seule
+      // fois à vie — le changement doit décrémenter `usernameChangesLeft`
+      // (absent = 1 changement dû, comptes d'avant 2026-07-25) et n'est
+      // permis que s'il en reste. Verrou serveur, pas seulement UI.
       allow update: if isOwner(userId) && !isAnonymous()
-                    && request.resource.data.diff(resource.data).affectedKeys()
-                       .hasOnly(['firstName', 'lastName', 'birthDate',
-                                 'phoneNumber', 'photoURL', 'homeLocation',
-                                 'followedQuartiers',
-                                 'email', 'updatedAt']);
+                    && (
+                      request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['firstName', 'lastName', 'birthDate',
+                                   'phoneNumber', 'photoURL', 'homeLocation',
+                                   'followedQuartiers',
+                                   'email', 'updatedAt'])
+                      || (
+                        request.resource.data.diff(resource.data).affectedKeys()
+                           .hasOnly(['username', 'usernameChangesLeft',
+                                     'updatedAt'])
+                        && request.resource.data.username is string
+                        && request.resource.data.username != resource.data.username
+                        && resource.data.get('usernameChangesLeft', 1) > 0
+                        && request.resource.data.usernameChangesLeft
+                           == resource.data.get('usernameChangesLeft', 1) - 1
+                      )
+                    );
       allow delete: if false;
     }
 
@@ -111,20 +127,43 @@ service cloud.firestore {
                     && resource.data.userId == request.auth.uid;
 
       // Confirmations : un document par utilisateur (id = uid).
-      // Lecture réservée à l'auteur du report, aux admins, ou à sa propre
-      // confirmation → les autres ne voient que le compteur (anonymat).
+      // Lecture réservée au **propriétaire du vote** et aux **admins**
+      // uniquement (l'accès de l'auteur du report a été retiré) : le doc
+      // contient désormais la position EXACTE du confirmeur (`position`), qui
+      // ne doit fuiter vers personne. Les autres ne voient que le compteur.
+      // La Cloud Function `onConfirmationCreated` lit `position` via l'Admin
+      // SDK (contourne ces règles) pour le ciblage 500 m.
       match /confirmations/{userId} {
-        allow read: if isOwner(userId)
-                    || isAdmin()
-                    || request.auth.uid == reportAuthor(reportId);
-        // On ne peut pas confirmer sa propre coupure. Le champ `geohash`
-        // (position grossière du confirmeur, conservée pour estimer l'étendue)
-        // est optionnel et, s'il est présent, doit être une chaîne courte.
+        allow read: if isOwner(userId) || isAdmin();
+        // On ne peut pas confirmer sa propre coupure. `geohash` (position
+        // grossière) et `position` (lat/lng exact) sont optionnels et validés
+        // s'ils sont présents.
         allow create: if isOwner(userId)
                       && request.auth.uid != reportAuthor(reportId)
                       && (!('geohash' in request.resource.data)
                           || (request.resource.data.geohash is string
-                              && request.resource.data.geohash.size() <= 12));
+                              && request.resource.data.geohash.size() <= 12))
+                      && (!('position' in request.resource.data)
+                          || (request.resource.data.position.lat is number
+                              && request.resource.data.position.lng is number));
+        allow delete: if isOwner(userId);
+      }
+
+      // Démentis (« pas de coupure chez moi ») : un document par utilisateur
+      // (id = uid). Réponse **Non** au prompt de proximité — signal négatif
+      // qui délimite l'emprise de la coupure. Ne touche AUCUN compteur du
+      // report (pas de branche bumpsCounterByOne). Position exacte lisible
+      // uniquement par le propriétaire/admin (même contrat que confirmations).
+      match /denials/{userId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId)
+                      && request.auth.uid != reportAuthor(reportId)
+                      && (!('geohash' in request.resource.data)
+                          || (request.resource.data.geohash is string
+                              && request.resource.data.geohash.size() <= 12))
+                      && (!('position' in request.resource.data)
+                          || (request.resource.data.position.lat is number
+                              && request.resource.data.position.lng is number));
         allow delete: if isOwner(userId);
       }
 
@@ -136,7 +175,13 @@ service cloud.firestore {
         allow read: if isOwner(userId)
                     || isAdmin()
                     || request.auth.uid == reportAuthor(reportId);
-        allow create: if isOwner(userId);
+        // Le champ `geohash` (position grossière du confirmeur, conservée pour
+        // estimer l'étendue) est optionnel et, s'il est présent, doit être une
+        // chaîne courte — symétrique aux confirmations.
+        allow create: if isOwner(userId)
+                      && (!('geohash' in request.resource.data)
+                          || (request.resource.data.geohash is string
+                              && request.resource.data.geohash.size() <= 12));
         allow delete: if isOwner(userId);
       }
     }
