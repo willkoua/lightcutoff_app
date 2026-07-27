@@ -76,6 +76,24 @@ export function buildBody(area?: NotifArea): string {
   return `${parts.join(", ")} · à l'instant`;
 }
 
+/**
+ * Titre + corps de la notification « le service est revenu » envoyée aux
+ * confirmeurs d'une coupure quand elle passe en `resolved`. Pur et testable.
+ */
+export function resolvedNotifContent(
+  serviceType: string | undefined,
+  area?: NotifArea
+): { title: string; body: string } {
+  const isWater = serviceType === "water";
+  const title = isWater ? "L'eau est revenue 💧" : "Le courant est revenu ⚡";
+  const parts = (area ? [area.neighborhood, area.city] : []).filter(
+    (s): s is string => !!s && s.length > 0
+  );
+  const zone = parts.length > 0 ? ` à ${parts.join(", ")}` : "";
+  const body = `Des voisins confirment le retour du service${zone}.`;
+  return { title, body };
+}
+
 /** Entrée pour composer le corps d'une alerte de coupure planifiée. */
 export interface PlannedAlertInput {
   quartier?: string;
