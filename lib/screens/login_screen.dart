@@ -38,7 +38,16 @@ class _LoginScreenState extends State<LoginScreen> {
       identifier: _identifier.text,
       password: _password.text,
     );
-    if (!ok && mounted && auth.error != null) {
+    if (!mounted) return;
+    if (ok) {
+      // LoginScreen est une route POUSSÉE au-dessus de l'AuthGate. Le gate a
+      // déjà basculé en dessous (authenticated / awaitingVerification) ; il faut
+      // retirer cet écran pour le révéler — sinon l'utilisateur reste sur le
+      // login malgré une connexion réussie.
+      Navigator.of(context).pop();
+      return;
+    }
+    if (auth.error != null) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
@@ -51,8 +60,50 @@ class _LoginScreenState extends State<LoginScreen> {
     FocusScope.of(context).unfocus();
     final auth = context.read<AuthProvider>();
     final ok = await auth.signInWithGoogle();
-    // Au succès, l'AuthGate route automatiquement (profil à compléter ou app).
-    if (!ok && mounted && auth.error != null) {
+    if (!mounted) return;
+    if (ok) {
+      // Idem _submit : on retire la route de login poussée pour révéler
+      // l'AuthGate déjà routé (app, ou « compléter le profil » au 1er login).
+      Navigator.of(context).pop();
+      return;
+    }
+    if (auth.error != null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(appErrorLabel(context, auth.error!))),
+        );
+    }
+  }
+
+  Future<void> _facebook() async {
+    FocusScope.of(context).unfocus();
+    final auth = context.read<AuthProvider>();
+    final ok = await auth.signInWithFacebook();
+    if (!mounted) return;
+    if (ok) {
+      Navigator.of(context).pop();
+      return;
+    }
+    if (auth.error != null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(appErrorLabel(context, auth.error!))),
+        );
+    }
+  }
+
+  Future<void> _apple() async {
+    FocusScope.of(context).unfocus();
+    final auth = context.read<AuthProvider>();
+    final ok = await auth.signInWithApple();
+    if (!mounted) return;
+    if (ok) {
+      Navigator.of(context).pop();
+      return;
+    }
+    if (auth.error != null) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
@@ -168,9 +219,12 @@ class _LoginScreenState extends State<LoginScreen> {
                             )
                             : Text(l.loginButton),
                   ),
-                  // Connexion sociale — masquée tant que la config Firebase
-                  // Google n'est pas faite (cf. AppConfig.enableGoogleSignIn).
-                  if (AppConfig.enableGoogleSignIn) ...[
+                  // Connexion sociale — chaque bouton masqué tant que sa config
+                  // n'est pas faite (cf. AppConfig.enableGoogleSignIn /
+                  // enableFacebookSignIn).
+                  if (AppConfig.enableGoogleSignIn ||
+                      AppConfig.enableFacebookSignIn ||
+                      AppConfig.enableAppleSignIn) ...[
                     const SizedBox(height: 20),
                     Row(
                       children: [
@@ -186,11 +240,31 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                     ),
                     const SizedBox(height: 20),
-                    OutlinedButton.icon(
-                      onPressed: busy ? null : _google,
-                      icon: const Icon(Icons.account_circle_outlined),
-                      label: Text(l.authContinueWithGoogle),
-                    ),
+                    if (AppConfig.enableGoogleSignIn)
+                      OutlinedButton.icon(
+                        onPressed: busy ? null : _google,
+                        icon: const Icon(Icons.account_circle_outlined),
+                        label: Text(l.authContinueWithGoogle),
+                      ),
+                    if (AppConfig.enableGoogleSignIn &&
+                        AppConfig.enableFacebookSignIn)
+                      const SizedBox(height: 12),
+                    if (AppConfig.enableFacebookSignIn)
+                      OutlinedButton.icon(
+                        onPressed: busy ? null : _facebook,
+                        icon: const Icon(Icons.facebook),
+                        label: Text(l.authContinueWithFacebook),
+                      ),
+                    // Apple : iOS uniquement (exigence App Store 4.8 dès
+                    // qu'une connexion tierce est proposée).
+                    if (AppConfig.enableAppleSignIn) ...[
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: busy ? null : _apple,
+                        icon: const Icon(Icons.apple),
+                        label: Text(l.authContinueWithApple),
+                      ),
+                    ],
                   ],
                   const SizedBox(height: 16),
                   Row(

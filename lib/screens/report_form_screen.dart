@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../config/app_constants.dart';
+import '../models/app_error.dart';
 import '../models/enums.dart';
 import '../models/report.dart';
 import '../providers/auth_provider.dart';
@@ -22,6 +23,10 @@ import '../widgets/location_permission_sheet.dart';
 import '../widgets/service_visuals.dart';
 
 enum _DupChoice { confirm, anyway, viewMine, cancel }
+
+/// Choix offert quand le GPS est indisponible : autoriser la localisation, ou
+/// décrire sa position manuellement.
+enum _LocFallback { allow, describe }
 
 /// Ouvre le formulaire de signalement en **bottom sheet modal** (mêmes deux
 /// points d'entrée : FAB de la Liste et de la Carte). Ré-injecte le
@@ -54,6 +59,15 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
   final _picker = ImagePicker();
   String? _mediaUrl;
   bool _uploadingMedia = false;
+
+  /// Attestation anti-faux signalement (inspirée de coupure.ci) : **obligatoire**
+  /// pour activer l'envoi → réduit le bruit (disjoncteur/compteur perso).
+  bool _attested = false;
+
+  /// Date/heure de **constatation** (facultatif). Si non renseignées, le report
+  /// est horodaté « maintenant » (serveur).
+  DateTime? _observedDate;
+  TimeOfDay? _observedTime;
 
   /// Service du signalement. Initialisé en `initState` à partir du filtre actif
   /// du `RegionProvider` (si l'utilisateur consulte Eau, on présume qu'il
@@ -125,6 +139,40 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
       ..showSnackBar(SnackBar(content: Text(message)));
   }
 
+  /// Combine date + heure de constatation en un [DateTime], ou `null` si aucune
+  /// n'est saisie (→ horodatage « maintenant »). Jamais dans le futur.
+  DateTime? _observedAt() {
+    if (_observedDate == null && _observedTime == null) return null;
+    final now = DateTime.now();
+    final d = _observedDate ?? now;
+    final t = _observedTime ?? TimeOfDay.fromDateTime(now);
+    final dt = DateTime(d.year, d.month, d.day, t.hour, t.minute);
+    return dt.isAfter(now) ? now : dt;
+  }
+
+  String _formatObservedDate(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}/'
+      '${d.month.toString().padLeft(2, '0')}/${d.year}';
+
+  Future<void> _pickObservedDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _observedDate ?? now,
+      firstDate: now.subtract(const Duration(days: 365)),
+      lastDate: now,
+    );
+    if (picked != null) setState(() => _observedDate = picked);
+  }
+
+  Future<void> _pickObservedTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _observedTime ?? TimeOfDay.now(),
+    );
+    if (picked != null) setState(() => _observedTime = picked);
+  }
+
   void _finish(String message, {required bool success}) {
     if (success) {
       // Capture le navigator parent AVANT de pop la modale : son `context`
@@ -144,59 +192,142 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
 
   Future<void> _submit() async {
     final provider = context.read<ReportProvider>();
-    final l = AppLocalizations.of(context);
     final access = await provider.checkLocationAccess();
     if (!mounted) return;
-    switch (access) {
-      case LocationAccess.serviceDisabled:
-        _snack(l.reportFormEnableLocation);
-        return;
-      case LocationAccess.deniedForever:
-        await _showSettingsDialog(provider);
-        return;
-      case LocationAccess.denied:
-        final accept = await _showLocationPriming();
-        if (!mounted || !accept) return;
-      case LocationAccess.granted:
-        break;
+    if (access == LocationAccess.granted) {
+      await _proceedWithGps(provider);
+      return;
     }
-    await _proceed(provider);
+    // GPS indisponible : on ne bloque plus le signalement — on propose
+    // d'autoriser la localisation OU de décrire sa position manuellement.
+    final choice = await _showLocationFallback(access);
+    if (!mounted || choice == null) return;
+    switch (choice) {
+      case _LocFallback.allow:
+        switch (access) {
+          case LocationAccess.deniedForever:
+          case LocationAccess.serviceDisabled:
+            await provider.openLocationSettings();
+          case LocationAccess.denied:
+            final accept = await _showLocationPriming();
+            if (mounted && accept) await _proceedWithGps(provider);
+          case LocationAccess.granted:
+            break;
+        }
+      case _LocFallback.describe:
+        await _describeAndProceed(provider);
+    }
   }
 
   Future<bool> _showLocationPriming() => showLocationPermissionSheet(context);
 
-  Future<void> _showSettingsDialog(ReportProvider provider) async {
+  /// Dialogue affiché quand la position GPS n'est pas disponible : laisse le
+  /// choix entre (ré)autoriser la localisation et décrire sa position.
+  Future<_LocFallback?> _showLocationFallback(LocationAccess access) {
     final l = AppLocalizations.of(context);
-    await showDialog<void>(
+    final needsSettings =
+        access == LocationAccess.deniedForever ||
+        access == LocationAccess.serviceDisabled;
+    return showDialog<_LocFallback>(
       context: context,
       builder:
           (ctx) => AlertDialog(
-            title: Text(l.reportFormLocationDeniedTitle),
-            content: Text(l.reportFormLocationDeniedBody),
+            title: Text(l.reportFormLocationUnavailableTitle),
+            content: Text(l.reportFormLocationUnavailableBody),
             actions: [
               TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: Text(l.actionCancel),
+                onPressed:
+                    () => Navigator.of(ctx).pop(_LocFallback.describe),
+                child: Text(l.reportFormDescribePositionAction),
               ),
               ElevatedButton(
-                onPressed: () {
-                  Navigator.of(ctx).pop();
-                  provider.openLocationSettings();
-                },
-                child: Text(l.actionOpenSettings),
+                onPressed: () => Navigator.of(ctx).pop(_LocFallback.allow),
+                child: Text(
+                  needsSettings
+                      ? l.actionOpenSettings
+                      : l.reportFormAllowLocation,
+                ),
               ),
             ],
           ),
     );
   }
 
-  Future<void> _proceed(ReportProvider provider) async {
+  /// Saisie d'une position décrite (quartier / ville / adresse). Renvoie la
+  /// chaîne saisie, ou `null` si annulé.
+  Future<String?> _showDescribePosition() async {
     final l = AppLocalizations.of(context);
-    final authorUsername = context.read<AuthProvider>().profile?.username;
+    final controller = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: Text(l.reportFormDescribePositionTitle),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(l.reportFormDescribePositionBody),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: controller,
+                  autofocus: true,
+                  textInputAction: TextInputAction.search,
+                  decoration: InputDecoration(
+                    hintText: l.reportFormDescribePositionHint,
+                    prefixIcon: const Icon(Icons.place_outlined),
+                  ),
+                  onSubmitted: (v) => Navigator.of(ctx).pop(v),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(l.actionCancel),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(ctx).pop(controller.text),
+                child: Text(l.reportFormDescribePositionConfirm),
+              ),
+            ],
+          ),
+    );
+    controller.dispose();
+    return result;
+  }
+
+  Future<void> _proceedWithGps(ReportProvider provider) async {
     final outcome = await provider.prepareReport(
       serviceType: _serviceType ?? ServiceType.electricity,
     );
     if (!mounted) return;
+    await _continueWithOutcome(provider, outcome);
+  }
+
+  Future<void> _describeAndProceed(ReportProvider provider) async {
+    final l = AppLocalizations.of(context);
+    final query = await _showDescribePosition();
+    if (!mounted || query == null || query.trim().isEmpty) return;
+    final outcome = await provider.prepareReportFromDescription(
+      query,
+      serviceType: _serviceType ?? ServiceType.electricity,
+    );
+    if (!mounted) return;
+    // Message dédié si la description ne correspond à aucun lieu.
+    if (outcome.error == AppError.locationNotFound) {
+      _snack(l.reportFormAddressNotFound);
+      return;
+    }
+    await _continueWithOutcome(provider, outcome);
+  }
+
+  Future<void> _continueWithOutcome(
+    ReportProvider provider,
+    PrepareOutcome outcome,
+  ) async {
+    final l = AppLocalizations.of(context);
+    final authorUsername = context.read<AuthProvider>().profile?.username;
     if (outcome.error != null) {
       _snack(appErrorLabel(context, outcome.error!));
       return;
@@ -240,6 +371,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
       mediaUrl: _mediaUrl,
       authorUsername: authorUsername,
       serviceType: _serviceType ?? ServiceType.electricity,
+      reportedAt: _observedAt(),
     );
     if (!mounted) return;
     _finish(
@@ -327,6 +459,53 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
                 ),
               ),
               const SizedBox(height: 16),
+              // Date/heure de constatation (facultatif) — placée en TÊTE du
+              // formulaire ; défaut « maintenant » si non renseignée.
+              Text(
+                l.reportFormObservedAtLabel,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _pickObservedDate,
+                      icon: const Icon(Icons.event_outlined, size: 18),
+                      label: Text(
+                        _observedDate == null
+                            ? l.reportFormObservedDate
+                            : _formatObservedDate(_observedDate!),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _pickObservedTime,
+                      icon: const Icon(Icons.schedule, size: 18),
+                      label: Text(
+                        _observedTime == null
+                            ? l.reportFormObservedTime
+                            : _observedTime!.format(context),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                  if (_observedDate != null || _observedTime != null)
+                    IconButton(
+                      icon: const Icon(Icons.clear, size: 18),
+                      color: AppColors.gray,
+                      onPressed:
+                          () => setState(() {
+                            _observedDate = null;
+                            _observedTime = null;
+                          }),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 24),
               // Sélecteur de service (multi-service, pivot étape 3).
               Text(
                 l.reportFormServiceLabel,
@@ -393,9 +572,34 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
                 onPick: _pickMedia,
                 onRemove: () => setState(() => _mediaUrl = null),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 16),
+              // Attestation anti-faux signalement (obligatoire pour envoyer).
+              InkWell(
+                onTap: () => setState(() => _attested = !_attested),
+                borderRadius: BorderRadius.circular(8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Checkbox(
+                      value: _attested,
+                      onChanged:
+                          (v) => setState(() => _attested = v ?? false),
+                    ),
+                    Expanded(
+                      child: Text(
+                        l.reportFormAttestation,
+                        style: const TextStyle(
+                          color: AppColors.gray,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
               ElevatedButton.icon(
-                onPressed: submitting ? null : _submit,
+                onPressed: (submitting || !_attested) ? null : _submit,
                 icon:
                     submitting
                         ? const SizedBox(

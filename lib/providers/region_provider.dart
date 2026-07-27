@@ -24,6 +24,7 @@ class RegionProvider extends ChangeNotifier {
   RegionProvider({LocationRepository? location})
     : _location = location ?? LocationService() {
     _loadOverride();
+    _loadUserCountry();
     _loadWorldwide();
     _loadServiceFilter();
     _detectCountry();
@@ -37,6 +38,9 @@ class RegionProvider extends ChangeNotifier {
   static const _legacyPrefKey = 'provider_override_id';
   static const _worldwideKey = 'admin_worldwide';
   static const _serviceFilterKey = 'service_filter';
+  // Pays choisi **explicitement** par l'utilisateur (sélecteur Paramètres,
+  // disponible en prod). Prioritaire sur la détection auto — voir `activeCountry`.
+  static const _userCountryKey = 'user_country_iso';
 
   final LocationRepository _location;
 
@@ -50,6 +54,7 @@ class RegionProvider extends ChangeNotifier {
 
   String? _detectedCountryIso; // pays GPS (où se trouve l'utilisateur)
   String? _homeCountryIso; // dérivé de homeLocation du profil
+  String? _userCountryIso; // pays choisi explicitement par l'utilisateur
   bool _worldwide = false; // admin : voir tous les signalements (tous pays)
   ServiceType? _serviceFilter; // null = Tout, sinon Élec ou Eau (persisté)
 
@@ -133,6 +138,34 @@ class RegionProvider extends ChangeNotifier {
     }
   }
 
+  /// Pays choisi explicitement par l'utilisateur (ISO), ou `null` si en mode
+  /// automatique (détection GPS / profil / locale).
+  String? get userCountry => _userCountryIso;
+
+  Future<void> _loadUserCountry() async {
+    final prefs = await SharedPreferences.getInstance();
+    final iso = prefs.getString(_userCountryKey);
+    if (iso != null && iso.isNotEmpty && iso != _userCountryIso) {
+      _userCountryIso = iso.toUpperCase();
+      notifyListeners();
+    }
+  }
+
+  /// Définit (ou efface, `null` = automatique) le pays choisi par l'utilisateur.
+  /// Persisté. Prioritaire sur la détection auto dans [activeCountry].
+  Future<void> setUserCountry(String? iso) async {
+    final normalized = (iso == null || iso.isEmpty) ? null : iso.toUpperCase();
+    if (normalized == _userCountryIso) return;
+    _userCountryIso = normalized;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    if (normalized == null) {
+      await prefs.remove(_userCountryKey);
+    } else {
+      await prefs.setString(_userCountryKey, normalized);
+    }
+  }
+
   Future<void> _loadWorldwide() async {
     final prefs = await SharedPreferences.getInstance();
     final v = prefs.getBool(_worldwideKey) ?? false;
@@ -195,12 +228,13 @@ class RegionProvider extends ChangeNotifier {
   }
 
   /// Pays actif (ISO), selon la priorité :
-  /// override dev (élec OU eau) → **GPS** → pays du profil → locale → défaut CM.
-  /// L'override des deux services pointant sur le même pays (auto-coupling
-  /// dans [setOverride]), le pays se lit indistinctement sur l'un ou l'autre.
+  /// override dev (élec OU eau) → **choix utilisateur** → GPS → pays du profil →
+  /// locale → défaut CM. Le choix explicite de l'utilisateur prime sur la
+  /// détection automatique (mais reste sous l'override dev de QA).
   String get activeCountry {
     if (_overrideElec != null) return _overrideElec!.country;
     if (_overrideWater != null) return _overrideWater!.country;
+    if (_userCountryIso != null) return _userCountryIso!;
     if (_detectedCountryIso != null) return _detectedCountryIso!;
     if (_homeCountryIso != null) return _homeCountryIso!;
     final loc = _localeCountry;

@@ -20,6 +20,13 @@ class Device {
   /// Geohash de la zone, pour le ciblage par rayon (v2).
   final String? geohash;
 
+  /// Position **exacte** (lat/lng) capturée à l'enregistrement. Permet à la
+  /// Cloud Function de filtrer les destinataires à la **distance exacte** (le
+  /// geohash seul est trop grossier pour un rayon serré). Lecture réservée à
+  /// l'Admin SDK / propriétaire (collection `devices` non lisible par les
+  /// tiers). `null` si la position n'était pas disponible.
+  final ({double lat, double lng})? position;
+
   /// Permet à l'utilisateur de couper les alertes sans se désinscrire.
   final bool fcmEnabled;
 
@@ -32,12 +39,14 @@ class Device {
     this.platform = '',
     this.homeLocation = const GeoArea(),
     this.geohash,
+    this.position,
     this.fcmEnabled = true,
     this.updatedAt,
   });
 
   factory Device.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final map = doc.data() ?? {};
+    final pos = map['position'] as Map<String, dynamic>?;
     return Device(
       token: doc.id,
       userId: map['userId'] as String? ?? '',
@@ -46,6 +55,10 @@ class Device {
         map['homeLocation'] as Map<String, dynamic>?,
       ),
       geohash: map['geohash'] as String?,
+      position:
+          pos != null
+              ? (lat: (pos['lat'] as num).toDouble(), lng: (pos['lng'] as num).toDouble())
+              : null,
       fcmEnabled: map['fcmEnabled'] as bool? ?? true,
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate(),
     );
@@ -58,6 +71,8 @@ class Device {
     'platform': platform,
     'homeLocation': homeLocation.toMap(),
     'geohash': geohash,
+    if (position != null)
+      'position': {'lat': position!.lat, 'lng': position!.lng},
     'fcmEnabled': fcmEnabled,
     'updatedAt': FieldValue.serverTimestamp(),
   };

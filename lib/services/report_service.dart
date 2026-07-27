@@ -22,8 +22,17 @@ class ReportService implements ReportRepository {
   /// archivés côté client (évite un index composite Firestore — acceptable
   /// au volume MVP, car les archivages sont rares).
   @override
-  Stream<List<Report>> watchReports({int limit = 50}) {
-    return _reports
+  Stream<List<Report>> watchReports({int limit = 50, String? countryCode}) {
+    // Cloisonnement pays **côté serveur** : quand un pays est fourni, la
+    // fenêtre `limit` porte sur CE pays uniquement (sinon les N récents du
+    // monde entier pourraient saturer la fenêtre et masquer les coupures du
+    // pays de l'utilisateur — cf. index composite location.countryCode +
+    // reportedAt dans firestore.indexes.json). `null` = mode admin « monde ».
+    Query<Map<String, dynamic>> q = _reports;
+    if (countryCode != null && countryCode.isNotEmpty) {
+      q = q.where('location.countryCode', isEqualTo: countryCode.toUpperCase());
+    }
+    return q
         .orderBy('reportedAt', descending: true)
         .limit(limit)
         .snapshots()
@@ -139,10 +148,43 @@ class ReportService implements ReportRepository {
     return doc.exists;
   }
 
+  /// « Pas de coupure chez moi » : un doc par utilisateur (`denials/{uid}`),
+  /// idempotent (set). Ne touche aucun compteur du report — le signal sert à
+  /// délimiter l'emprise de la coupure côté Cloud Functions / analyse.
+  @override
+  Future<void> denyReport(
+    String reportId,
+    String uid, {
+    String? geohash,
+    double? lat,
+    double? lng,
+  }) {
+    return _reports.doc(reportId).collection('denials').doc(uid).set({
+      'createdAt': FieldValue.serverTimestamp(),
+      if (geohash != null) 'geohash': geohash,
+      // Position exacte du répondant — même contrat que les confirmations :
+      // lecture verrouillée (admin/owner), consommée par l'Admin SDK.
+      if (lat != null && lng != null) 'position': {'lat': lat, 'lng': lng},
+    });
+  }
+
+  @override
+  Future<bool> hasDenied(String reportId, String uid) async {
+    final doc =
+        await _reports.doc(reportId).collection('denials').doc(uid).get();
+    return doc.exists;
+  }
+
   /// Confirme une coupure : un vote unique par utilisateur, compteur incrémenté
   /// de façon atomique. Sans effet si l'utilisateur a déjà confirmé.
   @override
-  Future<void> confirmReport(String reportId, String uid, {String? geohash}) {
+  Future<void> confirmReport(
+    String reportId,
+    String uid, {
+    String? geohash,
+    double? lat,
+    double? lng,
+  }) {
     final reportRef = _reports.doc(reportId);
     final confRef = reportRef.collection('confirmations').doc(uid);
     return _db.runTransaction((tx) async {
@@ -151,6 +193,10 @@ class ReportService implements ReportRepository {
       tx.set(confRef, {
         'createdAt': FieldValue.serverTimestamp(),
         if (geohash != null) 'geohash': geohash,
+        // Position exacte du confirmeur — sert au ciblage 500 m des
+        // notifications (Cloud Function `onConfirmationCreated`, Admin SDK).
+        // Lecture verrouillée aux règles (propriétaire + admin uniquement).
+        if (lat != null && lng != null) 'position': {'lat': lat, 'lng': lng},
       });
       tx.update(reportRef, {
         'confirmationCount': FieldValue.increment(1),
@@ -182,13 +228,16 @@ class ReportService implements ReportRepository {
   /// [onRestorationCreated] côté serveur — pas ici, pour éviter les
   /// conditions de course entre clients.
   @override
-  Future<void> markRestored(String reportId, String uid) {
+  Future<void> markRestored(String reportId, String uid, {String? geohash}) {
     final reportRef = _reports.doc(reportId);
     final restoRef = reportRef.collection('restorations').doc(uid);
     return _db.runTransaction((tx) async {
       final existing = await tx.get(restoRef);
       if (existing.exists) return;
-      tx.set(restoRef, {'createdAt': FieldValue.serverTimestamp()});
+      tx.set(restoRef, {
+        'createdAt': FieldValue.serverTimestamp(),
+        if (geohash != null) 'geohash': geohash,
+      });
       tx.update(reportRef, {
         'restorationCount': FieldValue.increment(1),
         'updatedAt': FieldValue.serverTimestamp(),

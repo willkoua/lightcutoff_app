@@ -9,6 +9,7 @@ import 'package:lightcutoff_app/providers/report_provider.dart';
 import 'package:lightcutoff_app/repositories/location_repository.dart';
 import 'package:lightcutoff_app/repositories/report_repository.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MockReportRepository extends Mock implements ReportRepository {}
 
@@ -58,7 +59,7 @@ void main() {
     user = MockUser();
 
     when(
-      () => service.watchReports(limit: any(named: 'limit')),
+      () => service.watchReports(limit: any(named: 'limit'), countryCode: any(named: 'countryCode')),
     ).thenAnswer((_) => Stream<List<Report>>.value(const []));
     // Par défaut, localisation non autorisée -> la proximité ne s'auto-active
     // pas au démarrage (préserve l'état de filtres attendu par les tests).
@@ -67,6 +68,7 @@ void main() {
     ).thenAnswer((_) async => LocationAccess.denied);
     when(() => auth.currentUser).thenReturn(user);
     when(() => user.uid).thenReturn('u1');
+    when(() => user.isAnonymous).thenReturn(false);
   });
 
   ReportProvider build() =>
@@ -106,6 +108,69 @@ void main() {
     },
   );
 
+  test(
+    'prepareReportFromDescription géocode la description en draft',
+    () async {
+      when(() => location.locationFromDescription('Douala')).thenAnswer(
+        (_) async => const LocationResult(
+          position: GeoPosition(lat: 4.05, lng: 9.7),
+          area: GeoArea(city: 'Douala', countryCode: 'CM'),
+        ),
+      );
+      final provider = build();
+      final outcome = await provider.prepareReportFromDescription('Douala');
+
+      expect(outcome.error, isNull);
+      expect(outcome.draft, isNotNull);
+      expect(outcome.draft!.position.lat, 4.05);
+      expect(outcome.draft!.area.city, 'Douala');
+    },
+  );
+
+  test(
+    'prepareReportFromDescription renvoie locationNotFound si lieu inconnu',
+    () async {
+      when(
+        () => location.locationFromDescription(any()),
+      ).thenThrow(const LocationException(AppError.locationNotFound));
+      final provider = build();
+      final outcome = await provider.prepareReportFromDescription('xyz');
+
+      expect(outcome.error, AppError.locationNotFound);
+      expect(outcome.draft, isNull);
+    },
+  );
+
+  test('createFromDraft propage reportedAt (date de constatation)', () async {
+    when(() => service.createReport(any())).thenAnswer((_) async {});
+    final provider = build();
+    final observed = DateTime(2026, 6, 20, 9, 30);
+    await provider.createFromDraft(
+      const ReportDraft(
+        position: GeoPosition(lat: 1, lng: 2),
+        area: GeoArea(),
+      ),
+      reportedAt: observed,
+    );
+    final captured =
+        verify(() => service.createReport(captureAny())).captured;
+    expect((captured.single as Report).reportedAt, observed);
+  });
+
+  test('createFromDraft sans reportedAt → null (horodatage serveur)', () async {
+    when(() => service.createReport(any())).thenAnswer((_) async {});
+    final provider = build();
+    await provider.createFromDraft(
+      const ReportDraft(
+        position: GeoPosition(lat: 1, lng: 2),
+        area: GeoArea(),
+      ),
+    );
+    final captured =
+        verify(() => service.createReport(captureAny())).captured;
+    expect((captured.single as Report).reportedAt, isNull);
+  });
+
   test('confirm délègue au service', () async {
     when(() => service.confirmReport('r1', 'u1')).thenAnswer((_) async {});
     final provider = build();
@@ -128,7 +193,7 @@ void main() {
   });
 
   test('archive : l\'auteur peut archiver son report', () async {
-    when(() => service.watchReports(limit: any(named: 'limit'))).thenAnswer(
+    when(() => service.watchReports(limit: any(named: 'limit'), countryCode: any(named: 'countryCode'))).thenAnswer(
       (_) => Stream<List<Report>>.value([_report(id: 'mine', userId: 'u1')]),
     );
     when(() => service.archiveReport('mine')).thenAnswer((_) async {});
@@ -140,7 +205,7 @@ void main() {
   });
 
   test('archive : refuse le report d\'un autre', () async {
-    when(() => service.watchReports(limit: any(named: 'limit'))).thenAnswer(
+    when(() => service.watchReports(limit: any(named: 'limit'), countryCode: any(named: 'countryCode'))).thenAnswer(
       (_) => Stream<List<Report>>.value([_report(id: 'other', userId: 'x')]),
     );
     final provider = build();
@@ -157,7 +222,7 @@ void main() {
   });
 
   test('confirm refuse sa propre coupure', () async {
-    when(() => service.watchReports(limit: any(named: 'limit'))).thenAnswer(
+    when(() => service.watchReports(limit: any(named: 'limit'), countryCode: any(named: 'countryCode'))).thenAnswer(
       (_) => Stream<List<Report>>.value([_report(id: 'mine', userId: 'u1')]),
     );
     final provider = build();
@@ -176,7 +241,7 @@ void main() {
         (i) => _report(id: 'r$i'),
       );
       when(
-        () => service.watchReports(limit: any(named: 'limit')),
+        () => service.watchReports(limit: any(named: 'limit'), countryCode: any(named: 'countryCode')),
       ).thenAnswer((_) => Stream<List<Report>>.value(fullPage));
       final provider = build();
       await Future<void>.delayed(Duration.zero);
@@ -185,13 +250,13 @@ void main() {
 
     test('lot incomplet -> hasMore faux', () async {
       when(
-        () => service.watchReports(limit: any(named: 'limit')),
+        () => service.watchReports(limit: any(named: 'limit'), countryCode: any(named: 'countryCode')),
       ).thenAnswer((_) => Stream<List<Report>>.value([_report(id: 'a')]));
       final provider = build();
       await Future<void>.delayed(Duration.zero);
       expect(provider.hasMore, isFalse);
       provider.loadMore(); // sans effet (rien à charger)
-      verify(() => service.watchReports(limit: any(named: 'limit'))).called(1);
+      verify(() => service.watchReports(limit: any(named: 'limit'), countryCode: any(named: 'countryCode'))).called(1);
     });
 
     test('loadMore re-souscrit avec une fenêtre élargie', () async {
@@ -200,7 +265,7 @@ void main() {
         (i) => _report(id: 'r$i'),
       );
       when(
-        () => service.watchReports(limit: any(named: 'limit')),
+        () => service.watchReports(limit: any(named: 'limit'), countryCode: any(named: 'countryCode')),
       ).thenAnswer((_) => Stream<List<Report>>.value(fullPage));
       final provider = build();
       await Future<void>.delayed(Duration.zero);
@@ -209,7 +274,7 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       verify(
-        () => service.watchReports(limit: any(named: 'limit')),
+        () => service.watchReports(limit: any(named: 'limit'), countryCode: any(named: 'countryCode')),
       ).called(2); // initial + loadMore
     });
   });
@@ -218,7 +283,7 @@ void main() {
     // Yaoundé : 3.848, 11.502
     Future<ReportProvider> buildWith(List<Report> reports) async {
       when(
-        () => service.watchReports(limit: any(named: 'limit')),
+        () => service.watchReports(limit: any(named: 'limit'), countryCode: any(named: 'countryCode')),
       ).thenAnswer((_) => Stream<List<Report>>.value(reports));
       final provider = build();
       await Future<void>.delayed(Duration.zero); // laisse le stream émettre
@@ -292,7 +357,7 @@ void main() {
   group('filteredReports', () {
     Future<ReportProvider> buildWith(List<Report> reports) async {
       when(
-        () => service.watchReports(limit: any(named: 'limit')),
+        () => service.watchReports(limit: any(named: 'limit'), countryCode: any(named: 'countryCode')),
       ).thenAnswer((_) => Stream<List<Report>>.value(reports));
       final provider = build();
       await Future<void>.delayed(Duration.zero);
@@ -539,7 +604,7 @@ void main() {
 
     test('serviceFilter=null → reports élec ET eau visibles', () async {
       when(
-        () => service.watchReports(limit: any(named: 'limit')),
+        () => service.watchReports(limit: any(named: 'limit'), countryCode: any(named: 'countryCode')),
       ).thenAnswer((_) => Stream.value([elecReport, waterReport]));
 
       final provider = build();
@@ -550,7 +615,7 @@ void main() {
 
     test('serviceFilter=water filtre les reports élec', () async {
       when(
-        () => service.watchReports(limit: any(named: 'limit')),
+        () => service.watchReports(limit: any(named: 'limit'), countryCode: any(named: 'countryCode')),
       ).thenAnswer((_) => Stream.value([elecReport, waterReport]));
 
       final provider = build();
@@ -570,5 +635,134 @@ void main() {
         expect(provider.hasActiveFilters, isFalse);
       },
     );
+  });
+
+  group('deny (« Non, pas chez moi »)', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+    });
+
+    test('délègue au service et écarte le prompt', () async {
+      when(
+        () => service.denyReport(
+          'r1',
+          'u1',
+          geohash: any(named: 'geohash'),
+          lat: any(named: 'lat'),
+          lng: any(named: 'lng'),
+        ),
+      ).thenAnswer((_) async {});
+      final provider = build();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(await provider.deny('r1'), isTrue);
+      verify(
+        () => service.denyReport(
+          'r1',
+          'u1',
+          geohash: any(named: 'geohash'),
+          lat: any(named: 'lat'),
+          lng: any(named: 'lng'),
+        ),
+      ).called(1);
+    });
+
+    test('refuse sa propre coupure', () async {
+      when(() => service.watchReports(limit: any(named: 'limit'), countryCode: any(named: 'countryCode'))).thenAnswer(
+        (_) => Stream<List<Report>>.value([_report(id: 'mine', userId: 'u1')]),
+      );
+      final provider = build();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(await provider.deny('mine'), isFalse);
+      verifyNever(
+        () => service.denyReport(
+          any(),
+          any(),
+          geohash: any(named: 'geohash'),
+          lat: any(named: 'lat'),
+          lng: any(named: 'lng'),
+        ),
+      );
+    });
+  });
+
+  group('promptCandidate (prompt d\'ouverture « Chez toi aussi ? »)', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+    });
+
+    // Active la proximité (fournit le centre) avec [reports] comme résultats.
+    Future<ReportProvider> buildNear(List<Report> reports) async {
+      when(() => location.checkAccess())
+          .thenAnswer((_) async => LocationAccess.granted);
+      when(() => location.getCurrentLocation()).thenAnswer(
+        (_) async => const LocationResult(
+          position: GeoPosition(lat: 3.86, lng: 11.51),
+          area: GeoArea(),
+        ),
+      );
+      when(
+        () => service.reportsWithinRadius(
+          lat: any(named: 'lat'),
+          lng: any(named: 'lng'),
+          radiusMeters: any(named: 'radiusMeters'),
+        ),
+      ).thenAnswer((_) async => reports);
+      final provider = build();
+      await Future<void>.delayed(Duration.zero);
+      await provider.setNearOnly(true);
+      await Future<void>.delayed(Duration.zero);
+      return provider;
+    }
+
+    test('retourne la coupure en cours la plus proche (< 1 km)', () async {
+      final provider = await buildNear([
+        // ~110 m du centre.
+        _report(id: 'near', userId: 'x', lat: 3.861, lng: 11.51),
+        // ~2,2 km → hors rayon du prompt.
+        _report(id: 'far', userId: 'x', lat: 3.88, lng: 11.51),
+        // Proche mais c'est MA coupure → exclue.
+        _report(id: 'mine', userId: 'u1', lat: 3.8605, lng: 11.51),
+        // Proche mais résolue → exclue.
+        _report(
+          id: 'done',
+          userId: 'x',
+          status: OutageStatus.resolved,
+          lat: 3.8602,
+          lng: 11.51,
+        ),
+      ]);
+      expect(provider.promptCandidate?.id, 'near');
+    });
+
+    test('exclut un report écarté (passer) ou déjà voté', () async {
+      final provider = await buildNear([
+        _report(id: 'near', userId: 'x', lat: 3.861, lng: 11.51),
+      ]);
+      expect(provider.promptCandidate?.id, 'near');
+
+      provider.dismissPrompt('near');
+      expect(provider.promptCandidate, isNull);
+    });
+
+    test('un deny écarte aussi le prompt', () async {
+      when(
+        () => service.denyReport(
+          'near',
+          'u1',
+          geohash: any(named: 'geohash'),
+          lat: any(named: 'lat'),
+          lng: any(named: 'lng'),
+        ),
+      ).thenAnswer((_) async {});
+      final provider = await buildNear([
+        _report(id: 'near', userId: 'x', lat: 3.861, lng: 11.51),
+      ]);
+      expect(provider.promptCandidate?.id, 'near');
+
+      await provider.deny('near');
+      expect(provider.promptCandidate, isNull);
+    });
   });
 }

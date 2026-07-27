@@ -15,6 +15,7 @@ import '../theme/app_colors.dart';
 import '../widgets/active_filters_banner.dart';
 import '../widgets/confirm_dialog.dart';
 import '../widgets/njuka_app_bar.dart';
+import '../utils/l10n_helpers.dart';
 import '../widgets/report_card.dart';
 import '../widgets/service_filter_bar.dart';
 import '../widgets/service_visuals.dart';
@@ -129,7 +130,7 @@ class _MapScreenState extends State<MapScreen> {
               final go = await showConfirmDialog(
                 context,
                 title: l.confirmOutageTitle,
-                message: l.confirmOutageBody,
+                message: confirmOutageBodyLabel(context, report.serviceType),
                 confirmLabel: l.actionConfirm,
               );
               if (!go) return;
@@ -146,8 +147,8 @@ class _MapScreenState extends State<MapScreen> {
             onMarkRestored: () async {
               final go = await showConfirmDialog(
                 context,
-                title: l.confirmRestoreTitle,
-                message: l.confirmRestoreBody,
+                title: confirmRestoreTitleLabel(context, report.serviceType),
+                message: confirmRestoreBodyLabel(context, report.serviceType),
                 confirmLabel: l.confirmRestoreAction,
               );
               if (!go) return;

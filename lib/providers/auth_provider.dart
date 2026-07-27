@@ -73,6 +73,13 @@ class AuthProvider extends ChangeNotifier {
   bool get isAnonymous => _service.isAnonymous;
 
   Future<void> _onAuthStateChanged(User? user) async {
+    // Toute session vivante RÉARME la reconnexion anonyme automatique : si la
+    // session meurt plus tard (ex. compte supprimé côté serveur → refresh de
+    // jeton refusé → authStateChanges émet null), on retentera une session
+    // anonyme au lieu de rester bloqué sur « Réessayer » (résilience
+    // 2026-07-26 — découvert en purgant les comptes de test prod).
+    if (user != null) _anonymousSignInAttempted = false;
+
     CrashReporter.setUser(user?.uid);
     if (user == null) {
       _profile = null;
@@ -80,10 +87,15 @@ class AuthProvider extends ChangeNotifier {
       unawaited(_notifications.unregister());
       // Première arrivée sans session → on tente une session anonyme
       // transparente. Le listener sera rappelé avec le User anonyme.
+      //
+      // On NE force PAS `_status = unknown` ici : au démarrage à froid le statut
+      // est déjà `unknown` (défaut → SplashScreen, ce qu'on veut). Après une
+      // **déconnexion**, le statut courant est `authenticated`/`anonymous`
+      // (MainShell) ; le laisser tel quel pendant la brève re-connexion anonyme
+      // évite un flash de SplashScreen — la transition est ainsi vraiment
+      // transparente, comme prévu.
       if (!_anonymousSignInAttempted) {
         _anonymousSignInAttempted = true;
-        _status = AuthStatus.unknown;
-        notifyListeners();
         try {
           await _service.signInAnonymously();
           // Pas de notifyListeners ici : le listener re-fire avec le User.
@@ -110,16 +122,29 @@ class AuthProvider extends ChangeNotifier {
         _anonymousStartedLogged = true;
         unawaited(AnalyticsService.instance.logAnonymousStarted());
       }
-    } else if (!user.emailVerified) {
+    } else if (_needsEmailVerification(user)) {
       _profile = null;
       _status = AuthStatus.awaitingVerification;
     } else {
-      // Email vérifié : on charge le profil. Absent (1er login social ou
-      // upgrade en cours de finition) → profileIncomplete. En cas d'erreur
-      // réseau, on ne bloque pas un utilisateur existant (on reste
-      // authenticated avec le profil connu).
+      // Email vérifié : on charge le profil. Absent (1er login social) →
+      // **création automatique** avec pseudo généré (`prenom_NNN`, zéro
+      // friction — décision 2026-07-25), personnalisable une fois ensuite.
+      // Si la création échoue (réseau…), repli sur l'écran de complétion
+      // manuelle (profileIncomplete). En cas d'erreur réseau de lecture, on ne
+      // bloque pas un utilisateur existant.
       try {
-        final profile = await _service.fetchProfile(user.uid);
+        var profile = await _service.fetchProfile(user.uid);
+        if (profile == null) {
+          try {
+            final generated = await _service.autoCreateSocialProfile();
+            _justGeneratedUsername = generated;
+            profile = await _service.fetchProfile(user.uid);
+            AnalyticsService.instance.logSignUp();
+          } catch (_) {
+            // Repli : l'écran « Compléter mon profil » reste la sortie de
+            // secours si la génération échoue.
+          }
+        }
         _profile = profile;
         if (profile == null) {
           _status = AuthStatus.profileIncomplete;
@@ -138,6 +163,41 @@ class AuthProvider extends ChangeNotifier {
       }
     }
     notifyListeners();
+  }
+
+  /// Pseudo fraîchement généré lors d'une création automatique de profil
+  /// social — à annoncer UNE fois à l'utilisateur (« Ton pseudo : X,
+  /// modifiable une fois dans ton profil »). Consommé par [MainShell].
+  String? _justGeneratedUsername;
+  String? takeGeneratedUsernameAnnouncement() {
+    final u = _justGeneratedUsername;
+    _justGeneratedUsername = null;
+    return u;
+  }
+
+  /// Change le pseudo — une seule fois à vie. Recharge le profil en cas de
+  /// succès. Lève tel quel les erreurs (`username-already-in-use`,
+  /// `username-change-exhausted`) pour un message UI précis.
+  Future<bool> changeUsername(String newUsername) async {
+    final ok = await _run(() => _service.changeUsername(newUsername));
+    if (ok) {
+      final user = _service.currentUser;
+      if (user != null) _profile = await _service.fetchProfile(user.uid);
+      notifyListeners();
+    }
+    return ok;
+  }
+
+  /// La vérification d'email ne concerne QUE le fournisseur `password`
+  /// (inscription par e-mail). Les connexions sociales (Facebook, Apple,
+  /// Google) sont validées par leur fournisseur — or Firebase marque les
+  /// emails Facebook/Apple comme non vérifiés, ce qui envoyait à tort ces
+  /// utilisateurs sur l'écran « Vérifie ton email » (bug corrigé 2026-07-25).
+  static bool _needsEmailVerification(User user) {
+    final hasPasswordProvider = user.providerData.any(
+      (p) => p.providerId == 'password',
+    );
+    return hasPasswordProvider && !user.emailVerified;
   }
 
   /// Re-tente une session anonyme après un échec initial (bouton « Réessayer »
@@ -308,6 +368,11 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
     try {
       await _service.signInWithGoogle();
+      // Si la connexion a LIÉ le compte social à la session anonyme (même
+      // uid, historique préservé), authStateChanges ne re-fire pas toujours —
+      // on rejoue l'aiguillage manuellement (même précaution que
+      // upgradeWithEmail).
+      await _onAuthStateChanged(_service.currentUser);
       return true;
     } on SocialSignInCancelledException {
       return false; // annulation : aucun message
@@ -319,6 +384,66 @@ class AuthProvider extends ChangeNotifier {
       return false;
     } catch (e, st) {
       CrashReporter.recordError(e, st, reason: 'google sign-in');
+      _error = AppError.socialSignInFailed;
+      return false;
+    } finally {
+      _busy = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> signInWithFacebook() async {
+    _busy = true;
+    _error = null;
+    notifyListeners();
+    try {
+      await _service.signInWithFacebook();
+      // Si la connexion a LIÉ le compte social à la session anonyme (même
+      // uid, historique préservé), authStateChanges ne re-fire pas toujours —
+      // on rejoue l'aiguillage manuellement (même précaution que
+      // upgradeWithEmail).
+      await _onAuthStateChanged(_service.currentUser);
+      return true;
+    } on SocialSignInCancelledException {
+      return false; // annulation : aucun message
+    } on AccountDisabledException {
+      _error = AppError.accountDisabled;
+      return false;
+    } on FirebaseAuthException catch (e) {
+      _error = _codeFor(e);
+      return false;
+    } catch (e, st) {
+      CrashReporter.recordError(e, st, reason: 'facebook sign-in');
+      _error = AppError.socialSignInFailed;
+      return false;
+    } finally {
+      _busy = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> signInWithApple() async {
+    _busy = true;
+    _error = null;
+    notifyListeners();
+    try {
+      await _service.signInWithApple();
+      // Si la connexion a LIÉ le compte social à la session anonyme (même
+      // uid, historique préservé), authStateChanges ne re-fire pas toujours —
+      // on rejoue l'aiguillage manuellement (même précaution que
+      // upgradeWithEmail).
+      await _onAuthStateChanged(_service.currentUser);
+      return true;
+    } on SocialSignInCancelledException {
+      return false; // annulation : aucun message
+    } on AccountDisabledException {
+      _error = AppError.accountDisabled;
+      return false;
+    } on FirebaseAuthException catch (e) {
+      _error = _codeFor(e);
+      return false;
+    } catch (e, st) {
+      CrashReporter.recordError(e, st, reason: 'apple sign-in');
       _error = AppError.socialSignInFailed;
       return false;
     } finally {
@@ -397,6 +522,17 @@ class AuthProvider extends ChangeNotifier {
     // Si l'utilisateur s'efface puis revient en anonyme, c'est une **nouvelle**
     // session côté analytics → on rejoue logAnonymousStarted.
     _anonymousStartedLogged = false;
+    // Désinscription du device AVANT signOut : la suppression de
+    // `devices/{token}` exige d'être encore le propriétaire (règle
+    // `isOwner(userId)`). Après signOut, la requête partirait sans auth (ou en
+    // anonyme) → rejetée en silence, le doc survivrait et le téléphone
+    // continuerait de recevoir des notifs de compte. L'appel du listener
+    // (`_onAuthStateChanged(null)`) reste en filet best-effort.
+    try {
+      await _notifications.unregister();
+    } catch (_) {
+      // Best-effort : la déconnexion ne doit jamais être bloquée par FCM.
+    }
     await _service.signOut();
   }
 

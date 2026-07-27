@@ -60,7 +60,7 @@ class ReportCard extends StatelessWidget {
                     label: outageStatusLabel(context, report.status),
                   ),
                   const SizedBox(width: 6),
-                  _ServiceChip(service: report.serviceType),
+                  ServiceChip(service: report.serviceType),
                   const Spacer(),
                   Text(
                     relativeTimeL10n(context, report.reportedAt),
@@ -175,8 +175,16 @@ class ReportCard extends StatelessWidget {
                     else
                       TextButton.icon(
                         onPressed: onMarkRestored,
-                        icon: const Icon(Icons.lightbulb_outline, size: 18),
-                        label: Text(l.reportCardCourantRevenu),
+                        icon: Icon(
+                          serviceTypeIcon(report.serviceType),
+                          size: 18,
+                        ),
+                        label: Text(
+                          serviceRestoredChipLabel(
+                            context,
+                            report.serviceType,
+                          ),
+                        ),
                       ),
                   ],
                 ),
@@ -246,38 +254,3 @@ class _StatusChip extends StatelessWidget {
   }
 }
 
-/// Petit chip identifiant le service du signalement (⚡ Électricité / 💧 Eau).
-/// Couleur de marque tirée de `serviceTypeColor` — différencie l'élec (ambre)
-/// de l'eau (bleu sky) au premier coup d'œil dans la liste.
-class _ServiceChip extends StatelessWidget {
-  const _ServiceChip({required this.service});
-
-  final ServiceType service;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = serviceTypeColor(service);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(serviceTypeIcon(service), size: 14, color: color),
-          const SizedBox(width: 4),
-          Text(
-            serviceTypeLabel(context, service),
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

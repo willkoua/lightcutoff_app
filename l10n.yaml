@@ -8,9 +8,8 @@ output-localization-file: app_localizations.dart
 output-class: AppLocalizations
 nullable-getter: false
 
-# Migration hors du paquet synthétique `package:flutter_gen` (déprécié dans
-# Flutter, sera retiré). Le code généré est désormais écrit en clair dans
-# `lib/l10n/generated/` et importé via `package:lightcutoff_app/...`. Ce
-# dossier est gitignoré : il est régénéré à chaque `flutter pub get`/build.
-synthetic-package: false
+# Le code généré est écrit en clair dans `lib/l10n/generated/` et importé via
+# `package:lightcutoff_app/...`. Dossier gitignoré, régénéré à chaque
+# `flutter pub get`/build. (`synthetic-package` retiré : sans effet depuis
+# Flutter 3.32+, la génération sur disque est le seul mode.)
 output-dir: lib/l10n/generated

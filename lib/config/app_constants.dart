@@ -21,6 +21,10 @@ class AppConstants {
   /// déjà temps réel.)
   static const Duration nearRefreshInterval = Duration(seconds: 60);
 
+  /// Rayon (m) du **prompt d'ouverture** « Chez toi aussi ? » : on ne sollicite
+  /// l'utilisateur que si une coupure en cours est à moins de cette distance.
+  static const double promptRadiusMeters = 1000;
+
   // --- Médias des signalements ---
 
   /// Côté le plus long (px) au-delà duquel une image fixe est redimensionnée.
@@ -91,6 +95,10 @@ class AppConstants {
   /// URL publique des Conditions d'utilisation (Firebase Hosting).
   /// Source : `public/cgu.html`. Liée à la case d'acceptation à l'inscription.
   static const String termsUrl = 'https://lightcutoff-dev.web.app/cgu';
+
+  /// Adresse de support (tuile « Signaler un problème », Paramètres → Aide).
+  /// Le brouillon d'email est pré-rempli avec le diagnostic (version, OS…).
+  static const String supportEmail = 'support@bogal.ca';
 
   /// Sondage de retour des testeurs (Google Forms). Affiché via une bannière
   /// sur la Liste **en staging/dev uniquement** (cf. AppConfig.showDevTools).

@@ -10,6 +10,7 @@ import '../providers/auth_provider.dart';
 import '../theme/app_colors.dart';
 import '../utils/formatting.dart';
 import '../utils/l10n_helpers.dart';
+import '../utils/username_generator.dart';
 import '../utils/validators.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -24,6 +25,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _firstName = TextEditingController();
   final _lastName = TextEditingController();
   final _username = TextEditingController();
+
+  /// Pré-remplissage du pseudo depuis le prénom (suggestion `prenom_NNN`,
+  /// quasi toujours disponible) tant que l'utilisateur n'a pas touché au
+  /// champ — supprime la friction du « choisis un pseudo unique ».
+  bool _usernameEdited = false;
+
+  void _suggestUsernameFromFirstName() {
+    if (_usernameEdited) return;
+    final first = _firstName.text.trim();
+    if (first.isEmpty) return;
+    _username.text = generateUsername(first);
+  }
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _confirmPassword = TextEditingController();
@@ -40,6 +53,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   late final TapGestureRecognizer _privacyTap =
       TapGestureRecognizer()
         ..onTap = () => _openUrl(AppConstants.privacyPolicyUrl);
+
+  @override
+  void initState() {
+    super.initState();
+    _firstName.addListener(_suggestUsernameFromFirstName);
+  }
 
   @override
   void dispose() {
@@ -165,6 +184,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _username,
+                  onChanged: (_) => _usernameEdited = true,
                   textInputAction: TextInputAction.next,
                   autocorrect: false,
                   decoration: InputDecoration(

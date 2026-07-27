@@ -60,6 +60,9 @@ const List<Utility> kSupportedUtilities = [
     countryLabel: 'Cameroun',
     countryAliases: ['cameroun', 'cameroon'],
   ),
+  // RD Congo (SNEL élec + REGIDESO eau) retirée le 2026-07-25 avant le
+  // lancement prod : on ne liste pas un pays sans présence réelle. Le modèle
+  // multi-pays reste en place — ré-ajouter une entrée [Utility] suffit.
 ];
 
 /// Tous les fournisseurs d'un pays (toutes services confondus).
@@ -79,6 +82,38 @@ Utility? utilityForCountryAndService(String? countryIso, ServiceType service) {
   final c = countryIso.toUpperCase();
   for (final u in kSupportedUtilities) {
     if (u.country == c && u.service == service) return u;
+  }
+  return null;
+}
+
+/// Un pays couvert par l'app (code ISO + libellé affichable).
+class SupportedCountry {
+  const SupportedCountry(this.iso, this.label);
+  final String iso;
+  final String label;
+}
+
+/// Pays **distincts** couverts par l'app (dérivés de [kSupportedUtilities]),
+/// pour alimenter le sélecteur de pays utilisateur. Dédupliqués par ISO,
+/// ordre d'apparition préservé.
+List<SupportedCountry> supportedCountries() {
+  final seen = <String>{};
+  final out = <SupportedCountry>[];
+  for (final u in kSupportedUtilities) {
+    if (seen.add(u.country)) {
+      out.add(SupportedCountry(u.country, u.countryLabel));
+    }
+  }
+  return out;
+}
+
+/// Libellé affichable d'un code pays ISO (ex. `CM` → « Cameroun »), ou `null`
+/// si le pays n'est pas couvert (on affichera alors le code brut).
+String? countryLabelForIso(String? iso) {
+  if (iso == null) return null;
+  final c = iso.toUpperCase();
+  for (final u in kSupportedUtilities) {
+    if (u.country == c) return u.countryLabel;
   }
   return null;
 }

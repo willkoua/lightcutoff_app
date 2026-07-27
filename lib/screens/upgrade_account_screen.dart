@@ -12,6 +12,7 @@ import '../services/analytics_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/formatting.dart';
 import '../utils/l10n_helpers.dart';
+import '../utils/username_generator.dart';
 import '../utils/validators.dart';
 import 'login_screen.dart';
 
@@ -36,6 +37,18 @@ class _UpgradeAccountScreenState extends State<UpgradeAccountScreen> {
   final _firstName = TextEditingController();
   final _lastName = TextEditingController();
   final _username = TextEditingController();
+
+  /// Pré-remplissage du pseudo depuis le prénom (suggestion `prenom_NNN`,
+  /// quasi toujours disponible) tant que l'utilisateur n'a pas touché au
+  /// champ — supprime la friction du « choisis un pseudo unique ».
+  bool _usernameEdited = false;
+
+  void _suggestUsernameFromFirstName() {
+    if (_usernameEdited) return;
+    final first = _firstName.text.trim();
+    if (first.isEmpty) return;
+    _username.text = generateUsername(first);
+  }
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _confirmPassword = TextEditingController();
@@ -48,6 +61,7 @@ class _UpgradeAccountScreenState extends State<UpgradeAccountScreen> {
   @override
   void initState() {
     super.initState();
+    _firstName.addListener(_suggestUsernameFromFirstName);
     // Marqueur funnel : l'utilisateur anonyme a OUVERT l'écran d'upgrade
     // (intention forte). Paire avec `upgrade_completed` côté provider pour
     // mesurer la complétion du formulaire.
@@ -248,6 +262,7 @@ class _UpgradeAccountScreenState extends State<UpgradeAccountScreen> {
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _username,
+                  onChanged: (_) => _usernameEdited = true,
                   textInputAction: TextInputAction.next,
                   autocorrect: false,
                   decoration: InputDecoration(

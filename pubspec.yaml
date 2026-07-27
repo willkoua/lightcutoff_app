@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.2.0+16
+version: 1.2.0+57
 
 environment:
   sdk: ^3.7.0
@@ -67,6 +67,9 @@ dependencies:
   # Connexion Google (Sign in with Google) — fournit le credential OAuth à
   # firebase_auth. Nécessite la config console (provider Google activé + SHA-1).
   google_sign_in: ^6.2.1
+  # Connexion Facebook — fournit l'access token à firebase_auth. Nécessite la
+  # config (app Facebook + provider Facebook activé + clé secrète + key hashes).
+  flutter_facebook_auth: ^7.2.0
 
 dev_dependencies:
   flutter_test:
@@ -81,7 +84,7 @@ dev_dependencies:
   mocktail: ^1.0.5
   flutter_launcher_icons: ^0.14.4
   flutter_native_splash: ^2.4.6
-  fake_cloud_firestore: ^4.1.1
+  fake_cloud_firestore: ^4.2.0
   firebase_auth_mocks: ^0.15.2
 
 # For information on the generic Dart part of this file, see the

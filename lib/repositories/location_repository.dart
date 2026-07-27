@@ -28,4 +28,11 @@ abstract class LocationRepository {
   Future<LocationAccess> checkAccess();
   Future<void> openSettings();
   Future<LocationResult> getCurrentLocation();
+
+  /// Résout une **position décrite manuellement** ([query] : quartier, ville,
+  /// adresse…) en coordonnées + zone, via géocodage direct. Permet de signaler
+  /// sans GPS. Mondial (pas spécifique à un pays). Lève
+  /// [LocationException]`(AppError.locationNotFound)` si la description ne
+  /// correspond à aucun lieu.
+  Future<LocationResult> locationFromDescription(String query);
 }

@@ -107,6 +107,44 @@ void main() {
     });
   });
 
+  group('denyReport (« pas chez moi », signal négatif)', () {
+    test('écrit le doc denials/{uid} SANS toucher aux compteurs', () async {
+      await seedReport('r1');
+      await service.denyReport('r1', 'u', geohash: 's2x9c', lat: 3.8, lng: 11.5);
+
+      final report = await fake.collection('reports').doc('r1').get();
+      expect(report.data()!['confirmationCount'], 0); // aucun compteur bougé
+      expect(report.data()!['restorationCount'], 0);
+
+      final denial =
+          await fake
+              .collection('reports')
+              .doc('r1')
+              .collection('denials')
+              .doc('u')
+              .get();
+      expect(denial.exists, isTrue);
+      expect(denial.data()!['geohash'], 's2x9c');
+      expect(denial.data()!['position'], {'lat': 3.8, 'lng': 11.5});
+      expect(await service.hasDenied('r1', 'u'), isTrue);
+      expect(await service.hasDenied('r1', 'autre'), isFalse);
+    });
+
+    test('idempotent : un seul doc par utilisateur', () async {
+      await seedReport('r1');
+      await service.denyReport('r1', 'u');
+      await service.denyReport('r1', 'u');
+
+      final denials =
+          await fake
+              .collection('reports')
+              .doc('r1')
+              .collection('denials')
+              .get();
+      expect(denials.size, 1);
+    });
+  });
+
   group('markRestored (transaction, vote unique)', () {
     test('incrémente restorationCount et écrit la sous-collection', () async {
       await seedReport('r1');

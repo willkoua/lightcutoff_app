@@ -78,6 +78,34 @@ class LocationService implements LocationRepository {
     throw const LocationException(AppError.locationNotFound);
   }
 
+  /// Géocodage direct d'une description libre (quartier, ville, adresse) en
+  /// coordonnées, puis reverse-géocodage pour renseigner la zone (et surtout le
+  /// `countryCode`, qui cloisonne les données par pays). Best-effort mais
+  /// mondial : repose sur le géocodeur natif (Android Geocoder / iOS CLGeocoder).
+  @override
+  Future<LocationResult> locationFromDescription(String query) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) {
+      throw const LocationException(AppError.locationNotFound);
+    }
+    final List<Location> matches;
+    try {
+      matches = await locationFromAddress(trimmed);
+    } catch (_) {
+      // Aucun résultat / pas de réseau → traité comme « introuvable ».
+      throw const LocationException(AppError.locationNotFound);
+    }
+    if (matches.isEmpty) {
+      throw const LocationException(AppError.locationNotFound);
+    }
+    final m = matches.first;
+    final area = await _reverseGeocode(m.latitude, m.longitude);
+    return LocationResult(
+      position: GeoPosition(lat: m.latitude, lng: m.longitude),
+      area: area,
+    );
+  }
+
   Future<GeoArea> _reverseGeocode(double lat, double lng) async {
     try {
       final placemarks = await placemarkFromCoordinates(lat, lng);

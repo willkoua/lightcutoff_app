@@ -59,19 +59,39 @@ class AppConfig {
   static bool get isStaging => environment == AppEnvironment.staging;
   static bool get isProd => environment == AppEnvironment.prod;
 
+  /// Mode capture d'écran (Play Store) : masque la bannière d'environnement et
+  /// les outils dev pour des captures « propres », sans rebrancher la prod.
+  /// Activer via `--dart-define=SCREENSHOT_MODE=true` (build staging).
+  static const bool screenshotMode = bool.fromEnvironment('SCREENSHOT_MODE');
+
   /// Outils de dev (sélecteurs langue, pays/compagnie…) : visibles partout
   /// **sauf en prod** — tout ce qu'on voit en dev doit exister en staging.
-  static bool get showDevTools => !isProd;
+  /// Masqués aussi en [screenshotMode].
+  static bool get showDevTools => !isProd && !screenshotMode;
 
   /// Affiche le bouton « Continuer avec Google ». **Désactivé** tant que la
   /// config Firebase n'est pas faite (provider Google activé + empreintes SHA-1
   /// debug/release/Play App Signing + `google-services.json` régénéré — voir
   /// `tasks/SETUP-AUTH-GOOGLE.md`). Sans cette config, le bouton planterait
   /// (`ApiException: 10`). Passer à `true` puis rebuild une fois la config prête.
-  static const bool enableGoogleSignIn = false;
+  static const bool enableGoogleSignIn = true;
+
+  /// Affiche le bouton « Continuer avec Apple » — **iOS uniquement** (exigence
+  /// App Store 4.8 : obligatoire dès qu'une connexion tierce est proposée).
+  /// Nécessite : capability « Sign in with Apple » (Xcode) + provider Apple
+  /// activé dans Firebase Authentication.
+  static bool get enableAppleSignIn => !kIsWeb && Platform.isIOS;
+
+  /// Affiche le bouton « Continuer avec Facebook ». **Désactivé** tant que la
+  /// config n'est pas faite (app Facebook + provider Facebook activé dans
+  /// Firebase + clé secrète + key hashes Android + client token). Passer à
+  /// `true` puis rebuild une fois la config prête.
+  static const bool enableFacebookSignIn = true;
 
   /// Étiquette de la bannière d'environnement (`null` = pas de bannière, prod).
+  /// `null` aussi en [screenshotMode] (captures propres).
   static String? get envBannerLabel {
+    if (screenshotMode) return null;
     switch (environment) {
       case AppEnvironment.dev:
         return 'DEV';

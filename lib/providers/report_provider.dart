@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/widgets.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/app_constants.dart';
 import '../models/app_error.dart';
@@ -20,6 +21,7 @@ import '../services/location_service.dart';
 import '../services/notification_service.dart';
 import '../services/report_service.dart';
 import '../services/storage_service.dart';
+import '../utils/anonymous_activity.dart';
 import '../utils/crash_reporter.dart';
 import '../utils/geohash.dart';
 
@@ -57,6 +59,7 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _subscribe();
     _applyDefaultProximity();
+    _loadDismissedPrompts();
   }
 
   /// Active le filtre « à proximité » **par défaut**, dès que la localisation
@@ -99,6 +102,86 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
   bool iConfirmed(String reportId) => _myConfirmedIds.contains(reportId);
   bool iRestored(String reportId) => _myRestoredIds.contains(reportId);
 
+  // --- Prompt d'ouverture « Chez toi aussi ? » ---
+  // Reports pour lesquels l'utilisateur a déjà répondu (Oui/Non) ou glissé le
+  // prompt. Persisté (SharedPreferences) pour ne JAMAIS re-solliciter sur le
+  // même signalement, même après redémarrage.
+  static const String _dismissedPromptsKey = 'prompt_dismissed_report_ids';
+  final Set<String> _dismissedPromptIds = {};
+  bool _dismissedPromptsLoaded = false;
+  bool _disposed = false;
+
+  Future<void> _loadDismissedPrompts() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _dismissedPromptIds.addAll(
+        prefs.getStringList(_dismissedPromptsKey) ?? const [],
+      );
+    } catch (_) {
+      // Best-effort : sans persistance on retombe sur l'état mémoire.
+    } finally {
+      _dismissedPromptsLoaded = true;
+      if (!_disposed) notifyListeners();
+    }
+  }
+
+  Future<void> _persistDismissedPrompt(String reportId) async {
+    _dismissedPromptIds.add(reportId);
+    if (!_disposed) notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(
+        _dismissedPromptsKey,
+        _dismissedPromptIds.toList(),
+      );
+    } catch (_) {
+      // Best-effort.
+    }
+  }
+
+  /// Écarte le prompt pour ce report sans répondre (« passer »).
+  void dismissPrompt(String reportId) {
+    _persistDismissedPrompt(reportId);
+    AnalyticsService.instance.logPromptDismissed();
+  }
+
+  /// Candidat au prompt d'ouverture « Chez toi aussi ? » : la coupure **en
+  /// cours** la plus proche à moins de [AppConstants.promptRadiusMeters],
+  /// dont l'utilisateur n'est pas l'auteur, sur laquelle il n'a pas encore
+  /// voté et qu'il n'a pas déjà écartée. `null` si rien à demander (pas de
+  /// position connue, rien de proche, ou déjà sollicité).
+  Report? get promptCandidate {
+    if (!_dismissedPromptsLoaded) return null;
+    final center = _nearCenter;
+    final results = _nearResults;
+    if (center == null || results == null) return null;
+    const distance = Distance();
+    Report? best;
+    double bestMeters = AppConstants.promptRadiusMeters;
+    for (final r in results) {
+      if (r.status != OutageStatus.ongoing) continue;
+      if (r.userId == _uid) continue;
+      if (_dismissedPromptIds.contains(r.id)) continue;
+      if (_myConfirmedIds.contains(r.id) || _myRestoredIds.contains(r.id)) {
+        continue;
+      }
+      if (_countryFilter != null &&
+          r.location.countryCode != _countryFilter) {
+        continue;
+      }
+      final d = distance.as(
+        LengthUnit.Meter,
+        LatLng(center.lat, center.lng),
+        LatLng(r.position.lat, r.position.lng),
+      );
+      if (d <= bestMeters) {
+        bestMeters = d;
+        best = r;
+      }
+    }
+    return best;
+  }
+
   /// Vérifie côté serveur si l'utilisateur a déjà confirmé / signalé le retour
   /// pour [reportId] et met à jour l'état local. Idempotent ; sans effet hors
   /// connexion ou en cas d'erreur (l'état optimiste reste la source).
@@ -123,7 +206,7 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// [loadMore] avec une fenêtre élargie (on conserve le temps réel).
   void _subscribe() {
     _sub = _service
-        .watchReports(limit: _limit)
+        .watchReports(limit: _limit, countryCode: _countryFilter)
         .listen(
           (data) {
             _reports = data;
@@ -173,17 +256,26 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// `countryCode` (données héritées) restent visibles (non destructif).
   String? _countryFilter;
 
-  /// Définit le pays actif (ISO). Sans effet si inchangé.
+  /// Définit le pays actif (ISO). Sans effet si inchangé. **Re-souscrit** le
+  /// flux temps réel : la fenêtre `limit` est désormais bornée par pays
+  /// **côté serveur** (voir [ReportService.watchReports]), donc changer de pays
+  /// doit relancer la requête (sinon on garderait la fenêtre de l'ancien pays).
   void setCountryFilter(String? iso) {
     final next = (iso == null || iso.isEmpty) ? null : iso.toUpperCase();
     if (next == _countryFilter) return;
     _countryFilter = next;
+    // Nouvelle requête bornée par pays : on repart d'une fenêtre propre.
+    _limit = AppConstants.reportsPageSize;
+    _loading = true;
+    _sub.cancel();
+    _subscribe();
     notifyListeners();
   }
 
   /// Filtre service public (élec / eau / null = Tout). Alimenté par
   /// `RegionProvider.serviceFilter` via le proxy d'`AuthGate`. **Filtrage
-  /// client-side** comme le pays — pas d'index Firestore à créer, volume MVP OK.
+  /// client-side** (contrairement au pays, désormais borné côté serveur) — pas
+  /// d'index Firestore à créer, volume par pays OK au MVP.
   ServiceType? _serviceFilter;
 
   ServiceType? get serviceFilter => _serviceFilter;
@@ -286,6 +378,24 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
         list.sort((a, b) => b.confirmationCount.compareTo(a.confirmationCount));
     }
     return list;
+  }
+
+  /// Nombre de coupures **en cours** dans le périmètre courant (pays + service),
+  /// indépendamment des filtres transitoires (statut / proximité / recherche /
+  /// « mes signalements »). Alimente le bandeau d'activité. S'appuie sur le flux
+  /// temps réel (`_reports`), les archivées en étant déjà exclues.
+  int get activeInScopeCount {
+    return _reports.where((r) {
+      if (r.status != OutageStatus.ongoing) return false;
+      if (_countryFilter != null &&
+          r.location.countryCode != _countryFilter) {
+        return false;
+      }
+      if (_serviceFilter != null && r.serviceType != _serviceFilter) {
+        return false;
+      }
+      return true;
+    }).length;
   }
 
   void setQuery(String value) {
@@ -564,6 +674,35 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  /// Geohash grossier du votant attaché à un vote (confirm / restore).
+  /// **Best-effort STRICT** : ne déclenche AUCUNE demande de permission (n'utilise
+  /// la position que si la localisation est **déjà** autorisée) et est borné à
+  /// quelques secondes. Objectif : un vote ne doit JAMAIS être bloqué, ralenti
+  /// ou mis en échec à cause de la localisation. Renvoie `null` sinon.
+  Future<String?> _voteGeohash() async =>
+      (await _votePosition())?.geohash;
+
+  /// Variante de [_voteGeohash] qui renvoie **aussi** la position exacte
+  /// (lat/lng), nécessaire au ciblage 500 m des notifications de proximité
+  /// déclenchées par une confirmation (Cloud Function `onConfirmationCreated`).
+  /// Mêmes garanties best-effort STRICT : jamais de demande de permission,
+  /// borné à quelques secondes, `null` en cas d'indisponibilité.
+  Future<({String geohash, double lat, double lng})?> _votePosition() async {
+    try {
+      if (await _location.checkAccess() != LocationAccess.granted) return null;
+      final loc = await _location.getCurrentLocation().timeout(
+        const Duration(seconds: 4),
+      );
+      return (
+        geohash: encodeGeohash(loc.position.lat, loc.position.lng),
+        lat: loc.position.lat,
+        lng: loc.position.lng,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// État d'accès à la localisation (sans déclencher la demande système).
   Future<LocationAccess> checkLocationAccess() => _location.checkAccess();
 
@@ -597,6 +736,37 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  /// Prépare un signalement à partir d'une **position décrite** (sans GPS) :
+  /// [query] = quartier / ville / adresse, géocodé en coordonnées. Mêmes
+  /// garanties que [prepareReport] (draft + détection de doublon à proximité du
+  /// point résolu). Renvoie `AppError.locationNotFound` si la description ne
+  /// correspond à aucun lieu.
+  Future<PrepareOutcome> prepareReportFromDescription(
+    String query, {
+    ServiceType? serviceType,
+  }) async {
+    if (_uid == null) {
+      return const PrepareOutcome(error: AppError.notLoggedIn);
+    }
+    _submitting = true;
+    notifyListeners();
+    try {
+      final loc = await _location.locationFromDescription(query);
+      final draft = ReportDraft(position: loc.position, area: loc.area);
+      return PrepareOutcome(
+        draft: draft,
+        nearby: findNearbyOngoing(loc.position, serviceType: serviceType),
+      );
+    } on LocationException catch (e) {
+      return PrepareOutcome(error: e.code);
+    } catch (_) {
+      return const PrepareOutcome(error: AppError.locationNotFound);
+    } finally {
+      _submitting = false;
+      notifyListeners();
+    }
+  }
+
   /// Upload un média (octets) pour la description courante. Renvoie l'URL,
   /// ou null en cas d'échec.
   Future<String?> uploadDescriptionMedia(
@@ -618,12 +788,15 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   /// Crée le signalement à partir d'une localisation déjà résolue.
+  /// [reportedAt] = date/heure de **constatation** saisie par l'utilisateur
+  /// (facultatif) ; `null` → l'horodatage serveur (« maintenant ») est utilisé.
   Future<AppError?> createFromDraft(
     ReportDraft draft, {
     String? description,
     String? mediaUrl,
     String? authorUsername,
     ServiceType serviceType = ServiceType.electricity,
+    DateTime? reportedAt,
   }) async {
     final uid = _uid;
     if (uid == null) return AppError.notLoggedIn;
@@ -644,8 +817,10 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
         mediaUrl: mediaUrl,
         authorUsername: authorUsername,
         geohash: encodeGeohash(draft.position.lat, draft.position.lng),
+        reportedAt: reportedAt,
       );
       await _service.createReport(report);
+      unawaited(markAnonymousActivity(_auth.currentUser));
       AnalyticsService.instance.logReportCreated();
       // En mode proximité (requête ponctuelle), on resynchronise tout de suite
       // pour que le nouveau signalement apparaisse sans attendre le refresh.
@@ -667,19 +842,56 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
     // Garde : on ne confirme pas sa propre coupure.
     if (reportById(reportId)?.userId == uid) return false;
     try {
-      // Position grossière du confirmeur (geohash ≈1,2 km), conservée sur le
-      // vote pour estimer plus tard l'étendue d'une coupure. Best-effort : si la
-      // position n'est pas dispo, on confirme quand même sans geohash.
-      final pos = await myPosition();
-      final geohash = pos == null ? null : encodeGeohash(pos.lat, pos.lng);
-      await _service.confirmReport(reportId, uid, geohash: geohash);
+      // Position du confirmeur (geohash grossier + lat/lng exact) en best-effort
+      // STRICT (ne bloque ni ne fait échouer le vote — cf. [_votePosition]). Le
+      // lat/lng exact alimente le ciblage 500 m des notifications côté serveur.
+      final vote = await _votePosition();
+      await _service.confirmReport(
+        reportId,
+        uid,
+        geohash: vote?.geohash,
+        lat: vote?.lat,
+        lng: vote?.lng,
+      );
       _myConfirmedIds.add(reportId);
+      // Un vote vaut réponse au prompt d'ouverture : ne plus solliciter.
+      _persistDismissedPrompt(reportId);
+      unawaited(markAnonymousActivity(_auth.currentUser));
       AnalyticsService.instance.logReportConfirmed();
       // En mode proximité (requête ponctuelle), on resynchronise tout de suite.
       if (_nearOnly) await _refreshNear();
       notifyListeners();
       return true;
     } catch (_) {
+      return false;
+    }
+  }
+
+  /// Répond « Non, pas de coupure chez moi » au prompt d'ouverture. Signal
+  /// négatif (délimite l'emprise de la coupure) — ne touche aucun compteur.
+  /// Symétrique à [confirm] pour les garanties (best-effort position, jamais
+  /// bloquant) ; enregistre aussi la réponse comme dismissal du prompt.
+  Future<bool> deny(String reportId) async {
+    final uid = _uid;
+    if (uid == null) return false;
+    // Garde : l'auteur ne « dément » pas sa propre coupure (il l'archive).
+    if (reportById(reportId)?.userId == uid) return false;
+    try {
+      final vote = await _votePosition();
+      await _service.denyReport(
+        reportId,
+        uid,
+        geohash: vote?.geohash,
+        lat: vote?.lat,
+        lng: vote?.lng,
+      );
+      _persistDismissedPrompt(reportId);
+      unawaited(markAnonymousActivity(_auth.currentUser));
+      AnalyticsService.instance.logReportDenied();
+      return true;
+    } catch (_) {
+      // Même en cas d'échec réseau, on n'insiste pas : le prompt est écarté.
+      _persistDismissedPrompt(reportId);
       return false;
     }
   }
@@ -721,8 +933,12 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
     final uid = _uid;
     if (uid == null) return false;
     try {
-      await _service.markRestored(reportId, uid);
+      // Geohash grossier du votant, en best-effort STRICT (ne bloque ni ne fait
+      // échouer la déclaration — cf. [_voteGeohash]).
+      final geohash = await _voteGeohash();
+      await _service.markRestored(reportId, uid, geohash: geohash);
       _myRestoredIds.add(reportId);
+      unawaited(markAnonymousActivity(_auth.currentUser));
       AnalyticsService.instance.logReportRestored();
       if (_nearOnly) await _refreshNear();
       notifyListeners();
@@ -737,6 +953,7 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _disposed = true;
     WidgetsBinding.instance.removeObserver(this);
     _sub.cancel();
     _nearTimer?.cancel();

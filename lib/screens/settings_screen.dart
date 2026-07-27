@@ -39,15 +39,24 @@ class SettingsScreen extends StatelessWidget {
             _SectionHeader(l.settingsSectionNotifications),
             const _NotificationsToggle(),
           ],
+          // Pays : accessible à TOUS les utilisateurs (pas seulement dev).
+          // Permet de corriger une détection auto erronée → débloque les
+          // coupures programmées du bon pays.
+          _SectionHeader(l.settingsSectionRegion),
+          const _CountryPickerTile(),
+          // Langue : préférence utilisateur disponible dans TOUS les
+          // environnements (y compris prod) — ce n'est plus un outil dev.
+          _SectionHeader(l.settingsSectionLanguage),
+          const _LanguagePickerTile(),
           _SectionHeader(l.settingsSectionHelp),
+          const _ContactSupportTile(),
           const _ReplayOnboardingTile(),
           _SectionHeader(l.settingsSectionLegal),
           const _PrivacyPolicyTile(),
-          // Outils dev/QA (langue, pays/compagnie) : visibles en dev ET en
+          // Outils dev/QA (pays/compagnie de test) : visibles en dev ET en
           // staging — même en build release. Cachés uniquement en prod.
+          // (La langue est désormais hors de ce bloc → dispo partout.)
           if (AppConfig.showDevTools) ...[
-            _SectionHeader(l.settingsSectionLanguageDebug),
-            const _LanguagePickerTile(),
             _SectionHeader(l.settingsSectionProviderDebug),
             const _ProviderPickerTile(service: ServiceType.electricity),
             const _ProviderPickerTile(service: ServiceType.water),
@@ -157,6 +166,80 @@ class _SectionHeader extends StatelessWidget {
           letterSpacing: 0.8,
         ),
       ),
+    );
+  }
+}
+
+/// « Signaler un problème » : ouvre un brouillon d'email vers
+/// [AppConstants.supportEmail] **pré-rempli avec le diagnostic** (version,
+/// build, environnement, OS, type de compte, langue) — l'utilisateur n'a que
+/// son problème à décrire, et le triage arrive avec tout le contexte.
+class _ContactSupportTile extends StatelessWidget {
+  const _ContactSupportTile();
+
+  Future<void> _open(BuildContext context) async {
+    final l = AppLocalizations.of(context);
+    final auth = context.read<AuthProvider>();
+    final info = await PackageInfo.fromPlatform();
+    if (!context.mounted) return;
+    final theme = Theme.of(context);
+    final os = theme.platform == TargetPlatform.iOS ? 'iOS' : 'Android';
+    final account =
+        auth.isAnonymous
+            ? l.supportDiagAnonymous
+            : (auth.profile?.username ?? '—');
+    final diagnostic = [
+      '',
+      '',
+      '--- ${l.supportDiagSeparator} ---',
+      'App : NJUKA ${info.version} (${info.buildNumber})'
+          '${AppConfig.envBannerLabel != null ? ' · ${AppConfig.envBannerLabel}' : ''}',
+      'OS : $os',
+      '${l.supportDiagAccount} : $account',
+      '${l.supportDiagLanguage} : ${Localizations.localeOf(context).languageCode}',
+    ].join('\n');
+
+    final uri = Uri(
+      scheme: 'mailto',
+      path: AppConstants.supportEmail,
+      query: Uri(
+        queryParameters: {
+          'subject': l.supportEmailSubject(info.version, info.buildNumber),
+          'body': l.supportEmailBodyHint + diagnostic,
+        },
+      ).query,
+    );
+    var ok = false;
+    try {
+      ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      ok = false;
+    }
+    if (!ok && context.mounted) {
+      // Pas de client mail configuré : on affiche l'adresse en repli.
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(l.supportNoMailApp(AppConstants.supportEmail)),
+            duration: const Duration(seconds: 6),
+          ),
+        );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return ListTile(
+      leading: const Icon(Icons.support_agent_outlined),
+      title: Text(l.supportTileTitle),
+      subtitle: Text(
+        l.supportTileSubtitle,
+        style: const TextStyle(color: AppColors.gray, fontSize: 13),
+      ),
+      trailing: const Icon(Icons.open_in_new, size: 18),
+      onTap: () => _open(context),
     );
   }
 }
@@ -277,6 +360,62 @@ class _ProviderChoice {
 
   static const _ProviderChoice auto = _ProviderChoice._(null, true);
   static _ProviderChoice pick(Utility u) => _ProviderChoice._(u, false);
+}
+
+/// Sélecteur de **pays** accessible à tous les utilisateurs (≠ override dev).
+/// « Automatique » = détection GPS / profil / locale. Choisir un pays explicite
+/// le force (prioritaire sur la détection) → utile quand l'auto se trompe, et
+/// débloque les coupures programmées du bon pays. Persiste via
+/// [RegionProvider.setUserCountry].
+class _CountryPickerTile extends StatelessWidget {
+  const _CountryPickerTile();
+
+  Future<void> _pick(BuildContext context) async {
+    final l = AppLocalizations.of(context);
+    final region = context.read<RegionProvider>();
+    // Valeur retournée : `''` = automatique, sinon un ISO ; `null` = annulé.
+    final selected = await showDialog<String>(
+      context: context,
+      builder:
+          (ctx) => SimpleDialog(
+            title: Text(l.countryPickerTitle),
+            children: [
+              SimpleDialogOption(
+                onPressed: () => Navigator.of(ctx).pop(''),
+                child: Text(l.countryAuto),
+              ),
+              for (final c in supportedCountries())
+                SimpleDialogOption(
+                  onPressed: () => Navigator.of(ctx).pop(c.iso),
+                  child: Text(c.label),
+                ),
+            ],
+          ),
+    );
+    if (selected == null || !context.mounted) return; // dismiss → no-op
+    await region.setUserCountry(selected.isEmpty ? null : selected);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final region = context.watch<RegionProvider>();
+    final userIso = region.userCountry;
+    final subtitle =
+        userIso != null
+            ? (countryLabelForIso(userIso) ?? userIso)
+            : '${l.countryAuto} · ${countryLabelForIso(region.activeCountry) ?? region.activeCountry}';
+    return ListTile(
+      leading: const Icon(Icons.public, color: AppColors.gray),
+      title: Text(l.settingsCountryTile),
+      subtitle: Text(
+        subtitle,
+        style: const TextStyle(color: AppColors.gray, fontSize: 13),
+      ),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => _pick(context),
+    );
+  }
 }
 
 /// Sélecteur debug **par service** (un par tuile dans Paramètres) du

@@ -16,6 +16,12 @@ class AppUser {
   /// Quartiers suivis pour les alertes de coupures planifiées. Clés normalisées
   /// `REGION|VILLE|QUARTIER` (cf. `OfficialOutage.followKey`).
   final List<String> followedQuartiers;
+
+  /// Nombre de changements de pseudo restants. Le pseudo est **attribué** à la
+  /// création (généré) et personnalisable **une seule fois**, définitivement
+  /// (décision 2026-07-25 — le pseudo identifie l'utilisateur dans la
+  /// communauté). Verrouillé côté serveur par les règles Firestore.
+  final int usernameChangesLeft;
   final UserRole role;
   final AccountStatus status;
   final DateTime? disabledAt;
@@ -33,6 +39,7 @@ class AppUser {
     this.photoURL,
     this.homeLocation = const GeoArea(),
     this.followedQuartiers = const [],
+    this.usernameChangesLeft = 1,
     this.role = UserRole.citizen,
     this.status = AccountStatus.active,
     this.disabledAt,
@@ -61,6 +68,8 @@ class AppUser {
       ),
       followedQuartiers:
           (map['followedQuartiers'] as List?)?.cast<String>() ?? const [],
+      // Comptes existants (avant 2026-07-25) : champ absent → 1 changement dû.
+      usernameChangesLeft: map['usernameChangesLeft'] as int? ?? 1,
       role: UserRole.fromName(map['role'] as String?),
       status: AccountStatus.fromName(map['status'] as String?),
       disabledAt: (map['disabledAt'] as Timestamp?)?.toDate(),
@@ -73,6 +82,7 @@ class AppUser {
   Map<String, dynamic> toCreateMap() => {
     'email': email,
     'username': username,
+    'usernameChangesLeft': usernameChangesLeft,
     'firstName': firstName,
     'lastName': lastName,
     'birthDate': birthDate != null ? Timestamp.fromDate(birthDate!) : null,

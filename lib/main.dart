@@ -11,11 +11,14 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'app.dart';
 import 'config/app_config.dart';
 import 'firebase_options.dart';
+import 'firebase_options_prod.dart' as prod;
 import 'services/analytics_service.dart';
+import 'services/notification_actions.dart';
 import 'services/notification_service.dart';
 
 /// Handler des messages FCM reçus quand l'app est en arrière-plan ou tuée.
@@ -24,10 +27,17 @@ import 'services/notification_service.dart';
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  // Pas d'affichage manuel ici : avec un payload `notification`, FCM Android
-  // affiche déjà la notif automatiquement. On garde ce handler pour les futurs
-  // traitements (cache local, badge, etc.).
   debugPrint('[FCM bg] message reçu: ${message.messageId}');
+  // Messages **data-only** (coupures de proximité) : le système n'affiche
+  // rien tout seul → on affiche nous-mêmes la notif AVEC les boutons de vote
+  // « Chez moi aussi / Pas chez moi » (1 tap, sans ouvrir l'app). Les messages
+  // avec bloc `notification` (coupures planifiées) restent affichés par FCM.
+  if (message.notification == null) {
+    await showOutageNotification(
+      FlutterLocalNotificationsPlugin(),
+      message.data,
+    );
+  }
 }
 
 /// Vrai si [error] est une erreur réseau **transitoire** (perte de connexion,
@@ -57,17 +67,17 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Environnements : dev (émulateurs) et staging partagent le projet Firebase
-  // `lightcutoff-dev` (options ci-dessous). Le projet **prod** n'existe pas
-  // encore : on échoue bruyamment plutôt que d'écrire en douce dans staging.
-  // Le jour venu : créer le projet → `flutterfire configure --project=<prod>
-  // --out=lib/firebase_options_prod.dart` → sélectionner les options ici.
-  if (AppConfig.isProd) {
-    throw StateError(
-      'APP_ENV=prod : projet Firebase de production pas encore créé. '
-      'Générer firebase_options_prod.dart via flutterfire configure.',
-    );
-  }
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // `lightcutoff-dev` (firebase_options.dart) ; la **prod** utilise le projet
+  // `njuka-prod` (firebase_options_prod.dart, généré par flutterfire configure
+  // le 2026-07-24). ⚠️ Un build prod exige AUSSI les fichiers natifs prod :
+  // `tool/use_env.sh prod` échange google-services.json /
+  // GoogleService-Info.plist (variantes .prod conservées à côté).
+  await Firebase.initializeApp(
+    options:
+        AppConfig.isProd
+            ? prod.DefaultFirebaseOptions.currentPlatform
+            : DefaultFirebaseOptions.currentPlatform,
+  );
 
   // App Check : atteste que les requêtes viennent bien de l'app authentique
   // (anti-abus sur Firestore / Storage / Auth / Functions). Doit être activé

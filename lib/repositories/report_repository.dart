@@ -5,7 +5,7 @@ import '../models/restoration.dart';
 /// Contrat d'accès aux coupures et à leurs confirmations / rétablissements.
 /// L'implémentation concrète (Firestore) est interchangeable.
 abstract class ReportRepository {
-  Stream<List<Report>> watchReports({int limit});
+  Stream<List<Report>> watchReports({int limit, String? countryCode});
 
   /// Flux d'**un** report par id (`null` s'il n'existe pas ou est archivé).
   /// Permet à l'écran détail d'afficher un report même **hors** de la fenêtre
@@ -42,16 +42,41 @@ abstract class ReportRepository {
   /// Confirme une coupure. [geohash] = cellule grossière (≈1,2 km) de la
   /// position du confirmeur au moment du vote, conservée sur le doc de vote pour
   /// une éventuelle estimation d'étendue ultérieure ; `null` si indisponible.
-  Future<void> confirmReport(String reportId, String uid, {String? geohash});
+  Future<void> confirmReport(
+    String reportId,
+    String uid, {
+    String? geohash,
+    double? lat,
+    double? lng,
+  });
 
   /// Déclare que le courant est revenu chez [uid] pour cette coupure.
   /// Un seul vote par utilisateur — sans effet si déjà déclaré. Incrémente
-  /// `restorationCount` du report parent dans une transaction.
-  Future<void> markRestored(String reportId, String uid);
+  /// `restorationCount` du report parent dans une transaction. [geohash] =
+  /// cellule grossière (≈1,2 km) de la position du confirmeur au moment du
+  /// vote, conservée sur le doc pour une éventuelle estimation d'étendue ;
+  /// `null` si indisponible.
+  Future<void> markRestored(String reportId, String uid, {String? geohash});
 
   /// Flux des déclarations de rétablissement d'une coupure.
   Stream<List<Restoration>> watchRestorations(String reportId);
 
   /// Indique si [uid] a déjà déclaré le rétablissement pour ce report.
   Future<bool> hasRestored(String reportId, String uid);
+
+  /// Déclare « pas de coupure chez moi » (réponse **Non** au prompt de
+  /// proximité). Signal négatif précieux : il **délimite l'emprise** de la
+  /// coupure (frontière de la tache d'huile des notifications). Un doc par
+  /// utilisateur (`denials/{uid}`) ; n'affecte AUCUN compteur du report.
+  /// [lat]/[lng] = position exacte (lecture admin/owner only, cf. règles).
+  Future<void> denyReport(
+    String reportId,
+    String uid, {
+    String? geohash,
+    double? lat,
+    double? lng,
+  });
+
+  /// Indique si [uid] a déjà répondu « pas chez moi » pour ce report.
+  Future<bool> hasDenied(String reportId, String uid);
 }

@@ -23,7 +23,7 @@ class OfficialOutagesView extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: DropdownButtonFormField<String?>(
-              value: p.region,
+              initialValue: p.region,
               isExpanded: true,
               decoration: InputDecoration(
                 prefixIcon: const Icon(Icons.public),

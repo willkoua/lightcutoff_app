@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-import '../config/app_config.dart';
-import '../config/app_constants.dart';
 import '../config/utilities.dart';
+import '../models/enums.dart';
 import '../models/report.dart';
 import '../providers/official_outage_provider.dart';
 import '../providers/region_provider.dart';
@@ -20,6 +17,7 @@ import '../widgets/confirm_dialog.dart';
 import '../widgets/njuka_app_bar.dart';
 import '../widgets/official_outages_view.dart';
 import '../widgets/report_card.dart';
+import '../widgets/service_visuals.dart';
 import 'report_detail_screen.dart';
 import 'report_form_screen.dart';
 
@@ -34,6 +32,10 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  /// Bandeau d'activité désactivé pour le moment — passer à `true` pour le
+  /// réafficher (« N coupures actives »).
+  static const bool _showActivityBanner = false;
+
   HomeSegment _segment = HomeSegment.reports;
 
   // Créé en lazy au 1ᵉʳ passage sur « Programmées » / « Toutes » (charge alors).
@@ -76,11 +78,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final region = context.watch<RegionProvider>();
     final l = AppLocalizations.of(context);
 
-    // Pas de fournisseur pour le pays de l'utilisateur → on masque carrément le
-    // segment « Programmées » (et le sélecteur), et on reste sur les signalements.
+    // Le segment « Programmées » est TOUJOURS visible. S'il n'y a pas de
+    // fournisseur pour le pays actif, l'onglet affiche un message explicite
+    // (au lieu de disparaître en silence) qui invite à vérifier/changer le pays.
     final provider = region.activeProvider;
-    final showPlanned = provider != null;
-    final segment = showPlanned ? _segment : HomeSegment.reports;
+    final segment = _segment;
 
     return Scaffold(
       appBar: NjukaAppBar(
@@ -97,15 +99,30 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
       body: Column(
         children: [
-          const _SurveyBanner(),
+          // Prompt d'ouverture « Chez toi aussi ? » : sollicitation douce quand
+          // une coupure en cours est à < promptRadiusMeters. Une seconde de
+          // friction, jamais bloquant, jamais re-montré pour le même report.
+          if (segment == HomeSegment.reports &&
+              reports.promptCandidate != null)
+            _NearbyOutagePrompt(report: reports.promptCandidate!),
+          // Bandeau d'activité (inspiré de coupure.ci) : nombre de coupures EN
+          // COURS dans le périmètre (pays + service). DÉSACTIVÉ pour le moment
+          // (`_showActivityBanner = false`) — remettre à true pour le réactiver.
+          if (_showActivityBanner && reports.activeInScopeCount > 0)
+            _activityBanner(l, reports.activeInScopeCount),
+          // Bannière de périmètre (« Cameroun · À proximité ») AU-DESSUS du
+          // filtre service, pour la liste des signalements (cohérent avec la
+          // carte). Vide si rien ne restreint l'affichage.
+          if (segment == HomeSegment.reports)
+            _reportsScopeBanner(context, reports, region, l),
           // Filtre service en TÊTE (Tout / Élec / Eau) : c'est la grille de
           // lecture globale — il s'applique aussi bien aux signalements
           // citoyens (en dessous) qu'aux coupures programmées de l'opérateur.
           const ServiceFilterBar(),
           // Segmented control « Signalements / Programmées » sous le filtre
-          // service. Visible dès qu'un fournisseur existe pour le pays actif.
-          if (showPlanned)
-            _SegmentedControl(segment: segment, onChanged: _select),
+          // service. Toujours visible ; l'onglet Programmées explique lui-même
+          // l'absence de données si le pays n'a pas de fournisseur.
+          _SegmentedControl(segment: segment, onChanged: _select),
           Expanded(child: _content(context, reports, provider, segment)),
         ],
       ),
@@ -122,8 +139,18 @@ class _HomeScreenState extends State<HomeScreen> {
       case HomeSegment.reports:
         return _buildReportsList(context, reports);
       case HomeSegment.planned:
-        // `segment == planned` ⇒ `showPlanned` ⇒ provider non nul.
-        final outages = _ensureOutages(provider!.country);
+        // Pas de fournisseur pour le pays actif → message explicite + invite à
+        // vérifier le pays dans les réglages (au lieu d'un onglet vide muet).
+        if (provider == null) {
+          final region = context.read<RegionProvider>();
+          final country =
+              countryLabelForIso(region.activeCountry) ?? region.activeCountry;
+          return _Message(
+            icon: Icons.event_busy,
+            text: AppLocalizations.of(context).plannedNoProviderBody(country),
+          );
+        }
+        final outages = _ensureOutages(provider.country);
         // Propage les filtres globaux (pays + service) au provider one-shot.
         // Si l'utilisateur choisit Eau : pas de CAMWATER ingéré → liste vide.
         final region = context.watch<RegionProvider>();
@@ -142,6 +169,67 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  /// Bandeau d'activité : « N coupures actives » dans le périmètre courant.
+  Widget _activityBanner(AppLocalizations l, int count) {
+    return Container(
+      width: double.infinity,
+      color: AppColors.primary.withValues(alpha: 0.12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: const BoxDecoration(
+              color: AppColors.primary,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            l.activeOutagesCount(count),
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+              color: AppColors.dark,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Bannière de périmètre affichée au-dessus du filtre service (liste des
+  /// signalements). Vide en cas de chargement / erreur / aucun filtre actif /
+  /// liste vide — comme avant, mais positionnée plus haut.
+  Widget _reportsScopeBanner(
+    BuildContext context,
+    ReportProvider reports,
+    RegionProvider region,
+    AppLocalizations l,
+  ) {
+    if (reports.loading || reports.error != null) {
+      return const SizedBox.shrink();
+    }
+    final restricted = reports.hasActiveFilters || reports.nearOnly;
+    final list = reports.filteredReports;
+    if (!restricted || list.isEmpty) return const SizedBox.shrink();
+    final scope = buildScopeLabel(
+      countryLabel:
+          region.worldwide
+              ? null
+              : (region.activeProvider?.countryLabel ?? region.activeCountry),
+      nearOnly: reports.nearOnly,
+      nearbyLabel: l.filterSheetNearby,
+    );
+    return ActiveFiltersBanner(
+      count: list.length,
+      scope: scope,
+      onClear: reports.showAll,
+    );
+  }
+
   // --- Liste des signalements (comportement existant) -----------------------
 
   Widget _buildReportsList(BuildContext context, ReportProvider reports) {
@@ -155,19 +243,11 @@ class _HomeScreenState extends State<HomeScreen> {
         text: appErrorLabel(context, reports.error!),
       );
     }
-    final region = context.watch<RegionProvider>();
-    // Périmètre actif (pays + proximité) : sert à la bannière et au choix du
-    // message d'état vide. La proximité (`nearOnly`) restreint l'affichage mais
-    // n'était pas comptée dans `hasActiveFilters` → on l'ajoute ici.
+    // Périmètre actif (pays + proximité) : sert au choix du message d'état
+    // vide. La proximité (`nearOnly`) restreint l'affichage mais n'était pas
+    // comptée dans `hasActiveFilters` → on l'ajoute ici. La bannière elle-même
+    // est rendue plus haut (au-dessus du filtre service) via _reportsScopeBanner.
     final restricted = reports.hasActiveFilters || reports.nearOnly;
-    final scope = buildScopeLabel(
-      countryLabel:
-          region.worldwide
-              ? null
-              : (region.activeProvider?.countryLabel ?? region.activeCountry),
-      nearOnly: reports.nearOnly,
-      nearbyLabel: l.filterSheetNearby,
-    );
     final list = reports.filteredReports;
     if (list.isEmpty) {
       return _Message(
@@ -177,12 +257,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     return Column(
       children: [
-        if (restricted)
-          ActiveFiltersBanner(
-            count: list.length,
-            scope: scope,
-            onClear: reports.showAll,
-          ),
         Expanded(
           child: RefreshIndicator(
             onRefresh: reports.refresh,
@@ -233,7 +307,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final go = await showConfirmDialog(
           context,
           title: l.confirmOutageTitle,
-          message: l.confirmOutageBody,
+          message: confirmOutageBodyLabel(context, report.serviceType),
           confirmLabel: l.actionConfirm,
         );
         if (!go || !context.mounted) return;
@@ -250,8 +324,8 @@ class _HomeScreenState extends State<HomeScreen> {
       onMarkRestored: () async {
         final go = await showConfirmDialog(
           context,
-          title: l.confirmRestoreTitle,
-          message: l.confirmRestoreBody,
+          title: confirmRestoreTitleLabel(context, report.serviceType),
+          message: confirmRestoreBodyLabel(context, report.serviceType),
           confirmLabel: l.confirmRestoreAction,
         );
         if (!go || !context.mounted) return;
@@ -265,91 +339,6 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
       },
-    );
-  }
-}
-
-/// Bannière (fermable) invitant les testeurs à répondre au sondage. Affichée
-/// **uniquement en dev/staging** (`showDevTools`) et tant qu'elle n'a pas été
-/// fermée (état persisté). N'apparaît jamais en prod.
-class _SurveyBanner extends StatefulWidget {
-  const _SurveyBanner();
-
-  @override
-  State<_SurveyBanner> createState() => _SurveyBannerState();
-}
-
-class _SurveyBannerState extends State<_SurveyBanner> {
-  static const _prefKey = 'survey_banner_dismissed';
-  bool _dismissed = true; // masqué tant qu'on n'a pas lu la préférence
-
-  @override
-  void initState() {
-    super.initState();
-    if (AppConfig.showDevTools) _load();
-  }
-
-  Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (!mounted) return;
-    setState(() => _dismissed = prefs.getBool(_prefKey) ?? false);
-  }
-
-  Future<void> _dismiss() async {
-    setState(() => _dismissed = true);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_prefKey, true);
-  }
-
-  Future<void> _open() async {
-    try {
-      await launchUrl(
-        Uri.parse(AppConstants.surveyUrl),
-        mode: LaunchMode.externalApplication,
-      );
-    } catch (_) {
-      /* lien non critique */
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (!AppConfig.showDevTools || _dismissed) return const SizedBox.shrink();
-    final l = AppLocalizations.of(context);
-    return Material(
-      color: AppColors.primary.withValues(alpha: 0.12),
-      child: InkWell(
-        onTap: _open,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.assignment_outlined,
-                size: 20,
-                color: AppColors.orange,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  l.surveyBannerText,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.dark,
-                  ),
-                ),
-              ),
-              IconButton(
-                tooltip: l.surveyBannerDismiss,
-                icon: const Icon(Icons.close, size: 18, color: AppColors.gray),
-                onPressed: _dismiss,
-                visualDensity: VisualDensity.compact,
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
@@ -427,6 +416,134 @@ class _Message extends StatelessWidget {
               text,
               textAlign: TextAlign.center,
               style: const TextStyle(color: AppColors.gray),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Prompt d'ouverture « Chez toi aussi ? » (sollicitation douce).
+///
+/// Affiché en tête de la Liste quand une coupure **en cours** est à moins de
+/// [AppConstants.promptRadiusMeters] et que l'utilisateur n'a ni voté ni
+/// écarté le prompt. « Oui » = confirmation classique ; « Non » = signal
+/// négatif (`denials`, délimite l'emprise) ; ✕ = passer (jamais re-montré).
+class _NearbyOutagePrompt extends StatelessWidget {
+  const _NearbyOutagePrompt({required this.report});
+
+  final Report report;
+
+  Future<void> _answer(BuildContext context, {required bool affected}) async {
+    final l = AppLocalizations.of(context);
+    final provider = context.read<ReportProvider>();
+    final ok =
+        affected
+            ? await provider.confirm(report.id)
+            : await provider.deny(report.id);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            affected
+                ? (ok ? l.promptNearbySnackYes : l.errorGeneric)
+                : l.promptNearbySnackNo,
+          ),
+        ),
+      );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final isWater = report.serviceType == ServiceType.water;
+    final color = serviceTypeColor(report.serviceType);
+    final heading =
+        isWater
+            ? l.promptNearbyHeadingWater
+            : l.promptNearbyHeadingElectricity;
+    final noLabel =
+        isWater ? l.promptNearbyNoWater : l.promptNearbyNoElectricity;
+    final subtitle =
+        '${report.location.label} · '
+        '${relativeTimeL10n(context, report.reportedAt)} · '
+        '${l.reportCardConfirmationsCount(report.confirmationCount)}';
+
+    return Material(
+      color: color.withValues(alpha: 0.08),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 10, 8, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(serviceTypeIcon(report.serviceType),
+                    size: 18, color: color),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    heading,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  tooltip: l.actionCancel,
+                  icon: const Icon(Icons.close, size: 18, color: AppColors.gray),
+                  onPressed:
+                      () => context
+                          .read<ReportProvider>()
+                          .dismissPrompt(report.id),
+                ),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Text(
+                subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: AppColors.gray, fontSize: 12.5),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              l.promptNearbyQuestion,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: color,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                    onPressed: () => _answer(context, affected: true),
+                    child: Text(l.promptNearbyYes,
+                        style: const TextStyle(fontSize: 13)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                    onPressed: () => _answer(context, affected: false),
+                    child: Text(noLabel, style: const TextStyle(fontSize: 13)),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

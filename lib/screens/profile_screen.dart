@@ -1,13 +1,16 @@
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
 import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
 import '../theme/app_colors.dart';
+import '../utils/anonymous_activity.dart';
 import '../utils/formatting.dart';
 import '../utils/l10n_helpers.dart';
 import 'account_security_screen.dart';
 import 'edit_profile_screen.dart';
+import 'followed_quartiers_screen.dart';
 import 'login_screen.dart';
 import 'settings_screen.dart';
 import 'stats_screen.dart';
@@ -25,7 +28,9 @@ class ProfileScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(l.profileTitle),
+        // « Profil » seulement pour un compte réel ; « Compte » en session
+        // anonyme (l'écran montre alors le mur d'upgrade, pas un profil).
+        title: Text(isAnonymous ? l.profileTitleAnonymous : l.profileTitle),
         actions: [
           if (profile != null)
             IconButton(
@@ -143,6 +148,28 @@ class ProfileScreen extends StatelessWidget {
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: const Icon(
+                      Icons.notifications_active_outlined,
+                      color: AppColors.gray,
+                    ),
+                    title: Text(l.profileFollowedTitle),
+                    subtitle: Text(
+                      l.profileFollowedSubtitle,
+                      style: const TextStyle(
+                        color: AppColors.gray,
+                        fontSize: 13,
+                      ),
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap:
+                        () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const FollowedQuartiersScreen(),
+                          ),
+                        ),
+                  ),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(
                       Icons.shield_outlined,
                       color: AppColors.gray,
                     ),
@@ -223,6 +250,20 @@ class _UpgradeWall extends StatelessWidget {
 
   Future<void> _confirmLoginSwitch(BuildContext context) async {
     final l = AppLocalizations.of(context);
+    // L'avertissement « tes signalements/votes anonymes ne seront pas
+    // rattachés » n'a de sens que si la session anonyme a réellement produit
+    // du contenu. Un utilisateur neuf va directement à la connexion (zéro
+    // friction sur le chemin principal — décision 2026-07-25).
+    final hasActivity = await anonymousSessionHasActivity(
+      FirebaseAuth.instance.currentUser,
+    );
+    if (!context.mounted) return;
+    if (!hasActivity) {
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const LoginScreen()));
+      return;
+    }
     final confirmed = await showDialog<bool>(
       context: context,
       builder:
@@ -274,38 +315,47 @@ class _UpgradeWall extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           _BenefitRow(
-            icon: Icons.badge_outlined,
-            label: l.profileUpgradeWallBenefitProfile,
-          ),
-          _BenefitRow(
-            icon: Icons.insights_outlined,
-            label: l.profileUpgradeWallBenefitStats,
+            icon: Icons.notifications_active_outlined,
+            label: l.profileUpgradeWallBenefitNotifs,
+            description: l.profileUpgradeWallBenefitNotifsSub,
           ),
           _BenefitRow(
             icon: Icons.location_searching,
             label: l.profileUpgradeWallBenefitFollow,
+            description: l.profileUpgradeWallBenefitFollowSub,
           ),
           _BenefitRow(
-            icon: Icons.notifications_active_outlined,
-            label: l.profileUpgradeWallBenefitNotifs,
+            icon: Icons.insights_outlined,
+            label: l.profileUpgradeWallBenefitStats,
+            description: l.profileUpgradeWallBenefitStatsSub,
+          ),
+          _BenefitRow(
+            icon: Icons.badge_outlined,
+            label: l.profileUpgradeWallBenefitProfile,
+            description: l.profileUpgradeWallBenefitProfileSub,
           ),
           const SizedBox(height: 24),
+          // Hiérarchie inversée (décision 2026-07-25) : « J'ai déjà un
+          // compte » en action PRINCIPALE — l'écran de connexion est le hub
+          // social 1-tap (Google/Facebook/Apple, création auto du profil).
+          // « Créer un compte » (formulaire email, préserve l'historique
+          // anonyme via linkWithCredential) passe en action secondaire.
           ElevatedButton(
+            onPressed: () => _confirmLoginSwitch(context),
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size.fromHeight(50),
+            ),
+            child: Text(l.profileUpgradeWallAlreadyAccount),
+          ),
+          const SizedBox(height: 8),
+          TextButton(
             onPressed:
                 () => Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => const UpgradeAccountScreen(),
                   ),
                 ),
-            style: ElevatedButton.styleFrom(
-              minimumSize: const Size.fromHeight(50),
-            ),
             child: Text(l.profileUpgradeWallCTA),
-          ),
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed: () => _confirmLoginSwitch(context),
-            child: Text(l.profileUpgradeWallAlreadyAccount),
           ),
         ],
       ),
@@ -314,23 +364,49 @@ class _UpgradeWall extends StatelessWidget {
 }
 
 class _BenefitRow extends StatelessWidget {
-  const _BenefitRow({required this.icon, required this.label});
+  const _BenefitRow({
+    required this.icon,
+    required this.label,
+    this.description,
+  });
 
   final IconData icon;
   final String label;
+  final String? description;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: AppColors.primary, size: 22),
+          Icon(icon, color: AppColors.primary, size: 24),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(fontSize: 15, color: AppColors.dark),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.dark,
+                  ),
+                ),
+                if (description != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    description!,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.gray,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ],

@@ -116,6 +116,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                const _UsernameTile(),
+                const SizedBox(height: 16),
                 TextFormField(
                   controller: _firstName,
                   textCapitalization: TextCapitalization.words,
@@ -219,6 +221,105 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Pseudo : attribué à la création, personnalisable **UNE seule fois**
+/// (définitif ensuite — le pseudo identifie l'utilisateur dans la communauté,
+/// décision 2026-07-25). Le compteur est aussi verrouillé côté serveur.
+class _UsernameTile extends StatelessWidget {
+  const _UsernameTile();
+
+  Future<void> _openChangeDialog(BuildContext context) async {
+    final l = AppLocalizations.of(context);
+    final controller = TextEditingController();
+    final newUsername = await showDialog<String>(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: Text(l.usernameChangeTitle),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  l.usernameChangeWarning,
+                  style: const TextStyle(color: AppColors.gray, fontSize: 13),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: controller,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    labelText: l.registerUsernameLabel,
+                    prefixIcon: const Icon(Icons.alternate_email),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(l.actionCancel),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
+                child: Text(l.usernameChangeConfirmAction),
+              ),
+            ],
+          ),
+    );
+    if (newUsername == null || newUsername.isEmpty || !context.mounted) return;
+
+    final auth = context.read<AuthProvider>();
+    final ok = await auth.changeUsername(newUsername);
+    if (!context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context)..hideCurrentSnackBar();
+    if (ok) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l.usernameChangeDone('@${newUsername.toLowerCase()}'))),
+      );
+    } else {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            auth.error != null
+                ? appErrorLabel(context, auth.error!)
+                : l.snackOperationFailed,
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final profile = context.watch<AuthProvider>().profile;
+    final canChange = (profile?.usernameChangesLeft ?? 0) > 0;
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ListTile(
+        leading: const Icon(Icons.alternate_email, color: AppColors.primary),
+        title: Text(
+          '@${profile?.username ?? ''}',
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        subtitle: Text(
+          canChange ? l.usernameChangeAvailable : l.usernameChangeLocked,
+          style: const TextStyle(color: AppColors.gray, fontSize: 12),
+        ),
+        trailing:
+            canChange
+                ? TextButton(
+                  onPressed: () => _openChangeDialog(context),
+                  child: Text(l.usernameChangeButton),
+                )
+                : const Icon(Icons.lock_outline, color: AppColors.gray, size: 18),
       ),
     );
   }

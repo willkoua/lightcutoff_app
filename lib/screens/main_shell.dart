@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 import 'package:provider/provider.dart';
 
+import '../providers/auth_provider.dart';
 import '../providers/report_provider.dart';
 import '../services/notification_service.dart';
 import '../theme/app_colors.dart';
@@ -39,8 +40,26 @@ class _MainShellState extends State<MainShell> {
     _pendingReportId.addListener(_consumePendingReport);
     // Cas « app lancée DEPUIS la notif » : la valeur peut déjà être présente
     // avant que le listener ne soit attaché.
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _consumePendingReport(),
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _consumePendingReport();
+      _announceGeneratedUsername();
+    });
+  }
+
+  /// Après une 1ʳᵉ connexion sociale, le profil a été créé automatiquement
+  /// avec un pseudo généré — on l'annonce UNE fois, avec le rappel qu'il est
+  /// personnalisable une (seule) fois depuis le profil.
+  void _announceGeneratedUsername() {
+    if (!mounted) return;
+    final generated =
+        context.read<AuthProvider>().takeGeneratedUsernameAnnouncement();
+    if (generated == null) return;
+    final l = AppLocalizations.of(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(l.generatedUsernameAnnouncement('@$generated')),
+        duration: const Duration(seconds: 6),
+      ),
     );
   }
 
@@ -72,6 +91,9 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    // Onglet « Profil » seulement si l'utilisateur a un compte réel ; sinon
+    // « Compte » (session anonyme → l'écran propose la création de compte).
+    final isAnonymous = context.watch<AuthProvider>().isAnonymous;
     return Scaffold(
       body: _tabs[_index],
       bottomNavigationBar: BottomNavigationBar(
@@ -95,7 +117,10 @@ class _MainShellState extends State<MainShell> {
           BottomNavigationBarItem(
             icon: const Icon(Icons.account_circle_outlined),
             activeIcon: const Icon(Icons.account_circle),
-            label: AppLocalizations.of(context).navProfile,
+            label:
+                isAnonymous
+                    ? AppLocalizations.of(context).navAccount
+                    : AppLocalizations.of(context).navProfile,
           ),
         ],
       ),

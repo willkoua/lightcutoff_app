@@ -46,6 +46,64 @@ String serviceTypeLabel(BuildContext context, ServiceType service) {
   };
 }
 
+/// Libellés d'action **dépendants du service** (électricité « courant » / eau
+/// « eau »), pour que la confirmation et la déclaration de retour soient
+/// cohérentes avec le type de coupure. L'accord en genre est porté par des
+/// chaînes ARB distinctes (« revenu » vs « revenue »), pas par substitution.
+bool _isWater(ServiceType s) => s == ServiceType.water;
+
+/// Bouton « le courant/l'eau est revenu(e) chez moi » (écran détail).
+String markRestoredButtonLabel(BuildContext context, ServiceType service) {
+  final l = AppLocalizations.of(context);
+  return _isWater(service)
+      ? l.reportDetailMarkRestoredButtonWater
+      : l.reportDetailMarkRestoredButton;
+}
+
+/// Compteur public « N personnes ont annoncé le retour du courant/de l'eau ».
+String restorationCountLabel(
+  BuildContext context,
+  ServiceType service,
+  int count,
+) {
+  final l = AppLocalizations.of(context);
+  return _isWater(service)
+      ? l.reportDetailRestorationCountWater(count)
+      : l.reportDetailRestorationCount(count);
+}
+
+/// Puce courte « Courant revenu » / « Eau revenue » (carte report).
+String serviceRestoredChipLabel(BuildContext context, ServiceType service) {
+  final l = AppLocalizations.of(context);
+  return _isWater(service)
+      ? l.reportCardCourantRevenuWater
+      : l.reportCardCourantRevenu;
+}
+
+/// Corps du dialogue de confirmation de coupure (« courant » / « eau »).
+String confirmOutageBodyLabel(BuildContext context, ServiceType service) {
+  final l = AppLocalizations.of(context);
+  return _isWater(service) ? l.confirmOutageBodyWater : l.confirmOutageBody;
+}
+
+/// Titre du dialogue de retour (« Le courant est revenu ? » / « L'eau… »).
+String confirmRestoreTitleLabel(BuildContext context, ServiceType service) {
+  final l = AppLocalizations.of(context);
+  return _isWater(service) ? l.confirmRestoreTitleWater : l.confirmRestoreTitle;
+}
+
+/// Corps du dialogue de retour.
+String confirmRestoreBodyLabel(BuildContext context, ServiceType service) {
+  final l = AppLocalizations.of(context);
+  return _isWater(service) ? l.confirmRestoreBodyWater : l.confirmRestoreBody;
+}
+
+/// Motif de suppression « déjà revenu » dépendant du service.
+String deleteReasonResolvedLabel(BuildContext context, ServiceType service) {
+  final l = AppLocalizations.of(context);
+  return _isWater(service) ? l.deleteReasonResolvedWater : l.deleteReasonResolved;
+}
+
 /// Libellé localisé d'un [UserRole].
 String userRoleLabel(BuildContext context, UserRole role) {
   final l = AppLocalizations.of(context);

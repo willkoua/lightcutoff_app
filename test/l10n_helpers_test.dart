@@ -45,7 +45,7 @@ void main() {
     );
     expect(
       appErrorLabel(ctx, AppError.notLoggedIn),
-      'Vous devez être connecté.',
+      'Tu dois être connecté.',
     );
     expect(
       appErrorLabel(ctx, AppError.locationPermissionDenied),
@@ -53,7 +53,7 @@ void main() {
     );
     expect(
       appErrorLabel(ctx, AppError.generic),
-      'Une erreur est survenue. Réessayez.',
+      'Une erreur est survenue. Réessaie.',
     );
   });
 

@@ -14,17 +14,26 @@ class Restoration {
   final String userId;
   final DateTime? createdAt;
 
-  const Restoration({required this.userId, this.createdAt});
+  /// Geohash **grossier** (précision 6, ≈1,2 km) de la position du confirmeur au
+  /// moment du vote. Symétrique à [Confirmation.geohash] : conservé pour pouvoir,
+  /// plus tard, estimer l'**étendue** du rétablissement d'une coupure. Jamais de
+  /// lat/lng exact ; lecture restreinte par les règles → anonymat préservé.
+  /// `null` si la position n'était pas disponible.
+  final String? geohash;
+
+  const Restoration({required this.userId, this.createdAt, this.geohash});
 
   factory Restoration.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final map = doc.data() ?? {};
     return Restoration(
       userId: doc.id,
       createdAt: (map['createdAt'] as Timestamp?)?.toDate(),
+      geohash: map['geohash'] as String?,
     );
   }
 
   Map<String, dynamic> toCreateMap() => {
     'createdAt': FieldValue.serverTimestamp(),
+    if (geohash != null) 'geohash': geohash,
   };
 }

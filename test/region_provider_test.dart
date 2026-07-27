@@ -77,6 +77,31 @@ void main() {
     );
   });
 
+  group('RegionProvider — choix de pays utilisateur (#1)', () {
+    test('setUserCountry force le pays, prioritaire sur la détection', () async {
+      final region = RegionProvider(location: location);
+      await region.setUserCountry('CM');
+      expect(region.userCountry, 'CM');
+      expect(region.activeCountry, 'CM');
+      expect(region.activeProvider, isNotNull); // Eneo dispo → programmées OK
+    });
+
+    test('setUserCountry(null) repasse en automatique', () async {
+      final region = RegionProvider(location: location);
+      await region.setUserCountry('CM');
+      await region.setUserCountry(null);
+      expect(region.userCountry, isNull);
+    });
+
+    test('persistance du pays utilisateur après reconstruction', () async {
+      final region = RegionProvider(location: location);
+      await region.setUserCountry('CM');
+      final rebuilt = RegionProvider(location: location);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      expect(rebuilt.userCountry, 'CM');
+    });
+  });
+
   group('RegionProvider — multi-service (pivot étape 3)', () {
     test(
       'activeUtility(elec) = Eneo, activeUtility(water) = CAMWATER au CM',

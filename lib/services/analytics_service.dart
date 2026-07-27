@@ -73,6 +73,12 @@ class AnalyticsService {
 
   Future<void> logReportRestored() => _log('report_restored');
 
+  /// Réponse « Non, pas chez moi » au prompt d'ouverture (signal négatif).
+  Future<void> logReportDenied() => _log('report_denied');
+
+  /// Prompt d'ouverture « Chez toi aussi ? » écarté sans répondre.
+  Future<void> logPromptDismissed() => _log('outage_prompt_dismissed');
+
   /// L'utilisateur a ouvert l'onglet des coupures planifiées (Eneo).
   Future<void> logPlannedOutagesViewed() => _log('planned_outages_viewed');
 

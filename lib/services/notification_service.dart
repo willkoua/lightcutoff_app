@@ -16,6 +16,7 @@ import '../services/location_service.dart';
 import '../utils/crash_reporter.dart';
 import '../utils/geohash.dart';
 import 'device_service.dart';
+import 'notification_actions.dart';
 
 /// Encapsule l'accès au SDK Firebase Cloud Messaging + l'affichage des
 /// notifications via `flutter_local_notifications`, et l'orchestration de
@@ -79,6 +80,10 @@ class NotificationService {
   /// un ciblage par [_homeLocation].city.
   String? _currentGeohash;
 
+  /// Position exacte (lat/lng) associée à [_currentGeohash], persistée sur le
+  /// device pour le filtrage distance-exacte des notifications côté serveur.
+  ({double lat, double lng})? _currentPosition;
+
   // ---------------------------------------------------------------------------
   // Initialisation (appelée une fois au démarrage de l'app)
   // ---------------------------------------------------------------------------
@@ -87,13 +92,16 @@ class NotificationService {
     if (_initialized) return;
     _initialized = true;
 
-    // 1. Initialise le plugin local notifications (icône, callback de tap).
+    // 1. Initialise le plugin local notifications (icône, callback de tap +
+    //    callback d'ACTION en arrière-plan : votes 1-tap depuis la notif).
     await _localNotifications.initialize(
       const InitializationSettings(
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
         iOS: DarwinInitializationSettings(),
       ),
       onDidReceiveNotificationResponse: _onLocalNotificationTap,
+      onDidReceiveBackgroundNotificationResponse:
+          notificationActionBackgroundHandler,
     );
 
     // 2. Crée le channel Android (sans channel, Android 8+ n'affiche rien).
@@ -136,6 +144,19 @@ class NotificationService {
       );
     }
 
+    // 7. App lancée depuis une notif LOCALE (messages data-only affichés par
+    //    nous : getInitialMessage ne les couvre pas). Tap sur le corps →
+    //    navigation vers le report.
+    final launch =
+        await _localNotifications.getNotificationAppLaunchDetails();
+    final launchResponse = launch?.notificationResponse;
+    if ((launch?.didNotificationLaunchApp ?? false) &&
+        launchResponse != null) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _onLocalNotificationTap(launchResponse),
+      );
+    }
+
     debugPrint('[FCM] NotificationService initialisé');
   }
 
@@ -145,13 +166,21 @@ class NotificationService {
 
   /// Foreground : affiche la notif via le plugin local (Android), et propose
   /// un tap (payload = data JSON).
+  ///
+  /// Deux formats coexistent :
+  /// - **data-only** (coupures de proximité, `title`/`body` dans data) →
+  ///   notif avec **boutons de vote** via [showOutageNotification] ;
+  /// - **notification classique** (coupures planifiées) → affichage simple.
   Future<void> _onForegroundMessage(RemoteMessage message) async {
     debugPrint(
       '[FCM] foreground messageId=${message.messageId} '
       'title="${message.notification?.title}" data=${message.data}',
     );
     final notif = message.notification;
-    if (notif == null) return;
+    if (notif == null) {
+      await showOutageNotification(_localNotifications, message.data);
+      return;
+    }
     await _localNotifications.show(
       // ID unique stable : hash du messageId pour éviter d'écraser une autre
       // notif déjà affichée.
@@ -281,6 +310,7 @@ class NotificationService {
       platform: _platform(),
       homeLocation: _homeLocation,
       geohash: _currentGeohash,
+      position: _currentPosition,
       fcmEnabled: enabled,
     );
     try {
@@ -321,6 +351,7 @@ class NotificationService {
         result.position.lng,
         precision: AppConstants.geohashPrecision,
       );
+      _currentPosition = (lat: result.position.lat, lng: result.position.lng);
       if (newGeohash == _currentGeohash) return false;
       _currentGeohash = newGeohash;
       debugPrint('[FCM] geohash device = $newGeohash');
@@ -344,6 +375,7 @@ class NotificationService {
       position.lng,
       precision: AppConstants.geohashPrecision,
     );
+    _currentPosition = (lat: position.lat, lng: position.lng);
     if (newGeohash == _currentGeohash) return; // pas de changement, skip
     _currentGeohash = newGeohash;
     debugPrint('[FCM] geohash device mis à jour = $newGeohash');
@@ -375,6 +407,7 @@ class NotificationService {
       platform: _platform(),
       homeLocation: _homeLocation,
       geohash: _currentGeohash,
+      position: _currentPosition,
       fcmEnabled: true,
     );
     // Imprime le token COMPLET dans les logs en debug — utile pour tester

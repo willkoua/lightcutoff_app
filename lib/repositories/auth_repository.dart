@@ -42,6 +42,14 @@ abstract class AuthRepository {
   /// est routé vers l'écran « compléter le profil » (cf. [completeSocialProfile]).
   Future<void> signInWithGoogle();
 
+  /// Connexion via Facebook. Mêmes garanties que [signInWithGoogle] (profil non
+  /// créé ici ; annulation → [SocialSignInCancelledException]).
+  Future<void> signInWithFacebook();
+
+  /// Connexion via Apple (iOS — exigence App Store 4.8). Mêmes garanties que
+  /// [signInWithGoogle].
+  Future<void> signInWithApple();
+
   /// `true` si l'utilisateur connecté n'a pas encore de profil Firestore
   /// (cas d'un 1er login social) — il doit alors compléter son profil.
   Future<bool> needsProfile();
@@ -49,6 +57,14 @@ abstract class AuthRepository {
   /// Crée le profil (`users` + `usernames`) d'un compte social déjà
   /// authentifié, après que l'utilisateur a choisi un pseudo unique. Symétrique
   /// à [register] mais sans création de compte Auth ni email de vérification.
+  /// Crée le profil social automatiquement avec un pseudo généré (zéro
+  /// friction) ; renvoie le pseudo attribué. Peut lever
+  /// `username-already-in-use` après épuisement des tentatives.
+  Future<String> autoCreateSocialProfile();
+
+  /// Change le pseudo — une seule fois à vie (`usernameChangesLeft`).
+  Future<void> changeUsername(String newUsername);
+
   Future<void> completeSocialProfile({
     required String firstName,
     required String lastName,

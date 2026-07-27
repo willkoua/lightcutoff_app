@@ -11,6 +11,7 @@ import '../theme/app_colors.dart';
 import '../utils/l10n_helpers.dart';
 import '../widgets/confirm_dialog.dart';
 import '../widgets/njuka_app_bar.dart';
+import '../widgets/service_visuals.dart';
 
 class ReportDetailScreen extends StatefulWidget {
   const ReportDetailScreen({super.key, required this.reportId});
@@ -54,12 +55,13 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
     BuildContext context,
     ReportProvider provider,
     String reportId,
+    ServiceType service,
   ) async {
     final l = AppLocalizations.of(context);
     // Demande la RAISON de la suppression (choix obligatoire).
     final reason = await showDialog<String>(
       context: context,
-      builder: (_) => const _DeleteReasonDialog(),
+      builder: (_) => _DeleteReasonDialog(service: service),
     );
     if (reason == null || !context.mounted) return;
 
@@ -116,9 +118,15 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
           body: ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              _StatusChip(
-                ongoing: ongoing,
-                label: outageStatusLabel(context, report.status),
+              Row(
+                children: [
+                  _StatusChip(
+                    ongoing: ongoing,
+                    label: outageStatusLabel(context, report.status),
+                  ),
+                  const SizedBox(width: 8),
+                  ServiceChip(service: report.serviceType),
+                ],
               ),
               const SizedBox(height: 16),
               _InfoRow(
@@ -131,7 +139,7 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
               ),
               const SizedBox(height: 8),
               _InfoRow(
-                icon: Icons.bolt_outlined,
+                icon: outageTypeIcon(report.type),
                 text: outageTypeLabel(context, report.type),
               ),
               if (report.authorUsername != null &&
@@ -199,7 +207,10 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
                         final go = await showConfirmDialog(
                           context,
                           title: l.confirmOutageTitle,
-                          message: l.confirmOutageBody,
+                          message: confirmOutageBodyLabel(
+                            context,
+                            report.serviceType,
+                          ),
                           confirmLabel: l.actionConfirm,
                         );
                         if (!go || !context.mounted) return;
@@ -232,8 +243,14 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
                     onPressed: () async {
                       final go = await showConfirmDialog(
                         context,
-                        title: l.confirmRestoreTitle,
-                        message: l.confirmRestoreBody,
+                        title: confirmRestoreTitleLabel(
+                          context,
+                          report.serviceType,
+                        ),
+                        message: confirmRestoreBodyLabel(
+                          context,
+                          report.serviceType,
+                        ),
                         confirmLabel: l.confirmRestoreAction,
                       );
                       if (!go || !context.mounted) return;
@@ -247,8 +264,10 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
                         );
                       }
                     },
-                    icon: const Icon(Icons.lightbulb_outline),
-                    label: Text(l.reportDetailMarkRestoredButton),
+                    icon: Icon(serviceTypeIcon(report.serviceType)),
+                    label: Text(
+                      markRestoredButtonLabel(context, report.serviceType),
+                    ),
                   ),
               ],
               // Compteur public de rétablissements (sans détails individuels).
@@ -256,15 +275,19 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    const Icon(
-                      Icons.lightbulb,
+                    Icon(
+                      serviceTypeIcon(report.serviceType),
                       size: 18,
                       color: AppColors.resolved,
                     ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        l.reportDetailRestorationCount(report.restorationCount),
+                        restorationCountLabel(
+                          context,
+                          report.serviceType,
+                          report.restorationCount,
+                        ),
                         style: const TextStyle(
                           color: AppColors.gray,
                           fontSize: 13,
@@ -282,7 +305,12 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
                 const SizedBox(height: 16),
                 OutlinedButton.icon(
                   onPressed:
-                      () => _confirmAndArchive(context, provider, report.id),
+                      () => _confirmAndArchive(
+                        context,
+                        provider,
+                        report.id,
+                        report.serviceType,
+                      ),
                   icon: const Icon(
                     Icons.delete_outline,
                     color: AppColors.orange,
@@ -520,7 +548,9 @@ class _InfoRow extends StatelessWidget {
 /// Renvoie le code de la raison (`error`/`duplicate`/`resolved`/`other`) ou
 /// `null` si annulé.
 class _DeleteReasonDialog extends StatefulWidget {
-  const _DeleteReasonDialog();
+  const _DeleteReasonDialog({required this.service});
+
+  final ServiceType service;
 
   @override
   State<_DeleteReasonDialog> createState() => _DeleteReasonDialogState();
@@ -552,7 +582,7 @@ class _DeleteReasonDialogState extends State<_DeleteReasonDialog> {
     final options = <String, String>{
       'error': l.deleteReasonError,
       'duplicate': l.deleteReasonDuplicate,
-      'resolved': l.deleteReasonResolved,
+      'resolved': deleteReasonResolvedLabel(context, widget.service),
       'other': l.deleteReasonOther,
     };
     return AlertDialog(
@@ -567,16 +597,25 @@ class _DeleteReasonDialogState extends State<_DeleteReasonDialog> {
               style: const TextStyle(color: AppColors.gray, fontSize: 13),
             ),
             const SizedBox(height: 8),
-            for (final e in options.entries)
-              RadioListTile<String>(
-                value: e.key,
-                groupValue: _reason,
-                onChanged: (v) => setState(() => _reason = v),
-                title: Text(e.value),
-                contentPadding: EdgeInsets.zero,
-                dense: true,
-                activeColor: AppColors.orange,
+            // API Radio moderne (Flutter 3.32+) : la sélection est portée par
+            // un RadioGroup ancêtre, plus par chaque tuile.
+            RadioGroup<String>(
+              groupValue: _reason,
+              onChanged: (v) => setState(() => _reason = v),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final e in options.entries)
+                    RadioListTile<String>(
+                      value: e.key,
+                      title: Text(e.value),
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      activeColor: AppColors.orange,
+                    ),
+                ],
               ),
+            ),
             // Champ libre facultatif quand « Autre » est sélectionné.
             if (_reason == 'other')
               Padding(

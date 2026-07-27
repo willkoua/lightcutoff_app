@@ -76,6 +76,7 @@ void main() {
       when(() => user.uid).thenReturn(profile.uid);
       when(() => user.isAnonymous).thenReturn(false);
       when(() => user.emailVerified).thenReturn(true);
+      when(() => user.providerData).thenReturn(const []);
       when(() => user.email).thenReturn(profile.email);
       when(() => user.displayName).thenReturn(profile.fullName);
       when(
@@ -98,8 +99,15 @@ void main() {
       await tester.pumpWidget(_wrap(auth));
       await tester.pump();
 
-      // Heading + CTA primaire + CTA secondaire visibles.
-      expect(find.text('Tire le meilleur de NJUKA'), findsOneWidget);
+      // Heading + CTA primaire + CTA secondaire visibles. Les CTA sont en bas
+      // du ListView (les bénéfices détaillés les poussent hors du viewport de
+      // test) → scroll jusqu'à eux avant d'asserter.
+      expect(find.text('Débloque tout le potentiel de NJUKA'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('Créer un compte'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.text('Créer un compte'), findsOneWidget);
       expect(find.text('J\'ai déjà un compte'), findsOneWidget);
       // Aucune trace du nom de l'utilisateur ou du pseudo (profil masqué).
@@ -123,6 +131,7 @@ void main() {
       when(() => user.uid).thenReturn(_profile.uid);
       when(() => user.isAnonymous).thenReturn(false);
       when(() => user.emailVerified).thenReturn(true);
+      when(() => user.providerData).thenReturn(const []);
       when(() => user.email).thenReturn(_profile.email);
       when(() => user.displayName).thenReturn(_profile.fullName);
       when(() => service.isAnonymous).thenReturn(false);
@@ -150,7 +159,7 @@ void main() {
       expect(find.text('Will Koua'), findsOneWidget);
       expect(find.text('@willk'), findsOneWidget);
       // Heading du mur d'upgrade absent.
-      expect(find.text('Tire le meilleur de NJUKA'), findsNothing);
+      expect(find.text('Débloque tout le potentiel de NJUKA'), findsNothing);
       // Icône Edit visible quand profile != null.
       expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
     },

@@ -24,10 +24,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   int _index = 0;
 
   List<_Slide> _buildSlides(AppLocalizations l) => [
-    _Slide(Icons.flash_off, l.onboardingSlide1Title, l.onboardingSlide1Body),
+    _Slide(Icons.bolt, l.onboardingSlide1Title, l.onboardingSlide1Body),
+    _Slide(
+      Icons.water_drop,
+      l.onboardingSlideServicesTitle,
+      l.onboardingSlideServicesBody,
+    ),
     _Slide(Icons.how_to_reg, l.onboardingSlide2Title, l.onboardingSlide2Body),
     _Slide(
-      Icons.lightbulb_outline,
+      Icons.check_circle_outline,
       l.onboardingSlide3Title,
       l.onboardingSlide3Body,
     ),
