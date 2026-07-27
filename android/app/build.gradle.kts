@@ -21,7 +21,10 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.njuka.app"
-    compileSdk = flutter.compileSdkVersion
+    // API 36 (Android 16) explicite — exigence Google Play au 2026-08-31 :
+    // les mises à jour doivent cibler un niveau d'API < 1 an après la
+    // dernière version d'Android. Le défaut Flutter (35) ne suffit plus.
+    compileSdk = 36
     // NDK aligné sur la version exigée par les plugins Firebase + Flutter (27+).
     ndkVersion = "27.0.12077973"
 
@@ -42,8 +45,9 @@ android {
         applicationId = "com.njuka.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 23
-        targetSdk = flutter.targetSdkVersion
+        minSdk = flutter.minSdkVersion
+        // Cf. commentaire compileSdk : API 36 exigée par Play (2026-08-31).
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }

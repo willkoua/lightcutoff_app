@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Connexion Facebook. L'App ID est public ; le Client Token se trouve
+         dans Facebook → Paramètres → Avancé → « Jeton client ». À remplacer. -->
+    <string name="facebook_app_id">1488734925899120</string>
+    <string name="fb_login_protocol_scheme">fb1488734925899120</string>
+    <string name="facebook_client_token">53aa1609821e2425f2c396132a65a6df</string>
+</resources>
