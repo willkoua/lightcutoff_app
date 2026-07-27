@@ -101,7 +101,9 @@ String confirmRestoreBodyLabel(BuildContext context, ServiceType service) {
 /// Motif de suppression « déjà revenu » dépendant du service.
 String deleteReasonResolvedLabel(BuildContext context, ServiceType service) {
   final l = AppLocalizations.of(context);
-  return _isWater(service) ? l.deleteReasonResolvedWater : l.deleteReasonResolved;
+  return _isWater(service)
+      ? l.deleteReasonResolvedWater
+      : l.deleteReasonResolved;
 }
 
 /// Libellé localisé d'un [UserRole].

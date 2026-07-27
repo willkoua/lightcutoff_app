@@ -202,12 +202,13 @@ class _ContactSupportTile extends StatelessWidget {
     final uri = Uri(
       scheme: 'mailto',
       path: AppConstants.supportEmail,
-      query: Uri(
-        queryParameters: {
-          'subject': l.supportEmailSubject(info.version, info.buildNumber),
-          'body': l.supportEmailBodyHint + diagnostic,
-        },
-      ).query,
+      query:
+          Uri(
+            queryParameters: {
+              'subject': l.supportEmailSubject(info.version, info.buildNumber),
+              'body': l.supportEmailBodyHint + diagnostic,
+            },
+          ).query,
     );
     var ok = false;
     try {

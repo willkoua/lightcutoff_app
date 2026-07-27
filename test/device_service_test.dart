@@ -25,15 +25,21 @@ void main() {
     fcmEnabled: fcm ?? true,
   );
 
-  test('upsertDevice écrit sous l\'id = token, sans dupliquer le token', () async {
-    await service.upsertDevice(device(token: 'abc'));
+  test(
+    'upsertDevice écrit sous l\'id = token, sans dupliquer le token',
+    () async {
+      await service.upsertDevice(device(token: 'abc'));
 
-    final doc = await fake.collection('devices').doc('abc').get();
-    expect(doc.exists, isTrue);
-    expect(doc.data()!['userId'], 'u1');
-    expect(doc.data()!['platform'], 'android');
-    expect(doc.data()!.containsKey('token'), isFalse); // token = id, pas un champ
-  });
+      final doc = await fake.collection('devices').doc('abc').get();
+      expect(doc.exists, isTrue);
+      expect(doc.data()!['userId'], 'u1');
+      expect(doc.data()!['platform'], 'android');
+      expect(
+        doc.data()!.containsKey('token'),
+        isFalse,
+      ); // token = id, pas un champ
+    },
+  );
 
   test('upsert idempotent : un seul doc par token', () async {
     await service.upsertDevice(device(token: 'abc'));

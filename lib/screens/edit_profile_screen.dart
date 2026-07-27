@@ -278,7 +278,9 @@ class _UsernameTile extends StatelessWidget {
     final messenger = ScaffoldMessenger.of(context)..hideCurrentSnackBar();
     if (ok) {
       messenger.showSnackBar(
-        SnackBar(content: Text(l.usernameChangeDone('@${newUsername.toLowerCase()}'))),
+        SnackBar(
+          content: Text(l.usernameChangeDone('@${newUsername.toLowerCase()}')),
+        ),
       );
     } else {
       messenger.showSnackBar(
@@ -319,7 +321,11 @@ class _UsernameTile extends StatelessWidget {
                   onPressed: () => _openChangeDialog(context),
                   child: Text(l.usernameChangeButton),
                 )
-                : const Icon(Icons.lock_outline, color: AppColors.gray, size: 18),
+                : const Icon(
+                  Icons.lock_outline,
+                  color: AppColors.gray,
+                  size: 18,
+                ),
       ),
     );
   }

@@ -43,10 +43,7 @@ void main() {
       appErrorLabel(ctx, AppError.wrongCredentials),
       'Email ou mot de passe incorrect.',
     );
-    expect(
-      appErrorLabel(ctx, AppError.notLoggedIn),
-      'Tu dois être connecté.',
-    );
+    expect(appErrorLabel(ctx, AppError.notLoggedIn), 'Tu dois être connecté.');
     expect(
       appErrorLabel(ctx, AppError.locationPermissionDenied),
       'Permission de localisation refusée.',

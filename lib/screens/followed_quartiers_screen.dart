@@ -47,7 +47,8 @@ class _QuartierTile extends StatelessWidget {
     final region = p.isNotEmpty ? p[0].trim() : '';
     final ville = p.length > 1 ? p[1].trim() : '';
     final quartier = p.length > 2 ? p[2].trim() : '';
-    final title = quartier.isNotEmpty ? quartier : (ville.isNotEmpty ? ville : followKey);
+    final title =
+        quartier.isNotEmpty ? quartier : (ville.isNotEmpty ? ville : followKey);
     final sub = [ville, region].where((s) => s.isNotEmpty).join(' · ');
     return (title, sub);
   }
@@ -63,9 +64,9 @@ class _QuartierTile extends StatelessWidget {
     if (!ok || !context.mounted) return;
     await context.read<AuthProvider>().toggleFollowQuartier(followKey);
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l.followedUnfollowedSnack)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l.followedUnfollowedSnack)));
   }
 
   @override
@@ -78,7 +79,10 @@ class _QuartierTile extends StatelessWidget {
       subtitle: sub.isEmpty ? null : Text(sub),
       trailing: IconButton(
         tooltip: l.followedUnfollowTooltip,
-        icon: const Icon(Icons.notifications_off_outlined, color: AppColors.gray),
+        icon: const Icon(
+          Icons.notifications_off_outlined,
+          color: AppColors.gray,
+        ),
         onPressed: () => _unfollow(context),
       ),
     );

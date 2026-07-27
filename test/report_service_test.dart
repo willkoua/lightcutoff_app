@@ -110,7 +110,13 @@ void main() {
   group('denyReport (« pas chez moi », signal négatif)', () {
     test('écrit le doc denials/{uid} SANS toucher aux compteurs', () async {
       await seedReport('r1');
-      await service.denyReport('r1', 'u', geohash: 's2x9c', lat: 3.8, lng: 11.5);
+      await service.denyReport(
+        'r1',
+        'u',
+        geohash: 's2x9c',
+        lat: 3.8,
+        lng: 11.5,
+      );
 
       final report = await fake.collection('reports').doc('r1').get();
       expect(report.data()!['confirmationCount'], 0); // aucun compteur bougé

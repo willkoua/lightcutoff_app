@@ -165,8 +165,7 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
       if (_myConfirmedIds.contains(r.id) || _myRestoredIds.contains(r.id)) {
         continue;
       }
-      if (_countryFilter != null &&
-          r.location.countryCode != _countryFilter) {
+      if (_countryFilter != null && r.location.countryCode != _countryFilter) {
         continue;
       }
       final d = distance.as(
@@ -387,8 +386,7 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
   int get activeInScopeCount {
     return _reports.where((r) {
       if (r.status != OutageStatus.ongoing) return false;
-      if (_countryFilter != null &&
-          r.location.countryCode != _countryFilter) {
+      if (_countryFilter != null && r.location.countryCode != _countryFilter) {
         return false;
       }
       if (_serviceFilter != null && r.serviceType != _serviceFilter) {
@@ -679,8 +677,7 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// la position que si la localisation est **déjà** autorisée) et est borné à
   /// quelques secondes. Objectif : un vote ne doit JAMAIS être bloqué, ralenti
   /// ou mis en échec à cause de la localisation. Renvoie `null` sinon.
-  Future<String?> _voteGeohash() async =>
-      (await _votePosition())?.geohash;
+  Future<String?> _voteGeohash() async => (await _votePosition())?.geohash;
 
   /// Variante de [_voteGeohash] qui renvoie **aussi** la position exacte
   /// (lat/lng), nécessaire au ciblage 500 m des notifications de proximité

@@ -147,11 +147,9 @@ class NotificationService {
     // 7. App lancée depuis une notif LOCALE (messages data-only affichés par
     //    nous : getInitialMessage ne les couvre pas). Tap sur le corps →
     //    navigation vers le report.
-    final launch =
-        await _localNotifications.getNotificationAppLaunchDetails();
+    final launch = await _localNotifications.getNotificationAppLaunchDetails();
     final launchResponse = launch?.notificationResponse;
-    if ((launch?.didNotificationLaunchApp ?? false) &&
-        launchResponse != null) {
+    if ((launch?.didNotificationLaunchApp ?? false) && launchResponse != null) {
       WidgetsBinding.instance.addPostFrameCallback(
         (_) => _onLocalNotificationTap(launchResponse),
       );

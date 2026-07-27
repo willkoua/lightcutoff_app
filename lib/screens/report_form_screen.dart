@@ -236,8 +236,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
             content: Text(l.reportFormLocationUnavailableBody),
             actions: [
               TextButton(
-                onPressed:
-                    () => Navigator.of(ctx).pop(_LocFallback.describe),
+                onPressed: () => Navigator.of(ctx).pop(_LocFallback.describe),
                 child: Text(l.reportFormDescribePositionAction),
               ),
               ElevatedButton(
@@ -582,8 +581,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
                   children: [
                     Checkbox(
                       value: _attested,
-                      onChanged:
-                          (v) => setState(() => _attested = v ?? false),
+                      onChanged: (v) => setState(() => _attested = v ?? false),
                     ),
                     Expanded(
                       child: Text(

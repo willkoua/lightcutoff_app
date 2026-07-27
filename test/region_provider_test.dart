@@ -78,13 +78,16 @@ void main() {
   });
 
   group('RegionProvider — choix de pays utilisateur (#1)', () {
-    test('setUserCountry force le pays, prioritaire sur la détection', () async {
-      final region = RegionProvider(location: location);
-      await region.setUserCountry('CM');
-      expect(region.userCountry, 'CM');
-      expect(region.activeCountry, 'CM');
-      expect(region.activeProvider, isNotNull); // Eneo dispo → programmées OK
-    });
+    test(
+      'setUserCountry force le pays, prioritaire sur la détection',
+      () async {
+        final region = RegionProvider(location: location);
+        await region.setUserCountry('CM');
+        expect(region.userCountry, 'CM');
+        expect(region.activeCountry, 'CM');
+        expect(region.activeProvider, isNotNull); // Eneo dispo → programmées OK
+      },
+    );
 
     test('setUserCountry(null) repasse en automatique', () async {
       final region = RegionProvider(location: location);

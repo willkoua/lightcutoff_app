@@ -101,11 +101,14 @@ void main() {
       expect(s.peakWeekday, 2);
     });
 
-    test('coupure sans reportedAt : compte dans total, pas dans les histos', () {
-      final s = computeOutageStats([_report()]);
-      expect(s.total, 1);
-      expect(s.byHour.every((v) => v == 0), isTrue);
-      expect(s.byWeekday.every((v) => v == 0), isTrue);
-    });
+    test(
+      'coupure sans reportedAt : compte dans total, pas dans les histos',
+      () {
+        final s = computeOutageStats([_report()]);
+        expect(s.total, 1);
+        expect(s.byHour.every((v) => v == 0), isTrue);
+        expect(s.byWeekday.every((v) => v == 0), isTrue);
+      },
+    );
   });
 }

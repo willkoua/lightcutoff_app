@@ -59,7 +59,10 @@ void main() {
     user = MockUser();
 
     when(
-      () => service.watchReports(limit: any(named: 'limit'), countryCode: any(named: 'countryCode')),
+      () => service.watchReports(
+        limit: any(named: 'limit'),
+        countryCode: any(named: 'countryCode'),
+      ),
     ).thenAnswer((_) => Stream<List<Report>>.value(const []));
     // Par défaut, localisation non autorisée -> la proximité ne s'auto-active
     // pas au démarrage (préserve l'état de filtres attendu par les tests).
@@ -146,14 +149,10 @@ void main() {
     final provider = build();
     final observed = DateTime(2026, 6, 20, 9, 30);
     await provider.createFromDraft(
-      const ReportDraft(
-        position: GeoPosition(lat: 1, lng: 2),
-        area: GeoArea(),
-      ),
+      const ReportDraft(position: GeoPosition(lat: 1, lng: 2), area: GeoArea()),
       reportedAt: observed,
     );
-    final captured =
-        verify(() => service.createReport(captureAny())).captured;
+    final captured = verify(() => service.createReport(captureAny())).captured;
     expect((captured.single as Report).reportedAt, observed);
   });
 
@@ -161,13 +160,9 @@ void main() {
     when(() => service.createReport(any())).thenAnswer((_) async {});
     final provider = build();
     await provider.createFromDraft(
-      const ReportDraft(
-        position: GeoPosition(lat: 1, lng: 2),
-        area: GeoArea(),
-      ),
+      const ReportDraft(position: GeoPosition(lat: 1, lng: 2), area: GeoArea()),
     );
-    final captured =
-        verify(() => service.createReport(captureAny())).captured;
+    final captured = verify(() => service.createReport(captureAny())).captured;
     expect((captured.single as Report).reportedAt, isNull);
   });
 
@@ -193,7 +188,12 @@ void main() {
   });
 
   test('archive : l\'auteur peut archiver son report', () async {
-    when(() => service.watchReports(limit: any(named: 'limit'), countryCode: any(named: 'countryCode'))).thenAnswer(
+    when(
+      () => service.watchReports(
+        limit: any(named: 'limit'),
+        countryCode: any(named: 'countryCode'),
+      ),
+    ).thenAnswer(
       (_) => Stream<List<Report>>.value([_report(id: 'mine', userId: 'u1')]),
     );
     when(() => service.archiveReport('mine')).thenAnswer((_) async {});
@@ -205,7 +205,12 @@ void main() {
   });
 
   test('archive : refuse le report d\'un autre', () async {
-    when(() => service.watchReports(limit: any(named: 'limit'), countryCode: any(named: 'countryCode'))).thenAnswer(
+    when(
+      () => service.watchReports(
+        limit: any(named: 'limit'),
+        countryCode: any(named: 'countryCode'),
+      ),
+    ).thenAnswer(
       (_) => Stream<List<Report>>.value([_report(id: 'other', userId: 'x')]),
     );
     final provider = build();
@@ -222,7 +227,12 @@ void main() {
   });
 
   test('confirm refuse sa propre coupure', () async {
-    when(() => service.watchReports(limit: any(named: 'limit'), countryCode: any(named: 'countryCode'))).thenAnswer(
+    when(
+      () => service.watchReports(
+        limit: any(named: 'limit'),
+        countryCode: any(named: 'countryCode'),
+      ),
+    ).thenAnswer(
       (_) => Stream<List<Report>>.value([_report(id: 'mine', userId: 'u1')]),
     );
     final provider = build();
@@ -241,7 +251,10 @@ void main() {
         (i) => _report(id: 'r$i'),
       );
       when(
-        () => service.watchReports(limit: any(named: 'limit'), countryCode: any(named: 'countryCode')),
+        () => service.watchReports(
+          limit: any(named: 'limit'),
+          countryCode: any(named: 'countryCode'),
+        ),
       ).thenAnswer((_) => Stream<List<Report>>.value(fullPage));
       final provider = build();
       await Future<void>.delayed(Duration.zero);
@@ -250,13 +263,21 @@ void main() {
 
     test('lot incomplet -> hasMore faux', () async {
       when(
-        () => service.watchReports(limit: any(named: 'limit'), countryCode: any(named: 'countryCode')),
+        () => service.watchReports(
+          limit: any(named: 'limit'),
+          countryCode: any(named: 'countryCode'),
+        ),
       ).thenAnswer((_) => Stream<List<Report>>.value([_report(id: 'a')]));
       final provider = build();
       await Future<void>.delayed(Duration.zero);
       expect(provider.hasMore, isFalse);
       provider.loadMore(); // sans effet (rien à charger)
-      verify(() => service.watchReports(limit: any(named: 'limit'), countryCode: any(named: 'countryCode'))).called(1);
+      verify(
+        () => service.watchReports(
+          limit: any(named: 'limit'),
+          countryCode: any(named: 'countryCode'),
+        ),
+      ).called(1);
     });
 
     test('loadMore re-souscrit avec une fenêtre élargie', () async {
@@ -265,7 +286,10 @@ void main() {
         (i) => _report(id: 'r$i'),
       );
       when(
-        () => service.watchReports(limit: any(named: 'limit'), countryCode: any(named: 'countryCode')),
+        () => service.watchReports(
+          limit: any(named: 'limit'),
+          countryCode: any(named: 'countryCode'),
+        ),
       ).thenAnswer((_) => Stream<List<Report>>.value(fullPage));
       final provider = build();
       await Future<void>.delayed(Duration.zero);
@@ -274,7 +298,10 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       verify(
-        () => service.watchReports(limit: any(named: 'limit'), countryCode: any(named: 'countryCode')),
+        () => service.watchReports(
+          limit: any(named: 'limit'),
+          countryCode: any(named: 'countryCode'),
+        ),
       ).called(2); // initial + loadMore
     });
   });
@@ -283,7 +310,10 @@ void main() {
     // Yaoundé : 3.848, 11.502
     Future<ReportProvider> buildWith(List<Report> reports) async {
       when(
-        () => service.watchReports(limit: any(named: 'limit'), countryCode: any(named: 'countryCode')),
+        () => service.watchReports(
+          limit: any(named: 'limit'),
+          countryCode: any(named: 'countryCode'),
+        ),
       ).thenAnswer((_) => Stream<List<Report>>.value(reports));
       final provider = build();
       await Future<void>.delayed(Duration.zero); // laisse le stream émettre
@@ -357,7 +387,10 @@ void main() {
   group('filteredReports', () {
     Future<ReportProvider> buildWith(List<Report> reports) async {
       when(
-        () => service.watchReports(limit: any(named: 'limit'), countryCode: any(named: 'countryCode')),
+        () => service.watchReports(
+          limit: any(named: 'limit'),
+          countryCode: any(named: 'countryCode'),
+        ),
       ).thenAnswer((_) => Stream<List<Report>>.value(reports));
       final provider = build();
       await Future<void>.delayed(Duration.zero);
@@ -604,7 +637,10 @@ void main() {
 
     test('serviceFilter=null → reports élec ET eau visibles', () async {
       when(
-        () => service.watchReports(limit: any(named: 'limit'), countryCode: any(named: 'countryCode')),
+        () => service.watchReports(
+          limit: any(named: 'limit'),
+          countryCode: any(named: 'countryCode'),
+        ),
       ).thenAnswer((_) => Stream.value([elecReport, waterReport]));
 
       final provider = build();
@@ -615,7 +651,10 @@ void main() {
 
     test('serviceFilter=water filtre les reports élec', () async {
       when(
-        () => service.watchReports(limit: any(named: 'limit'), countryCode: any(named: 'countryCode')),
+        () => service.watchReports(
+          limit: any(named: 'limit'),
+          countryCode: any(named: 'countryCode'),
+        ),
       ).thenAnswer((_) => Stream.value([elecReport, waterReport]));
 
       final provider = build();
@@ -668,7 +707,12 @@ void main() {
     });
 
     test('refuse sa propre coupure', () async {
-      when(() => service.watchReports(limit: any(named: 'limit'), countryCode: any(named: 'countryCode'))).thenAnswer(
+      when(
+        () => service.watchReports(
+          limit: any(named: 'limit'),
+          countryCode: any(named: 'countryCode'),
+        ),
+      ).thenAnswer(
         (_) => Stream<List<Report>>.value([_report(id: 'mine', userId: 'u1')]),
       );
       final provider = build();
@@ -694,8 +738,9 @@ void main() {
 
     // Active la proximité (fournit le centre) avec [reports] comme résultats.
     Future<ReportProvider> buildNear(List<Report> reports) async {
-      when(() => location.checkAccess())
-          .thenAnswer((_) async => LocationAccess.granted);
+      when(
+        () => location.checkAccess(),
+      ).thenAnswer((_) async => LocationAccess.granted);
       when(() => location.getCurrentLocation()).thenAnswer(
         (_) async => const LocationResult(
           position: GeoPosition(lat: 3.86, lng: 11.51),

@@ -102,8 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
           // Prompt d'ouverture « Chez toi aussi ? » : sollicitation douce quand
           // une coupure en cours est à < promptRadiusMeters. Une seconde de
           // friction, jamais bloquant, jamais re-montré pour le même report.
-          if (segment == HomeSegment.reports &&
-              reports.promptCandidate != null)
+          if (segment == HomeSegment.reports && reports.promptCandidate != null)
             _NearbyOutagePrompt(report: reports.promptCandidate!),
           // Bandeau d'activité (inspiré de coupure.ci) : nombre de coupures EN
           // COURS dans le périmètre (pays + service). DÉSACTIVÉ pour le moment
@@ -462,9 +461,7 @@ class _NearbyOutagePrompt extends StatelessWidget {
     final isWater = report.serviceType == ServiceType.water;
     final color = serviceTypeColor(report.serviceType);
     final heading =
-        isWater
-            ? l.promptNearbyHeadingWater
-            : l.promptNearbyHeadingElectricity;
+        isWater ? l.promptNearbyHeadingWater : l.promptNearbyHeadingElectricity;
     final noLabel =
         isWater ? l.promptNearbyNoWater : l.promptNearbyNoElectricity;
     final subtitle =
@@ -481,8 +478,11 @@ class _NearbyOutagePrompt extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(serviceTypeIcon(report.serviceType),
-                    size: 18, color: color),
+                Icon(
+                  serviceTypeIcon(report.serviceType),
+                  size: 18,
+                  color: color,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -496,11 +496,15 @@ class _NearbyOutagePrompt extends StatelessWidget {
                 IconButton(
                   visualDensity: VisualDensity.compact,
                   tooltip: l.actionCancel,
-                  icon: const Icon(Icons.close, size: 18, color: AppColors.gray),
+                  icon: const Icon(
+                    Icons.close,
+                    size: 18,
+                    color: AppColors.gray,
+                  ),
                   onPressed:
-                      () => context
-                          .read<ReportProvider>()
-                          .dismissPrompt(report.id),
+                      () => context.read<ReportProvider>().dismissPrompt(
+                        report.id,
+                      ),
                 ),
               ],
             ),
@@ -529,8 +533,10 @@ class _NearbyOutagePrompt extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 10),
                     ),
                     onPressed: () => _answer(context, affected: true),
-                    child: Text(l.promptNearbyYes,
-                        style: const TextStyle(fontSize: 13)),
+                    child: Text(
+                      l.promptNearbyYes,
+                      style: const TextStyle(fontSize: 13),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),

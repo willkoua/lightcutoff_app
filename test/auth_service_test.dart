@@ -103,9 +103,7 @@ void main() {
 
   group('register', () {
     test('crée le compte, le doc user et l\'index pseudo (normalisé)', () async {
-      final auth = MockFirebaseAuth(
-        mockUser: MockUser(email: 'new@njuka.app'),
-      );
+      final auth = MockFirebaseAuth(mockUser: MockUser(email: 'new@njuka.app'));
       final service = AuthService(auth: auth, firestore: db);
 
       await service.register(

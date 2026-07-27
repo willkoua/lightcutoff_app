@@ -93,8 +93,7 @@ class AuthService implements AuthRepository {
     if (direct != null && direct.trim().isNotEmpty) return direct.trim();
     final given = p['given_name'] ?? p['first_name'];
     final family = p['family_name'] ?? p['last_name'];
-    final full =
-        [given, family].whereType<String>().join(' ').trim();
+    final full = [given, family].whereType<String>().join(' ').trim();
     return full.isEmpty ? null : full;
   }
 

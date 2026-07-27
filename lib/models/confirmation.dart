@@ -36,7 +36,10 @@ class Confirmation {
       geohash: map['geohash'] as String?,
       position:
           pos != null
-              ? (lat: (pos['lat'] as num).toDouble(), lng: (pos['lng'] as num).toDouble())
+              ? (
+                lat: (pos['lat'] as num).toDouble(),
+                lng: (pos['lng'] as num).toDouble(),
+              )
               : null,
     );
   }

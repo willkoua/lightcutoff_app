@@ -63,8 +63,7 @@ class NjukaApp extends StatelessWidget {
                 content = Banner(
                   message: envLabel,
                   location: BannerLocation.topEnd,
-                  color:
-                      AppConfig.isDev ? Colors.blueGrey : Colors.deepPurple,
+                  color: AppConfig.isDev ? Colors.blueGrey : Colors.deepPurple,
                   child: content,
                 );
               }

@@ -180,10 +180,7 @@ class ReportCard extends StatelessWidget {
                           size: 18,
                         ),
                         label: Text(
-                          serviceRestoredChipLabel(
-                            context,
-                            report.serviceType,
-                          ),
+                          serviceRestoredChipLabel(context, report.serviceType),
                         ),
                       ),
                   ],
@@ -253,4 +250,3 @@ class _StatusChip extends StatelessWidget {
     );
   }
 }
-

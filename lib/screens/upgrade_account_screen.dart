@@ -49,6 +49,7 @@ class _UpgradeAccountScreenState extends State<UpgradeAccountScreen> {
     if (first.isEmpty) return;
     _username.text = generateUsername(first);
   }
+
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _confirmPassword = TextEditingController();

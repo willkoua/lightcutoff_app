@@ -15,12 +15,28 @@ const int _slugMaxLength = 15;
 
 /// Translittération grossière des caractères accentués courants (fr).
 const Map<String, String> _accents = {
-  'à': 'a', 'â': 'a', 'ä': 'a', 'á': 'a', 'ã': 'a',
-  'é': 'e', 'è': 'e', 'ê': 'e', 'ë': 'e',
-  'î': 'i', 'ï': 'i', 'í': 'i',
-  'ô': 'o', 'ö': 'o', 'ó': 'o', 'õ': 'o',
-  'ù': 'u', 'û': 'u', 'ü': 'u', 'ú': 'u',
-  'ç': 'c', 'ñ': 'n',
+  'à': 'a',
+  'â': 'a',
+  'ä': 'a',
+  'á': 'a',
+  'ã': 'a',
+  'é': 'e',
+  'è': 'e',
+  'ê': 'e',
+  'ë': 'e',
+  'î': 'i',
+  'ï': 'i',
+  'í': 'i',
+  'ô': 'o',
+  'ö': 'o',
+  'ó': 'o',
+  'õ': 'o',
+  'ù': 'u',
+  'û': 'u',
+  'ü': 'u',
+  'ú': 'u',
+  'ç': 'c',
+  'ñ': 'n',
 };
 
 /// Slug en minuscules, sans accents ni caractères spéciaux, tronqué à
