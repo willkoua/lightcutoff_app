@@ -2,6 +2,22 @@
 
 Format : `[date] | ce qui a mal tourné | règle pour l'éviter`
 
+- **2026-07-27 | CI rouge en continu après la montée de chaîne (3 causes distinctes
+  empilées)** : ① le formateur Dart 3.12 (Flutter 3.44) a un nouveau style → 131
+  fichiers « non formatés » pour `--set-exit-if-changed` ; ② `firestore.rules` avait
+  changé (lecture confirmations retirée à l'auteur) mais `rules_tests/` assertait
+  l'ANCIEN comportement ; ③ le job règles installait `firebase-tools` en **latest**
+  → passage 14→15 qui **exige Java 21** alors que le workflow posait Java 17 (mort
+  immédiate de l'émulateur).
+  → **Règles** : après toute montée de version d'outillage, relancer localement les
+  MÊMES commandes que le CI (`dart format --set-exit-if-changed`, tests de règles
+  via `npx firebase-tools@latest` pour matcher un install « latest ») ; toute modif
+  de `firestore.rules` = mettre à jour `rules_tests/` dans le même lot ; **épingler
+  les outils du CI au majeur** (`firebase-tools@15`, `flutter-version` exacte) au
+  lieu de « latest ». Bonus : le build iOS SwiftPM dépose des sources Dart de
+  plugins dans `build/` → exclure `build/**` de l'analyse sinon ~800 faux positifs
+  locaux.
+
 - **2026-07-26 | Purger les comptes Auth côté serveur laisse l'app installée avec des
   identifiants zombis** : au refresh du jeton (~1 h), le refresh token du compte
   supprimé est refusé → l'app devient silencieusement NON authentifiée →
