@@ -217,3 +217,44 @@ Puis **http://127.0.0.1:4000** → Firestore → collection `official_outages` :
    - [ ] **Non-Cameroun** : décrire une ville étrangère → le `countryCode` est
          bien renseigné (cloisonnement par pays respecté), le hint reste générique
          (aucune mention spécifique au Cameroun).
+
+## Conservation de l'historique anonyme — TOUS les types de connexion (2026-07-26)
+
+> Objectif : prouver que Google, Facebook, Apple **et** l'upgrade e-mail
+> **conservent les signalements/votes faits en anonyme** (liaison à la session
+> anonyme → même uid). Base propre recommandée (purge + `adb shell pm clear
+> com.njuka.app` — sinon session zombie, cf. lessons 2026-07-26).
+
+### Recette (à répéter pour CHAQUE méthode : Google · Facebook · Apple (iOS) · E-mail)
+
+1. **En anonyme** (installation fraîche, sans se connecter) :
+   - [ ] Créer **1 signalement** (noter le quartier) + **confirmer** une coupure
+         existante (seedée au besoin).
+   - [ ] Console Firebase → Authentication : noter l'**uid anonyme** ;
+         Firestore : `reports/{id}.userId` = cet uid.
+2. **Se connecter** : Profil → mur Compte → « J'ai déjà un compte » → la méthode testée.
+   - [ ] Le compte social testé est **NEUF** (jamais utilisé sur NJUKA) —
+         c'est le cas « liaison ».
+   - [ ] Un dialog d'avertissement s'affiche (activité anonyme réelle) et dit
+         que l'historique sera **conservé** à la première connexion.
+3. **Vérifier la conservation** :
+   - [ ] Console Auth : l'uid est **LE MÊME** qu'à l'étape 1 (provider ajouté
+         sur la ligne existante, pas de nouvelle ligne ; l'ancienne ligne
+         anonyme a disparu).
+   - [ ] Profil auto-créé : prénom/nom du provider, **pseudo généré**
+         (`prenom_NNN`) annoncé par un snack.
+   - [ ] Stats → « Mes coupures » : le signalement de l'étape 1 est là.
+   - [ ] Le signalement reste affiché **sans** `@pseudo` (authorUsername
+         dénormalisé null à la création — comportement voulu).
+   - [ ] Pas d'écran « Vérifie ton email » pour Google/Facebook/Apple
+         (vérif réservée au provider `password` ; l'upgrade e-mail, lui,
+         DOIT passer par la vérification).
+4. **Cas repli (compte social DÉJÀ existant)** — une fois suffit :
+   - [ ] Se déconnecter, refaire 1 (nouvelle session anonyme + 1 signalement),
+         puis se connecter avec un compte social **déjà rattaché** à un autre
+         utilisateur NJUKA → connexion **classique** (changement d'uid), le
+         dialog prévient que l'historique anonyme n'est **pas** rattaché.
+
+> ⚠️ Environnements : Apple = iOS uniquement (iPhone réel, backlog validation).
+> Google en **prod** ne marchera qu'après le « jour J » OAuth (clients encore
+> tenus par lightcutoff-dev) → tester Google sur **staging** d'ici là.
