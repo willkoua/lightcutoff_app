@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Notifications push (FCM via APNs). "development" en local ; les builds
+	     App Store basculent automatiquement en production via le profil. -->
+	<key>aps-environment</key>
+	<string>development</string>
+	<!-- Sign in with Apple — exigence App Store 4.8 (connexions tierces). -->
+	<key>com.apple.developer.applesignin</key>
+	<array>
+		<string>Default</string>
+	</array>
+</dict>
+</plist>
