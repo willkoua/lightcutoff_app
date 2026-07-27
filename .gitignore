@@ -73,3 +73,13 @@ pubsub-debug.log
 # Captures d'écran du Store — peuvent contenir des données perso réelles
 # (nom, e-mail, téléphone). Local only, jamais commitées.
 /store_assets/screenshots/
+/store/
+
+# Configs Firebase natives PROD — local only (régénérables via
+# `flutterfire configure --project=njuka-prod` ; la référence versionnée
+# reste staging, cf. tool/use_env.sh)
+/android/app/google-services.prod.json
+/ios/Runner/GoogleService-Info.prod.plist
+
+# Répertoire temporaire de sessions outillées
+/tmp/

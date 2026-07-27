@@ -10,6 +10,126 @@
 
 ---
 
+## 🟢 ÉTAT AU 2026-07-07 (build publié `1.2.0+55`, staging `lightcutoff-dev`)
+
+**`.aab` v55 DÉPLOYÉ au test fermé (2026-07-07)** — contient tout le circuit d'incitation + Facebook public. Les testeurs doivent **mettre à jour** (apps < v51 = plus de notifs de proximité) puis **ouvrir l'app une fois GPS activé** (réenregistrement position). Guide testeurs à jour (MD + docx, §4 bis prompt + §10 bis notifs à boutons). `flutter analyze` clean, **205 tests** OK.
+
+**Fait 2026-07-08 (en local, à publier avec le prochain `.aab` — v57+) :**
+- **Tuile « Signaler un problème »** (v56) : Paramètres → Aide, brouillon email vers `support@bogal.ca` pré-rempli avec le diagnostic (version/build/env, OS, compte, langue) + repli si pas d'appli mail. ⚠️ Vérifier que la boîte `support@bogal.ca` existe et est relevée.
+- **Migration API 36** (v57) : `compileSdk`/`targetSdk = 36` explicites (exigence Play du **2026-08-31**, avertissement reçu le 21 juil.). Build OK, app démarre, **vague de notification + vote 1-tap avec position validés sous targetSdk 36**. À publier avant fin août.
+
+**Fait 2026-07-23 — Chantier iOS lancé (App Store)** :
+- Compte Apple Developer créé/payé (individuel, willy Kouagnia, **Team ID `M7ZPLSL3JN`**). App ID `com.njuka.app` (capabilities : Push, Sign in with Apple, App Attest) ; clé APNs `.p8` à créer/importer dans Firebase (état à confirmer).
+- **Chaîne mise à niveau de bout en bout** (cf. lessons 2026-07-23) : iOS min **15.0**, **Xcode 26.6**, platform iOS 26.5, **Flutter 3.27→3.44.7**, Firebase (firestore 6.7.1 etc.), **flutter_facebook_auth 7.2.0**, fake_cloud_firestore 4.2.0, dépréciations corrigées (RadioGroup, initialValue, l10n synthetic-package).
+- **Sign in with Apple implémenté** (bouton + provider Firebase à activer côté console) + permissions Info.plist (photos/caméra) + URL schemes Google/Facebook iOS.
+- ✅ **`flutter build ios` ET `flutter build apk` passent** ; analyze clean ; tous les tests OK.
+- ⚠️ Avant prochain déploiement Android : **re-smoke-tester la connexion Facebook sur le tél** (plugin 7.1.1→7.2.0).
+- **2026-07-23 soir — PREMIER BUILD iOS UPLOADÉ sur App Store Connect** ✅ (`1.2.0 (57)`, en traitement Apple). Chaîne de signature établie : certificat **Apple Distribution local** (créé via Xcode → Manage Certificates) + profil manuel **« NJUKA AppStore »** (créé sur le portail, dans Downloads + installé) ; signature **manuelle scopée au target Runner** (`[sdk=iphoneos*]` dans pbxproj — les packages Swift refusent un profil global) ; upload via `xcodebuild -exportArchive` avec `destination: upload` (session Xcode, aucun credential manipulé). ⚠️ Piège documenté : archive non signée + re-signature à l'export = REJETÉ (frameworks embarqués non signés) ; profil « Xcode managed » inutilisable en manuel. App créée dans ASC (NJUKA, SKU njuka-ios-001), captures 6,5" uploadées (8), fiche remplie (accroche/description/mots-clés/support URL `lightcutoff-dev.web.app/support` déployée).
+- **2026-07-23 fin de soirée — chaîne iOS COMPLÈTE côté serveur** : ✅ déclaration chiffrement faite (+ `ITSAppUsesNonExemptEncryption=false` dans Info.plist → plus jamais demandé) ; ✅ **clé APNs** `HCJ985KX3Q` (Sandbox & Production, Team Scoped) importée dans Firebase Cloud Messaging (dev + prod, app `com.njuka.app` — ignorer les 2 vieilles entrées iOS lightcutoff/example) ; ✅ provider **Apple activé** dans Firebase Auth ; ✅ CFs adaptées iOS : habillage APNs (alerte visible) sur les vagues data-only — Android garde les boutons, iOS affiche titre/corps/son (déployé). TestFlight : groupe `test_interne` (1 testeur), notes de test remplies.
+- Reste iOS : **un iPhone réel pour valider** (auth Apple/Google/FB, notifs APNs, parcours complet) → puis associer le build à la version 1.2.0 et **soumettre à la review**. Backlog iOS : boutons de vote sur notifications (categories APNs), basculer sur Firebase prod avant publication réelle.
+
+**Fait 2026-07-24 — PROJET FIREBASE PROD CRÉÉ : `njuka-prod` (nom affiché NJUKA)** (« njuka » seul refusé : ID min 6 caractères) :
+- ✅ Firestore natif **europe-west2** (même région que staging → triggers identiques) ; **règles + index déployés** ; **hosting légal déployé** → `https://njuka-prod.web.app/{privacy,cgu,mentions-legales,account-deletion}` (200 OK).
+- ✅ Apps Android+iOS créées (`flutterfire configure`) → `lib/firebase_options_prod.dart` ; `main()` **ne throw plus en prod** : sélectionne les options prod via `AppConfig.isProd`.
+- ✅ Configs natives : `google-services.prod.json` + `GoogleService-Info.prod.plist` à côté des staging ; **`tool/use_env.sh staging|prod`** fait la bascule avant un build (nécessaire pour Google Sign-In natif). Staging reste la config par défaut versionnée.
+- ✅ `.firebaserc` : alias `staging` + `prod`. Analyze clean, 205 tests OK.
+- **2026-07-25 — INFRA SERVEUR PROD COMPLÈTE** : ✅ Blaze ; ✅ **8 Cloud Functions déployées** (fix IAM : `roles/iam.serviceAccountUser` sur le compte compute pour willkoua@gmail.com — nouveau projet ne l'accorde plus d'office) ; ✅ **bucket Storage** `njuka-prod.firebasestorage.app` (europe-west2, Standard) + règles déployées ; ✅ SHA 6/6 dans njuka-prod ; ✅ Facebook : URI de redirection prod ajoutée à l'app FB (les 2 URIs staging+prod coexistent).
+- **⚠️ JOUR J (bascule prod) — clients OAuth Google** : les empreintes sont posées mais les clients OAuth restent tenus par `lightcutoff-dev` (contrainte Google : 1 seul projet par combinaison package+SHA ; vérifié : `google-services.prod.json` régénéré → 0 oauth_client). Procédure jour J : GCP console lightcutoff-dev → Identifiants → supprimer les clients OAuth Android → regénérer `google-services.prod.json` (`flutterfire configure --project=njuka-prod`) → Google Sign-In prod OK (et staging le perd, assumé).
+- **🔴 Restant (console utilisateur)** : ① providers Auth njuka-prod — confirmer **Facebook activé** (App ID+secret), activer **Anonyme, E-mail, Apple** ; ② **clé APNs** `HCJ985KX3Q` dans Cloud Messaging njuka-prod ; ③ App Check enforcement (après validation) ; ④ décision URLs légales des fiches → `njuka-prod.web.app`.
+
+**2026-07-25 — PROD VALIDÉE DE BOUT EN BOUT ✅** : providers Auth actifs (Anonyme SANS nettoyage auto — vital pour l'anonyme-first —, E-mail, Google [OAuth jour J], Facebook, Apple), clé APNs importée (dev+prod), **premier build `APP_ENV=prod` installé et vérifié sur appareil** : pas de bannière, pas d'outils dev, base vierge, signalement de test créé → arrivé dans njuka-prod (puis purgé, base laissée vierge). **RD Congo retirée** du sélecteur (utilities.dart — pas de présence réelle ; ⚠️ corriger les descriptions ASC/Play qui la mentionnent).
+
+**2026-07-25 — Bug Facebook→écran email corrigé + smoke-test prod VALIDÉ ✅** : Firebase marque les emails Facebook comme non vérifiés → l'aiguillage envoyait les connexions FB sur « Vérifie ton email ». Fix : la vérification ne s'applique qu'au provider `password` (`_needsEmailVerification` via `providerData`). 203 tests. Parcours FB complet re-testé sur build prod : FB → Compléter mon profil → Profil ✅ (plugin 7.2.0 validé au passage). Comptes de test prod purgés (Auth+users+usernames+devices) — base 100 % vierge. 💄 Polish restant : Authentication → Modèles → langue FR (njuka-prod).
+
+**2026-07-25 — Pseudo SANS friction + changement unique (option A validée)** :
+- **Généré à la création** (`prenom_NNN`, `username_generator.dart` testé) : connexion sociale = **plus d'écran « Compléter mon profil »** (auto-création du profil, retries collision, repli sur l'écran manuel en cas d'échec) + snack d'annonce une fois dans MainShell ; formulaires e-mail = champ **pré-rempli** dès la saisie du prénom (stoppé si l'utilisateur édite).
+- **Personnalisable UNE seule fois, définitif** (le pseudo identifie l'utilisateur — décision utilisateur) : `usernameChangesLeft` (défaut 1, comptes existants inclus), UI dans Modifier le profil (tuile @pseudo + dialog « définitif » / verrou), **verrou serveur dans les règles Firestore** (delta exact -1 exigé), déployé staging + prod. Les anciens signalements gardent l'ancien pseudo (dénormalisé immuable) → max 2 identités à vie.
+- 210 tests OK. Comptes de test prod re-purgés pour valider le nouveau parcours.
+
+**2026-07-26 — Parcours compte FINALISÉ (3 itérations avec test utilisateur en prod)** :
+- **Hiérarchie du mur Compte inversée** : « J'ai déjà un compte » = bouton principal (hub social 1-tap), « Créer un compte » (email) = secondaire.
+- **Dialog d'avertissement conditionnel** : ne s'affiche que si la session anonyme a une **activité réelle** (marqueur local `anon_activity_uid` posé à signalement/confirmation/démenti/retour, auto-invalidé au changement d'uid — `utils/anonymous_activity.dart`). Utilisateur neuf → connexion directe sans friction.
+- **Connexion sociale = LIAISON à la session anonyme** (`linkWithCredential`/`linkWithProvider` quand anonyme) → **même uid, historique préservé** (signalements/votes restent à l'utilisateur). Repli connexion classique UNIQUEMENT si le compte social appartient déjà à un autre utilisateur (`credential-already-in-use` & co). Rejeu manuel de l'aiguillage après liaison (authStateChanges ne re-fire pas à uid constant). Dialog réécrit en conséquence (« première connexion → CONSERVÉS ; compte existant → pas de rattachement »).
+- **Nom du provider récupéré à la liaison** (`additionalUserInfo.profile` → `updateDisplayName`) : prénom/nom remplis + pseudo généré depuis le prénom.
+- **Résilience session zombie** : toute session vivante réarme l'auto-reconnexion anonyme — un compte supprimé côté serveur (purges de test, admin) retombe sur une session anonyme neuve au lieu de bloquer l'app sur PERMISSION_DENIED (bug découvert en test : liste figée sur erreur, carte servie par le cache).
+- 210 tests. ⚠️ Hygiène de test : purge serveur ⇒ TOUJOURS `pm clear` dans la foulée (lesson).
+
+**2026-07-26 — Base prod re-vérifiée vierge + documentation à jour** : purge `njuka-prod` relancée (inventaire : déjà 0 partout, `official_outages` conservée — 159 docs) → prête pour un nouveau test. **Docs synchronisées avec l'état réel** : `CONTEXT.md` réécrit (26 juil.), `README.md` (prod njuka-prod, auth sociale/liaison, incitations, versions Flutter 3.44.7 / API 36 / iOS 15, 210 tests), `SCHEMA.md` (denials, `position` verrouillée, `notifiedUserIds`, `usernameChangesLeft`, `followedQuartiers`, `official_outages`), `CLAUDE.md` (prod, use_env.sh, liaison sociale, notifs data-only, contraintes natives), CI GitHub Actions épinglée à Flutter 3.44.7 (était 3.29.0 → aurait cassé au prochain push).
+
+**RESTE AVANT PUBLICATION PROD** : ~~① smoke-test Facebook Android~~ ✅ ; ② **jour J OAuth Google** (supprimer clients Android de lightcutoff-dev → régénérer google-services.prod.json) ; ③ build `.aab` prod (v58+) + rollout progressif Play 10 % ; ④ côté iOS : refaire un build prod (`use_env.sh prod`) et l'uploader pour la release App Store ; ⑤ App Check enforcement ; ⑥ retirer « RD Congo » des descriptions de fiches.
+
+**Phase courante : ATTENTE DES RETOURS testeurs v55** (1-2 semaines) **+ chantier iOS en parallèle** **+ prod prête, publication à déclencher**. En parallèle : décider du **numéro WhatsApp** (SIM locale vs virtuel — seule décision avec délai externe, cf. `SPEC-WHATSAPP-BOT.md` §8) et surveiller Play Console / Crashlytics / Analytics (`report_denied`, `outage_prompt_dismissed`, taux de confirmation).
+
+**2026-07-07 — ✅ Vérification business Meta ACCEPTÉE** (Bogal consulting Inc.) → Facebook Login utilisable par tous les utilisateurs en mode Live (accès avancé email + public_profile débloqué). Reste à vérifier en conditions réelles : connexion Facebook avec un compte SANS rôle sur l'app FB.
+
+**Fait 2026-07-07 — Circuit d'incitation complet (leviers produit), testé en réel sur appareil :**
+- **Levier « dire non »** (v50) : prompt d'ouverture « Chez toi aussi ? » en tête de Liste quand une coupure en cours est à < 1 km (`promptRadiusMeters`) — [Oui = confirm] [Non = nouveau signal négatif `denials/{uid}` avec position, ne touche aucun compteur, délimite l'emprise] [✕ passer, persisté, jamais re-montré]. Marche pour les anonymes (seul canal de sollicitation pour eux). `promptCandidate` + `deny()` dans ReportProvider, règles `denials` déployées, analytics `report_denied`/`outage_prompt_dismissed`.
+- **Levier « voter depuis la notification »** (v51-v52) : notifs de proximité passées en **data-only** (title/body dans data, CF `sendOutageNotif`) → affichées par l'app avec **boutons d'action** « Oui, chez moi aussi / Non, j'ai du courant·de l'eau » (`notification_actions.dart`, `showsUserInterface:false` → vote en isolate background sans ouvrir l'app, `DartPluginRegistrant` pour le GPS, receiver `ActionBroadcastReceiver` au manifest, `getNotificationAppLaunchDetails` pour le tap à froid). ID de notif stable par report (anti-empilement). **Repli serveur** : vote sans position → position du device du confirmeur.
+- **Levier « récompense du confirmeur »** (v54 + CF `onReportResolved`) : snack de confirmation = « on te préviendra dès que ça revient » ; à la résolution (auto ou manuelle), notification « **Le courant est revenu ⚡ / L'eau est revenue 💧** » à l'auteur + confirmeurs (sauf ceux qui ont déclaré le retour). `resolvedNotifContent` dans logic.ts, envoi factorisé `sendToTokens`.
+- **Bug corrigé (v53)** : à la déconnexion, le doc `devices` n'était **jamais supprimé** (delete après signOut → rejeté par la règle `isOwner`, catch muet) → notifs fantômes sur téléphone déconnecté + votes sous uid anonyme. Fix : `unregister()` AVANT `signOut()` dans `logout()`.
+- **Validation terrain** (vagues simulées via `functions/scripts/simulateWave.cjs`) : vote 1-tap OK avec position (v5), sans position + replis + garde-fou 100 m (v7), notif de rétablissement reçue. ⚠️ Découverte : l'**optimisation batterie Samsung** gèle l'app et peut manger un tap d'action (vague 4) — tél de test whitelisté via adb (`dumpsys deviceidle whitelist +com.njuka.app`) ; à mentionner aux testeurs.
+- **Réflexion incitations** menée (2 modèles) : reste en backlog → partage WhatsApp d'une coupure/bilan de quartier (levier social+viral), narratif civique dans les textes, stats/prédictions de durée (flywheel long terme). PAS de points/récompenses matérielles (risque fraude/donnée empoisonnée).
+
+## 📋 BACKLOG (prochaines fonctionnalités, validées, non planifiées)
+
+- [ ] **🥇 Bot WhatsApp — signaler & être alerté SANS installer l'app** → **spec complète : `tasks/SPEC-WHATSAPP-BOT.md`** (2026-07-07). Levier n°1 : crée de la densité + contourne les économiseurs de batterie OEM + débloqué par la vérif business Meta. Phase 1 (entrant) = gratuite. À lancer après les premiers retours du test fermé v55.
+- [ ] **Ping « Toujours coupé chez toi ? »** X heures après une confirmation, avec boutons [Toujours coupé] [C'est revenu ✓] — comble le maillon faible du pipeline (votes de rétablissement rares → coupures jamais fermées → carte qui ment). Infra déjà en place (boutons d'action + CF planifiée). Donne aussi la donnée de DURÉE (future prédiction).
+- [ ] **« Ta confirmation a aidé à alerter N voisins »** (impact visible) — une ligne dans le snack/notif de résolution, compteur `notifiedUserIds` déjà disponible. Coût quasi nul.
+- [ ] **Gamification LÉGÈRE, fiabilité uniquement** (jamais au volume — incitation aux faux signalements) : badge de réactivité (répond aux pings), statut de fiabilité (signalements confirmés par les voisins), titre type « Sentinelle de {quartier} ».
+- [ ] **Fil de discussion éphémère par coupure active** (version réduite du « réseau social éphémère ») — meurt à la résolution ; commencer par des choix fermés (« Transfo en panne », « Délestage annoncé », « Travaux ») pour éviter la modération de texte libre. ATTENDRE la densité (chat vide = app morte) + exigences Play Store UGC.
+- [ ] **Partager un signalement sur d'autres plateformes** (WhatsApp en priorité — marché ultra-WhatsApp —, mais partage générique : SMS, Telegram, etc. via `share_plus`). Contenu type : « ⚡ Coupure en cours à {quartier}, {ville} · {N} confirmations — suivie sur NJUKA » + lien. Double rôle : **récompense sociale** du signaleur (il informe son groupe) + **acquisition virale**. Décision d'architecture à prendre : lien vers quoi ? (deep link app → nécessite app installée ; page web publique du signalement → nécessite un mini-site ; à défaut, lien Play Store). C'est LE levier n°1 identifié dans la réflexion incitations du 2026-07-07.
+- [ ] **« Je n'ai pas de coupure » dans le détail du signalement** — même signal `denials` que le prompt/notification, mais UNIQUEMENT si l'utilisateur est à < 1 km (sinon donnée hors-sujet qui fausse l'emprise) et n'a pas voté. Action discrète (lien texte), jamais de compteur public de démentis (éviter le bouton de contestation sociale). Décision : attendre les retours testeurs v55 (si `report_denied` reste faible vs confirmations).
+- [ ] **Notifier l'AUTEUR quand son signalement est confirmé** — « Tu n'es pas seul : 5 voisins confirment ta coupure. » Le trou de la boucle : le confirmeur est récompensé, le signaleur (geste le plus précieux) ne reçoit rien. Trivial : étendre `onConfirmationCreated` (notif à l'auteur 1× à la 1ʳᵉ ou 3ᵉ confirmation, dédup existante). **Reco n°1 de l'idéation du 2026-07-07 (2ᵉ passe).**
+- [ ] **Signalement zéro friction** : widget d'écran d'accueil et/ou tuile Réglages rapides Android « ⚡ Signaler » (formulaire pré-rempli GPS, geste depuis l'accueil).
+- [ ] **Boucle diaspora** : « inviter un proche à couvrir un quartier » (lien de partage ciblé quartier) — le diaspora suit sa famille, la famille contribue. Acquisition émotionnelle.
+- [ ] **Micro-réassurance hors-ligne** (1 ligne dans le formulaire) : « Pas de réseau ? Ton signalement partira dès que la connexion revient » — Firestore met déjà les écritures en file, personne ne le sait.
+- [ ] **Stats / prédiction de durée des coupures** (flywheel long terme) — attendre la densité de données.
+- [ ] **Narratif civique** dans les textes (documenter, responsabiliser les compagnies).
+
+**PHASE DENSITÉ (ne pas ouvrir avant une vraie base d'utilisateurs) :** boucle médias/radio (rapport quotidien exportable + partenariat station — fierté du contributeur cité), fil éphémère par coupure, digest hebdo de quartier, et :
+- **« Où charger ? » → vision marketplace en 3 COUCHES** (idée utilisateur 2026-07-07, analysée) :
+  1. *Couche donnée* (actuel) : mesure civique gratuite → densité + confiance.
+  2. *Couche ANNUAIRE* (phase densité) : lister gratuitement les points de service pendant une coupure (recharge tél, eau, forage, congélation) + bouton « contacter sur WhatsApp ». Aucun paiement/litige/commission dans l'app.
+  3. *Couche TRANSACTION* (lointain, si jamais) : vente de services (élec/eau) entre particuliers = piste de monétisation, MAIS ⚠️ **garde-fou anti-poison NON NÉGOCIABLE** : un vendeur gagne de l'argent quand il y a coupure → mobile financier à inventer des coupures. Vendeurs vérifiés + leurs signalements EXCLUS des données. Ne jamais lancer avant : double cold-start résolu, Mobile Money, litiges, légalité revente élec (monopole Eneo), qualité eau (responsabilité). Décision : PAS un levier d'usage actuel.
+
+**🧊 IDÉATION GELÉE (décision 2026-07-07)** : assez de leviers en stock (12+). Prochain insight = **retours testeurs v55** (Analytics : taps sur boutons de notif, `report_denied`, `outage_prompt_dismissed`, ouvertures spontanées) — pas de nouveau brainstorm avant ces données.
+
+**Fait 2026-07-06 :**
+- **Refonte des notifications de proximité** (piloté par les confirmations, remplace le « 2 km à la création ») :
+  - Création d'un signalement = **plus de notif** ; les notifs démarrent à la **1ʳᵉ confirmation** (autour du signalement + du confirmateur), puis s'étendent de proche en proche (**500 m** autour de chaque confirmateur).
+  - **Dédup** 1 notif/user/report (`report.notifiedUserIds`), **distance exacte** (pré-filtre geohash grossier puis `distanceBetween`), **garde-fou coût** (épicentre à <100 m d'un point déjà couvert → skip, mais confirmation comptée), **repli « même ville » supprimé**.
+  - Cloud Functions : `onReportCreated` **supprimée** → `onConfirmationCreated` (déployée). Constantes `NOTIFY_RADIUS_M=500`, `PREFILTER_RADIUS_M=2000`, `EPICENTER_MERGE_M=100`.
+  - **Position exacte** (lat/lng) stockée sur le **vote de confirmation** ET le **device**, **lecture verrouillée** aux règles (admin/owner) → CF lit via Admin SDK, anonymat préservé (accès auteur-du-report retiré). ⚠️ Transition : le ciblage 500 m ne marche que pour les devices ayant **rouvert l'app v47+** (position réenregistrée).
+- **Cloisonnement pays CÔTÉ SERVEUR** : `watchReports(countryCode)` + index composite `location.countryCode ASC, reportedAt DESC` (`firestore.indexes.json`, déployé). Corrige le bug latent « limit 50 mondiale ». Sélecteur pays conservé (choix validé).
+- **RD Congo** ajoutée aux pays supportés (`SNEL` élec + `REGIDESO` eau) dans `utilities.dart` → sélectionnable manuellement (écrase le GPS).
+- **Textes compte refondus** (mur d'upgrade orienté bénéfices + sous-titres) + **tutoiement partout** (~20 chaînes vouvoyantes converties) + onboarding slide « Alertes » corrigé (annonçait 2 km, obsolète).
+- **Données de test propres** : Cameroun + Montréal + Kinshasa (scripts `seedMontrealMulti.cjs`, `seedKinshasaMulti.cjs`, additifs).
+
+~~**À discuter :** mécanismes d'incitation / récompense~~ → **traité le 2026-07-07** (3 leviers implémentés, cf. bloc « État au 2026-07-07 » ; partage WhatsApp et stats/prédictions restent en backlog).
+
+**Ajout 2026-07-03 :**
+- **Écran « Quartiers suivis »** (`lib/screens/followed_quartiers_screen.dart`, accès depuis le Profil) : liste les quartiers suivis et permet de **se désabonner** (bouton 🔕 + confirmation). Comble le trou : avant, on ne pouvait retirer un suivi que via la carte de coupure programmée, introuvable si aucune coupure n'était affichée. Réservé aux comptes (les anonymes ne suivent pas : bouton masqué + règle `users` `!isAnonymous()`). Réutilise `toggleFollowQuartier`, aucune logique backend nouvelle.
+- Builds `1.2.0+43` (rebuild test fermé) puis `+44` (écran quartiers suivis).
+
+**Fait période test fermé (2026-06-29) :**
+- **Auth multi-méthodes** (anonyme-first) : email/mot de passe, **Google** (config Firebase faite : SHA debug+upload+Play, `enableGoogleSignIn=true`), **Facebook** (code intégré + config native ; `enableFacebookSignIn=true` ; reste : provider Firebase + mode Live FB). Plus de téléphone (abandonné — coût SMS).
+- **Multi-service eau** partout (geohash rétablissements, libellés service-aware, chip service + icône imprévu/programmé sur le détail).
+- **Signalement sans GPS** : « Décrire ma position » (géocodage mondial).
+- **Sélecteur de pays utilisateur** (prod) + état vide « Programmées » explicite ; **langue** dispo partout.
+- **Formulaire** : date/heure de constatation (en tête, optionnelles) + **case d'attestation** anti-faux (inspirées coupure.ci). Bandeau d'activité codé mais **désactivé**.
+- **Profil/Compte** selon connexion ; **bannière** au-dessus du filtre.
+- **Captures Store refaites** (données démo propres seedées via `functions/scripts/cleanAndSeedStaging.cjs`), feature graphic multi-service, description corrigée.
+- **Play Console** : Data Safety, classification, public cible (18+), **AD_ID retiré** du manifeste (pas de pub → « Non »), hosting légal déployé (`lightcutoff-dev.web.app/privacy|cgu|account-deletion`).
+- **Mode `SCREENSHOT_MODE`** (masque bannière STAGING + dev tools pour les captures).
+- **Bugs corrigés** : redirection post-login, flash splash à la déconnexion, vote durci (`_voteGeohash` best-effort). NB : « impossible de voter » = **économie de batterie** du tél (pas un bug).
+
+**Bloqueurs / à finir :**
+- Facebook : activer provider dans Firebase (App ID + Secret) + passer l'app FB en **Live**.
+- Toujours **staging** ; **prod Firebase pas créée**, **App Check non enforced** (Surveillance), **APNs iOS** absent.
+- Règle Google test fermé 14 j (si compte perso).
+
+---
+
 ## 🛠️ PLAN ACTIF — Étape 3 : Service Eau (multi-service)
 
 > Phase suivante du pivot 2026-06-24, à attaquer une fois l'étape 1 validée

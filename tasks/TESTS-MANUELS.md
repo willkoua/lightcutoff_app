@@ -198,3 +198,22 @@ Puis **http://127.0.0.1:4000** → Firestore → collection `official_outages` :
 - L'ingestion Eneo continue de poser `serviceType = electricity` côté
   Cloud Function (par défaut côté modèle `CanonicalOutage`/normalize).
   L'ouverture d'un adaptateur **CAMWATER** est hors scope étape 3.
+
+---
+
+## Signalement sans GPS — « Décrire ma position » (worldwide)
+
+8. **Refus / indisponibilité du GPS au signalement** :
+   - [ ] Refuser la permission de localisation, puis taper « Signaler ».
+   - [ ] Un dialogue « Position indisponible » s'affiche avec **2 choix** :
+         *Autoriser la localisation* et *Décrire ma position*.
+   - [ ] Choisir **Décrire ma position** → champ texte (quartier / ville / adresse).
+   - [ ] Saisir une ville connue (ex. « Yaoundé », « Paris ») → le signalement
+         est créé, le pin apparaît sur la carte au bon endroit.
+   - [ ] Vérifier que la **détection de doublon** fonctionne aussi autour du
+         point décrit (si une coupure existe déjà à proximité).
+   - [ ] Saisir une description bidon (« azerty ») → message **« Lieu introuvable.
+         Précise davantage… »**, pas de signalement créé.
+   - [ ] **Non-Cameroun** : décrire une ville étrangère → le `countryCode` est
+         bien renseigné (cloisonnement par pays respecté), le hint reste générique
+         (aucune mention spécifique au Cameroun).

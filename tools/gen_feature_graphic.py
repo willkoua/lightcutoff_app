@@ -12,6 +12,7 @@ os.makedirs(OUT_DIR, exist_ok=True)
 W, H = 1024, 500
 DARK = (26, 26, 26)
 AMBER = (248, 142, 1)
+SKY = (14, 165, 233)
 WHITE = (255, 255, 255)
 GRAY = (176, 176, 176)
 
@@ -60,7 +61,45 @@ draw.rectangle([tx + 4, ty + 168, tx + 250, ty + 176], fill=AMBER)
 
 # Tagline.
 f_tag = ImageFont.truetype(FONT_REG, 38)
-draw.text((tx + 6, ty + 200), "Le service, l'information.", font=f_tag, fill=GRAY)
+draw.text((tx + 6, ty + 198), "Le service, l'information.", font=f_tag, fill=GRAY)
+
+
+def draw_bolt(d, x, y, s, fill):
+    """Petit éclair (électricité), boîte ~s de haut, ancré en (x, y) haut-gauche."""
+    pts = [
+        (x + s * 0.55, y),
+        (x + s * 0.15, y + s * 0.58),
+        (x + s * 0.45, y + s * 0.58),
+        (x + s * 0.30, y + s),
+        (x + s * 0.80, y + s * 0.38),
+        (x + s * 0.48, y + s * 0.38),
+    ]
+    d.polygon(pts, fill=fill)
+
+
+def draw_drop(d, cx, cy, r, fill):
+    """Goutte d'eau centrée sur le cercle bas (cx, cy), rayon r."""
+    d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=fill)
+    d.polygon(
+        [(cx - r * 0.92, cy - r * 0.25), (cx, cy - r * 2.4), (cx + r * 0.92, cy - r * 0.25)],
+        fill=fill,
+    )
+    # petit reflet
+    d.ellipse([cx - r * 0.45, cy - r * 0.15, cx - r * 0.05, cy + r * 0.3], fill=(190, 228, 250))
+
+
+# Sous-titre multi-service + pictos électricité / eau.
+f_sub = ImageFont.truetype(FONT_REG, 30)
+sy = ty + 268
+# Picto éclair (ambre) + label.
+draw_bolt(draw, tx + 8, sy, 34, AMBER)
+draw.text((tx + 52, sy - 1), "Électricité", font=f_sub, fill=WHITE)
+ex = tx + 52 + draw.textlength("Électricité", font=f_sub) + 40
+# Séparateur.
+draw.text((ex - 24, sy - 1), "·", font=f_sub, fill=GRAY)
+# Picto goutte (sky) + label.
+draw_drop(draw, ex + 14, sy + 30, 16, SKY)
+draw.text((ex + 40, sy - 1), "Eau", font=f_sub, fill=WHITE)
 
 out = os.path.join(OUT_DIR, "feature_graphic.png")
 img.save(out, "PNG")
