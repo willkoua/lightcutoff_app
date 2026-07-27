@@ -298,17 +298,124 @@ describe("Firestore — confirmations (anonymat)", () => {
     );
   });
 
-  it("l'auteur lit les confirmations, un tiers non concerné non", async () => {
+  it("seul le votant lit sa confirmation — ni l'auteur du report, ni un tiers", async () => {
+    // Depuis 2026-07-06 le doc contient la position EXACTE du confirmeur :
+    // lecture retirée à l'auteur du report (la CF lit via Admin SDK).
     await seed((db) =>
       setDoc(doc(db, "reports/r1/confirmations/bob"), {
         createdAt: serverTimestamp(),
+        position: { lat: 4.05, lng: 9.7 },
+      }),
+    );
+    await assertSucceeds(getDoc(doc(as("bob"), "reports/r1/confirmations/bob")));
+    await assertFails(getDoc(doc(as("alice"), "reports/r1/confirmations/bob")));
+    await assertFails(getDoc(doc(as("carol"), "reports/r1/confirmations/bob")));
+  });
+});
+
+describe("Firestore — denials (démentis « pas de coupure chez moi »)", () => {
+  beforeEach(async () => {
+    await seed((db) =>
+      setDoc(doc(db, "reports/r1"), { userId: "alice", confirmationCount: 0 }),
+    );
+  });
+
+  it("un tiers dépose son démenti (avec position), pas l'auteur du report", async () => {
+    await assertSucceeds(
+      setDoc(doc(as("bob"), "reports/r1/denials/bob"), {
+        createdAt: serverTimestamp(),
+        geohash: "9q8yyk",
+        position: { lat: 4.05, lng: 9.7 },
+      }),
+    );
+    await assertFails(
+      setDoc(doc(as("alice"), "reports/r1/denials/alice"), {
+        createdAt: serverTimestamp(),
+      }),
+    );
+  });
+
+  it("un démenti ne peut PAS incrémenter un compteur du report", async () => {
+    // Pas de branche bumpsCounterByOne pour les denials : signal négatif pur.
+    const db = as("bob");
+    const batch = writeBatch(db);
+    batch.set(doc(db, "reports/r1/denials/bob"), {
+      createdAt: serverTimestamp(),
+    });
+    batch.update(doc(db, "reports/r1"), {
+      confirmationCount: increment(1),
+      updatedAt: serverTimestamp(),
+    });
+    await assertFails(batch.commit());
+  });
+
+  it("seul le déposant lit son démenti (position exacte)", async () => {
+    await seed((db) =>
+      setDoc(doc(db, "reports/r1/denials/bob"), {
+        createdAt: serverTimestamp(),
+        position: { lat: 4.05, lng: 9.7 },
+      }),
+    );
+    await assertSucceeds(getDoc(doc(as("bob"), "reports/r1/denials/bob")));
+    await assertFails(getDoc(doc(as("alice"), "reports/r1/denials/bob")));
+  });
+});
+
+describe("Firestore — verrou changement de pseudo (une seule fois)", () => {
+  it("changement OK avec décrément exact de usernameChangesLeft", async () => {
+    await seed((db) =>
+      setDoc(doc(db, "users/alice"), {
+        username: "alice_1",
+        usernameChangesLeft: 1,
       }),
     );
     await assertSucceeds(
-      getDoc(doc(as("alice"), "reports/r1/confirmations/bob")),
+      updateDoc(doc(as("alice"), "users/alice"), {
+        username: "alicia",
+        usernameChangesLeft: 0,
+        updatedAt: serverTimestamp(),
+      }),
+    );
+  });
+
+  it("changement REFUSÉ sans décrément, ou quand le quota est épuisé", async () => {
+    await seed((db) =>
+      setDoc(doc(db, "users/alice"), {
+        username: "alice_1",
+        usernameChangesLeft: 1,
+      }),
+    );
+    // Sans décrémenter le compteur.
+    await assertFails(
+      updateDoc(doc(as("alice"), "users/alice"), {
+        username: "alicia",
+        updatedAt: serverTimestamp(),
+      }),
+    );
+    // Quota épuisé.
+    await seed((db) =>
+      setDoc(doc(db, "users/bob"), {
+        username: "bob_1",
+        usernameChangesLeft: 0,
+      }),
     );
     await assertFails(
-      getDoc(doc(as("carol"), "reports/r1/confirmations/bob")),
+      updateDoc(doc(as("bob"), "users/bob"), {
+        username: "bobby",
+        usernameChangesLeft: -1,
+        updatedAt: serverTimestamp(),
+      }),
+    );
+  });
+
+  it("compte d'avant 2026-07-25 (champ absent) : 1 changement dû", async () => {
+    await seed((db) => setDoc(doc(db, "users/carol"), { username: "carol_1" }));
+    await assertSucceeds(
+      updateDoc(doc(as("carol"), "users/carol"), {
+        username: "caroline",
+        usernameChangesLeft: 0,
+        updatedAt: serverTimestamp(),
+      }),
     );
   });
 });
