@@ -56,13 +56,13 @@ class DefaultFirebaseOptions {
     projectId: 'njuka-prod',
     storageBucket: 'njuka-prod.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyAY-2eJOgg2MQAbzut_QFqotKz-qrJKXuc',
     appId: '1:574419625568:ios:41256927cb702ca0854505',
     messagingSenderId: '574419625568',
     projectId: 'njuka-prod',
     storageBucket: 'njuka-prod.firebasestorage.app',
+    iosClientId: '574419625568-7p64ivqn6i7a2cg1u2p4h9d15mqb620o.apps.googleusercontent.com',
     iosBundleId: 'com.njuka.app',
   );
 }
