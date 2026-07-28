@@ -258,3 +258,33 @@ Puis **http://127.0.0.1:4000** → Firestore → collection `official_outages` :
 > ⚠️ Environnements : Apple = iOS uniquement (iPhone réel, backlog validation).
 > Google en **prod** ne marchera qu'après le « jour J » OAuth (clients encore
 > tenus par lightcutoff-dev) → tester Google sur **staging** d'ici là.
+
+## Pays : détection auto en prod + sélecteur QA (2026-07-28)
+
+> Changement : le **sélecteur de pays** est devenu un outil **dev/staging
+> uniquement**. En prod le pays est TOUJOURS détecté : GPS d'abord, **repli
+> IP** (`api.country.is`) si la localisation est refusée. Quand un pays est
+> sélectionné (QA), le signalement est **rattaché au pays sélectionné** et le
+> formulaire l'annonce si ce pays ≠ pays détecté.
+
+### Build prod (détection pure)
+1. [ ] Build `APP_ENV=prod` : Paramètres → **aucune tuile « Pays »** (la
+       section Région n'apparaît plus ; langue toujours là).
+2. [ ] GPS autorisé → la liste montre le pays où tu es ; un signalement créé
+       apparaît **immédiatement** dans la liste.
+3. [ ] GPS refusé (nouvelle install, refuser la permission) → le pays vient de
+       l'**IP** : la liste montre quand même ton pays. ⚠️ Couper le VPN
+       (l'IP suivrait le VPN — le GPS, lui, prime toujours quand il existe).
+4. [ ] Résidu d'ancien build : même si un pays avait été choisi avant la mise
+       à jour, la valeur persistée est **ignorée** en prod.
+
+### Build staging (outil QA)
+5. [ ] Paramètres → Région : sélectionner un pays ≠ ta position (ex. Cameroun
+       à Montréal).
+6. [ ] Ouvrir le formulaire de signalement → **bandeau ambre** : « Pays
+       sélectionné : Cameroun. Ta position détectée est ailleurs (Canada) —
+       ce signalement sera rattaché à Cameroun. »
+7. [ ] Créer le signalement → il **apparaît dans la liste** (rattaché au
+       Cameroun), sa ville reste la vraie (ex. Montréal).
+8. [ ] Repasser le pays en « Automatique » → plus de bandeau ; le signalement
+       suivant est rattaché au pays détecté.

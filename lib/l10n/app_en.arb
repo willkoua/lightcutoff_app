@@ -239,6 +239,8 @@
   "reportFormDescribePositionHint": "Neighborhood, city or address",
   "reportFormDescribePositionConfirm": "Locate",
   "reportFormAddressNotFound": "Place not found. Be more specific (add the city or country).",
+  "reportFormCountryOverrideInfo": "Selected country: {selected}. Your detected position is elsewhere ({detected}) — this report will be attached to {selected}.",
+  "@reportFormCountryOverrideInfo": { "placeholders": { "selected": {"type": "String"}, "detected": {"type": "String"} } },
   "reportFormObservedAtLabel": "Date and time observed (optional)",
   "reportFormObservedDate": "Date",
   "reportFormObservedTime": "Time",

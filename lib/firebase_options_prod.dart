@@ -62,7 +62,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '574419625568',
     projectId: 'njuka-prod',
     storageBucket: 'njuka-prod.firebasestorage.app',
-    iosClientId: '574419625568-7p64ivqn6i7a2cg1u2p4h9d15mqb620o.apps.googleusercontent.com',
+    iosClientId:
+        '574419625568-7p64ivqn6i7a2cg1u2p4h9d15mqb620o.apps.googleusercontent.com',
     iosBundleId: 'com.njuka.app',
   );
 }

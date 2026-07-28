@@ -144,6 +144,39 @@ void main() {
     },
   );
 
+  test(
+    'createFromDraft avec countryOverrideIso rattache le report au pays choisi',
+    () async {
+      when(() => service.createReport(any())).thenAnswer((_) async {});
+      final provider = build();
+      await provider.createFromDraft(
+        const ReportDraft(
+          position: GeoPosition(lat: 45.5, lng: -73.6),
+          area: GeoArea(countryCode: 'CA', country: 'Canada', city: 'Montréal'),
+        ),
+        countryOverrideIso: 'CM',
+      );
+      final captured =
+          verify(() => service.createReport(captureAny())).captured;
+      final report = captured.single as Report;
+      expect(report.location.countryCode, 'CM');
+      expect(report.location.city, 'Montréal'); // le reste de la zone est gardé
+    },
+  );
+
+  test('createFromDraft sans override garde le pays géocodé', () async {
+    when(() => service.createReport(any())).thenAnswer((_) async {});
+    final provider = build();
+    await provider.createFromDraft(
+      const ReportDraft(
+        position: GeoPosition(lat: 45.5, lng: -73.6),
+        area: GeoArea(countryCode: 'CA', country: 'Canada'),
+      ),
+    );
+    final captured = verify(() => service.createReport(captureAny())).captured;
+    expect((captured.single as Report).location.countryCode, 'CA');
+  });
+
   test('createFromDraft propage reportedAt (date de constatation)', () async {
     when(() => service.createReport(any())).thenAnswer((_) async {});
     final provider = build();

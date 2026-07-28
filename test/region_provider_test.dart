@@ -105,6 +105,54 @@ void main() {
     });
   });
 
+  group('RegionProvider — détection par IP (repli du GPS)', () {
+    test('GPS refusé → le pays vient de l\'IP', () async {
+      final region = RegionProvider(
+        location: location, // checkAccess → denied (setUp)
+        ipCountry: () async => 'CA',
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      expect(region.detectedCountry, 'CA');
+      expect(region.activeCountry, 'CA');
+    });
+
+    test(
+      'GPS accordé → l\'IP n\'est PAS consultée (VPN ne fausse rien)',
+      () async {
+        when(
+          () => location.checkAccess(),
+        ).thenAnswer((_) async => LocationAccess.granted);
+        when(() => location.getCurrentLocation()).thenAnswer(
+          (_) async => const LocationResult(
+            position: GeoPosition(lat: 3.87, lng: 11.52),
+            area: GeoArea(countryCode: 'CM', country: 'Cameroun'),
+          ),
+        );
+        var ipCalled = false;
+        final region = RegionProvider(
+          location: location,
+          ipCountry: () async {
+            ipCalled = true;
+            return 'FR';
+          },
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        expect(region.detectedCountry, 'CM');
+        expect(ipCalled, isFalse);
+      },
+    );
+
+    test('IP en échec (null) → repli locale/CM, pas de crash', () async {
+      final region = RegionProvider(
+        location: location,
+        ipCountry: () async => null,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      expect(region.detectedCountry, isNull);
+      expect(region.activeCountry, isNotEmpty); // locale ou défaut CM
+    });
+  });
+
   group('RegionProvider — multi-service (pivot étape 3)', () {
     test(
       'activeUtility(elec) = Eneo, activeUtility(water) = CAMWATER au CM',

@@ -39,11 +39,6 @@ class SettingsScreen extends StatelessWidget {
             _SectionHeader(l.settingsSectionNotifications),
             const _NotificationsToggle(),
           ],
-          // Pays : accessible à TOUS les utilisateurs (pas seulement dev).
-          // Permet de corriger une détection auto erronée → débloque les
-          // coupures programmées du bon pays.
-          _SectionHeader(l.settingsSectionRegion),
-          const _CountryPickerTile(),
           // Langue : préférence utilisateur disponible dans TOUS les
           // environnements (y compris prod) — ce n'est plus un outil dev.
           _SectionHeader(l.settingsSectionLanguage),
@@ -53,10 +48,14 @@ class SettingsScreen extends StatelessWidget {
           const _ReplayOnboardingTile(),
           _SectionHeader(l.settingsSectionLegal),
           const _PrivacyPolicyTile(),
-          // Outils dev/QA (pays/compagnie de test) : visibles en dev ET en
-          // staging — même en build release. Cachés uniquement en prod.
-          // (La langue est désormais hors de ce bloc → dispo partout.)
+          // Outils dev/QA (pays + pays/compagnie de test) : visibles en dev
+          // ET en staging — même en build release. Cachés en prod.
+          // Le sélecteur de PAYS a rejoint ce bloc le 2026-07-28 : en prod le
+          // pays est détecté automatiquement (GPS puis IP), plus de choix
+          // manuel (il cachait leurs propres signalements aux utilisateurs).
           if (AppConfig.showDevTools) ...[
+            _SectionHeader(l.settingsSectionRegion),
+            const _CountryPickerTile(),
             _SectionHeader(l.settingsSectionProviderDebug),
             const _ProviderPickerTile(service: ServiceType.electricity),
             const _ProviderPickerTile(service: ServiceType.water),
@@ -363,10 +362,12 @@ class _ProviderChoice {
   static _ProviderChoice pick(Utility u) => _ProviderChoice._(u, false);
 }
 
-/// Sélecteur de **pays** accessible à tous les utilisateurs (≠ override dev).
-/// « Automatique » = détection GPS / profil / locale. Choisir un pays explicite
-/// le force (prioritaire sur la détection) → utile quand l'auto se trompe, et
-/// débloque les coupures programmées du bon pays. Persiste via
+/// Sélecteur de **pays** — outil dev/staging UNIQUEMENT depuis le 2026-07-28
+/// (en prod le pays est détecté automatiquement : GPS puis IP).
+/// « Automatique » = détection GPS/IP / profil / locale. Choisir un pays
+/// explicite le force (prioritaire sur la détection) → utile pour la QA
+/// (consulter/seeder un autre pays) ; le formulaire de signalement affiche
+/// alors un bandeau si le pays choisi ≠ pays détecté. Persiste via
 /// [RegionProvider.setUserCountry].
 class _CountryPickerTile extends StatelessWidget {
   const _CountryPickerTile();

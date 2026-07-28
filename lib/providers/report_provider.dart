@@ -7,6 +7,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/app_constants.dart';
+import '../config/utilities.dart';
 import '../models/app_error.dart';
 import '../models/confirmation.dart';
 import '../models/enums.dart';
@@ -794,12 +795,29 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
     String? authorUsername,
     ServiceType serviceType = ServiceType.electricity,
     DateTime? reportedAt,
+    String? countryOverrideIso,
   }) async {
     final uid = _uid;
     if (uid == null) return AppError.notLoggedIn;
     _submitting = true;
     notifyListeners();
     try {
+      // Pays choisi dans les Paramètres (dev/staging uniquement — null en
+      // prod) : le signalement est rattaché au pays SÉLECTIONNÉ plutôt qu'au
+      // pays géocodé, pour qu'un signalement de QA reste visible dans la
+      // liste consultée. Le formulaire affiche un bandeau d'information
+      // quand ce pays diffère du pays détecté.
+      var area = draft.area;
+      final iso = countryOverrideIso?.toUpperCase();
+      if (iso != null && iso.isNotEmpty && iso != area.countryCode) {
+        area = GeoArea(
+          country: countryLabelForIso(iso) ?? iso,
+          countryCode: iso,
+          region: area.region,
+          city: area.city,
+          neighborhood: area.neighborhood,
+        );
+      }
       final report = Report(
         id: '',
         userId: uid,
@@ -808,7 +826,7 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
         type: OutageType.unplanned,
         serviceType: serviceType,
         position: draft.position,
-        location: draft.area,
+        location: area,
         description:
             (description?.trim().isEmpty ?? true) ? null : description!.trim(),
         mediaUrl: mediaUrl,

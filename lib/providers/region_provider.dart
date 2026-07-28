@@ -1,28 +1,36 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../config/app_config.dart';
 import '../config/utilities.dart';
 import '../models/enums.dart';
 import '../repositories/location_repository.dart';
+import '../services/ip_country_service.dart';
 import '../services/location_service.dart';
 
 /// Détermine le **fournisseur de service public actif** (pays + compagnie) pour
 /// aller chercher les coupures planifiées et taguer les signalements.
 ///
 /// Priorité de résolution du pays :
-///   1. **override dev** (persisté, caché en release)
-///   2. **GPS** (où se trouve l'utilisateur)
-///   3. **`homeLocation.country`** du profil (renseigné via le proxy AuthProvider)
-///   4. **pays de la locale du téléphone** (sans permission)
-///   5. défaut **`CM`**
+///   1. **override dev** (persisté, dev/staging uniquement)
+///   2. **choix utilisateur** (sélecteur Paramètres, dev/staging uniquement —
+///      en prod le pays est TOUJOURS détecté automatiquement)
+///   3. **GPS** (où se trouve l'utilisateur), avec **repli IP**
+///      (`api.country.is`) si la localisation est refusée/indisponible
+///   4. **`homeLocation.country`** du profil (renseigné via le proxy AuthProvider)
+///   5. **pays de la locale du téléphone** (sans permission)
+///   6. défaut **`CM`**
 ///
 /// Multi-service (introduit avec le pivot 2026-06-24) : pour un même pays, on
 /// expose un fournisseur **par service** ([activeUtility]). L'override dev,
 /// quand posé, est lié à un service précis — il ne « remplace » donc que la
 /// résolution de ce service-là.
 class RegionProvider extends ChangeNotifier {
-  RegionProvider({LocationRepository? location})
-    : _location = location ?? LocationService() {
+  RegionProvider({
+    LocationRepository? location,
+    Future<String?> Function()? ipCountry,
+  }) : _location = location ?? LocationService(),
+       _ipCountry = ipCountry ?? countryFromIp {
     _loadOverride();
     _loadUserCountry();
     _loadWorldwide();
@@ -39,10 +47,14 @@ class RegionProvider extends ChangeNotifier {
   static const _worldwideKey = 'admin_worldwide';
   static const _serviceFilterKey = 'service_filter';
   // Pays choisi **explicitement** par l'utilisateur (sélecteur Paramètres,
-  // disponible en prod). Prioritaire sur la détection auto — voir `activeCountry`.
+  // dev/staging UNIQUEMENT depuis le 2026-07-28 — en prod le pays est détecté
+  // automatiquement, GPS puis IP). Prioritaire sur la détection auto quand
+  // il est actif — voir `activeCountry`.
   static const _userCountryKey = 'user_country_iso';
 
   final LocationRepository _location;
+  final Future<String?> Function() _ipCountry;
+  bool _ipLookupDone = false; // repli IP tenté (une fois par session)
 
   /// Override dev par service. `null` = résolution standard (GPS / profil /
   /// locale / défaut CM). Le picker des Paramètres expose UN champ par
@@ -143,6 +155,11 @@ class RegionProvider extends ChangeNotifier {
   String? get userCountry => _userCountryIso;
 
   Future<void> _loadUserCountry() async {
+    // En prod, le choix manuel n'existe plus : on n'applique pas non plus une
+    // éventuelle valeur persistée (résidu d'un ancien build / de staging) —
+    // c'est elle qui cachait ses propres signalements à l'utilisateur
+    // (incident 2026-07-28).
+    if (!AppConfig.showDevTools) return;
     final prefs = await SharedPreferences.getInstance();
     final iso = prefs.getString(_userCountryKey);
     if (iso != null && iso.isNotEmpty && iso != _userCountryIso) {
@@ -211,30 +228,48 @@ class RegionProvider extends ChangeNotifier {
   String? get _localeCountry =>
       PlatformDispatcher.instance.locale.countryCode?.toUpperCase();
 
-  /// Détecte le pays via la **position GPS** (où se trouve l'utilisateur), si la
-  /// localisation est déjà autorisée (best-effort, sans déclencher de demande).
+  /// Détecte le pays où se trouve l'utilisateur : **GPS d'abord** (si la
+  /// localisation est déjà autorisée — best-effort, sans déclencher de
+  /// demande), sinon **repli IP** (`api.country.is`, une tentative par
+  /// session). Le GPS prime toujours : l'IP peut être faussée par un VPN.
   Future<void> _detectCountry() async {
     try {
-      if (await _location.checkAccess() != LocationAccess.granted) return;
-      final loc = await _location.getCurrentLocation();
-      final iso = loc.area.countryCode.toUpperCase();
-      if (iso.isNotEmpty && iso != _detectedCountryIso) {
-        _detectedCountryIso = iso;
-        notifyListeners();
+      if (await _location.checkAccess() == LocationAccess.granted) {
+        final loc = await _location.getCurrentLocation();
+        final iso = loc.area.countryCode.toUpperCase();
+        if (iso.isNotEmpty && iso != _detectedCountryIso) {
+          _detectedCountryIso = iso;
+          notifyListeners();
+        }
+        if (_detectedCountryIso != null) return;
       }
     } catch (_) {
-      // best-effort : on garde la résolution par profil / locale.
+      // best-effort : on tente le repli IP ci-dessous.
+    }
+    if (_detectedCountryIso != null || _ipLookupDone) return;
+    _ipLookupDone = true;
+    final iso = await _ipCountry();
+    if (iso != null && iso != _detectedCountryIso) {
+      _detectedCountryIso = iso;
+      notifyListeners();
     }
   }
 
+  /// Pays détecté automatiquement (GPS, sinon IP), ou `null` si aucune
+  /// détection n'a abouti. Sert au formulaire de signalement pour avertir
+  /// d'un décalage avec le pays sélectionné (dev/staging).
+  String? get detectedCountry => _detectedCountryIso;
+
   /// Pays actif (ISO), selon la priorité :
-  /// override dev (élec OU eau) → **choix utilisateur** → GPS → pays du profil →
-  /// locale → défaut CM. Le choix explicite de l'utilisateur prime sur la
-  /// détection automatique (mais reste sous l'override dev de QA).
+  /// override dev (élec OU eau) → **choix utilisateur** (dev/staging
+  /// uniquement) → détection auto (GPS puis IP) → pays du profil → locale →
+  /// défaut CM. En prod, seuls la détection et les replis s'appliquent.
   String get activeCountry {
     if (_overrideElec != null) return _overrideElec!.country;
     if (_overrideWater != null) return _overrideWater!.country;
-    if (_userCountryIso != null) return _userCountryIso!;
+    if (AppConfig.showDevTools && _userCountryIso != null) {
+      return _userCountryIso!;
+    }
     if (_detectedCountryIso != null) return _detectedCountryIso!;
     if (_homeCountryIso != null) return _homeCountryIso!;
     final loc = _localeCountry;

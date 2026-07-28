@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../config/app_constants.dart';
+import '../config/utilities.dart';
 import '../models/app_error.dart';
 import '../models/enums.dart';
 import '../models/report.dart';
@@ -190,6 +191,47 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
     }
   }
 
+  /// Bandeau affiché quand un pays est sélectionné dans les Paramètres
+  /// (dev/staging uniquement) et qu'il diffère du pays détecté : informe que
+  /// le signalement sera rattaché au pays sélectionné, pas au pays réel.
+  List<Widget> _countryOverrideBanner(
+    BuildContext context,
+    AppLocalizations l,
+  ) {
+    final region = context.watch<RegionProvider>();
+    final selected = region.userCountry;
+    final detected = region.detectedCountry;
+    if (selected == null || detected == null || selected == detected) {
+      return const [];
+    }
+    final selectedLabel = countryLabelForIso(selected) ?? selected;
+    final detectedLabel = countryLabelForIso(detected) ?? detected;
+    return [
+      Container(
+        padding: const EdgeInsets.all(12),
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.public, size: 20, color: AppColors.primary),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                l.reportFormCountryOverrideInfo(selectedLabel, detectedLabel),
+                style: const TextStyle(fontSize: 13),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ];
+  }
+
   Future<void> _submit() async {
     final provider = context.read<ReportProvider>();
     final access = await provider.checkLocationAccess();
@@ -371,6 +413,10 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
       authorUsername: authorUsername,
       serviceType: _serviceType ?? ServiceType.electricity,
       reportedAt: _observedAt(),
+      // Pays sélectionné (dev/staging, null en prod) : le signalement est
+      // rattaché à ce pays — cohérent avec la liste consultée (bandeau
+      // d'information affiché dans le formulaire en cas de décalage).
+      countryOverrideIso: context.read<RegionProvider>().userCountry,
     );
     if (!mounted) return;
     _finish(
@@ -458,6 +504,10 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
                 ),
               ),
               const SizedBox(height: 16),
+              // Bandeau d'information (dev/staging) : un pays est sélectionné
+              // dans les Paramètres et il diffère du pays détecté → le
+              // signalement sera rattaché au pays SÉLECTIONNÉ (2026-07-28).
+              ..._countryOverrideBanner(context, l),
               // Date/heure de constatation (facultatif) — placée en TÊTE du
               // formulaire ; défaut « maintenant » si non renseignée.
               Text(

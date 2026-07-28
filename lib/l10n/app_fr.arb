@@ -251,6 +251,8 @@
   "reportFormDescribePositionHint": "Quartier, ville ou adresse",
   "reportFormDescribePositionConfirm": "Localiser",
   "reportFormAddressNotFound": "Lieu introuvable. Précise davantage (ajoute la ville ou le pays).",
+  "reportFormCountryOverrideInfo": "Pays sélectionné : {selected}. Ta position détectée est ailleurs ({detected}) — ce signalement sera rattaché à {selected}.",
+  "@reportFormCountryOverrideInfo": { "placeholders": { "selected": {"type": "String"}, "detected": {"type": "String"} } },
   "reportFormObservedAtLabel": "Date et heure de constatation (facultatif)",
   "reportFormObservedDate": "Date",
   "reportFormObservedTime": "Heure",
