@@ -39,6 +39,14 @@ class SettingsScreen extends StatelessWidget {
             _SectionHeader(l.settingsSectionNotifications),
             const _NotificationsToggle(),
           ],
+          // Pays détecté (lecture seule, prod) : le pays est résolu
+          // automatiquement (GPS puis IP) — on l'affiche par transparence,
+          // sans le rendre modifiable. En dev/staging c'est le sélecteur
+          // QA (plus bas) qui joue ce rôle.
+          if (!AppConfig.showDevTools) ...[
+            _SectionHeader(l.settingsSectionRegion),
+            const _DetectedCountryTile(),
+          ],
           // Langue : préférence utilisateur disponible dans TOUS les
           // environnements (y compris prod) — ce n'est plus un outil dev.
           _SectionHeader(l.settingsSectionLanguage),
@@ -360,6 +368,29 @@ class _ProviderChoice {
 
   static const _ProviderChoice auto = _ProviderChoice._(null, true);
   static _ProviderChoice pick(Utility u) => _ProviderChoice._(u, false);
+}
+
+/// Tuile **lecture seule** (prod) : affiche le pays actif, résolu
+/// automatiquement (GPS → IP → profil → locale → CM). Aucune action au tap —
+/// la transparence sans réintroduire le choix manuel.
+class _DetectedCountryTile extends StatelessWidget {
+  const _DetectedCountryTile();
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final region = context.watch<RegionProvider>();
+    final iso = region.detectedCountry ?? region.activeCountry;
+    final label = countryLabelForIso(iso) ?? iso;
+    return ListTile(
+      leading: const Icon(Icons.public, color: AppColors.gray),
+      title: Text(l.settingsCountryTile),
+      subtitle: Text(
+        '$label · ${l.settingsCountryDetected}',
+        style: const TextStyle(color: AppColors.gray, fontSize: 13),
+      ),
+    );
+  }
 }
 
 /// Sélecteur de **pays** — outil dev/staging UNIQUEMENT depuis le 2026-07-28

@@ -506,6 +506,7 @@
   "providerAuto": "Auto (détecté)",
   "settingsSectionRegion": "Région",
   "settingsCountryTile": "Pays",
+  "settingsCountryDetected": "détecté automatiquement",
   "countryPickerTitle": "Choisir le pays",
   "countryAuto": "Automatique",
   "plannedNoProviderBody": "Pas de coupures programmées pour {country}. Si ce n'est pas ton pays, change-le dans les réglages.",

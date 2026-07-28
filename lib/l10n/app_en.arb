@@ -462,6 +462,7 @@
   "providerAuto": "Auto (detected)",
   "settingsSectionRegion": "Region",
   "settingsCountryTile": "Country",
+  "settingsCountryDetected": "detected automatically",
   "countryPickerTitle": "Choose country",
   "countryAuto": "Automatic",
   "plannedNoProviderBody": "No scheduled outages for {country}. If that's not your country, change it in settings.",
