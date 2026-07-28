@@ -333,42 +333,31 @@ Types de tests :
 
 ---
 
-## CI/CD
+## Branches & CI/CD
 
-Pipeline d'intégration continue avec **GitHub Actions** : vérifie le formatage, l'analyse statique, les tests et le build à chaque push / PR.
+### Organisation des branches (2026-07-28)
 
-Le workflow est déjà en place dans [`.github/workflows/ci.yml`](.github/workflows/ci.yml) :
+Les **environnements sont des configurations de build** (`APP_ENV` + `tool/use_env.sh`), pas des branches. Le modèle est trunk-based :
 
-```yaml
-name: CI
+| Branche | Rôle |
+|---------|------|
+| **`dev`** | Le **tronc** — travail quotidien, CI verte, toujours livrable. C'est ici qu'on committe. |
+| **`master`** | **Pointeur vers ce qui est livré en prod** (branche par défaut GitHub). Jamais de commit direct : elle est déplacée à chaque rollout (`git branch -f master v1.2.0+N && git push -f origin master`). |
+| `feat/…` | Éphémères (chantier risqué/multi-jours), mergées vite dans `dev` puis supprimées (archivées en tag `archive/<nom>` si abandonnées). |
+| `hotfix/…` | Créée **au besoin** depuis `master` si la prod doit être corrigée alors que `dev` a avancé ; cherry-pick vers `dev`, puis supprimée. |
 
-on:
-  push:
-    branches: [main]
-  pull_request:
+Chaque build livré (test fermé staging ou prod) est tagué `v1.2.0+N`. `git log master..dev` = ce qui n'est pas encore en prod. ⚠️ Un nouveau clone démarre sur `master` (état prod) : `git switch dev` pour travailler.
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+### CI (GitHub Actions)
 
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.44.7'
-          channel: stable
-          cache: true
+Le workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) tourne à chaque push sur `dev` (et `master`, par sécurité quand le pointeur avance) et sur chaque PR. **4 jobs** :
 
-      - run: flutter pub get
-      - run: dart format --output=none --set-exit-if-changed .
-      - run: flutter analyze
-      - run: flutter test --coverage
-
-      # Build APK (debug) pour valider la compilation Android
-      - run: flutter build apk --debug
-```
-
-> Le build iOS nécessite un runner macOS (`runs-on: macos-latest`) avec `pod install` — à ajouter dans un job séparé si besoin.
+| Job | Contenu |
+|-----|---------|
+| Flutter | `dart format --set-exit-if-changed` · `flutter analyze` · `flutter test --coverage` · build APK debug (Flutter épinglé `3.44.7`) |
+| Règles Firestore/Storage | émulateurs éphémères (`firebase emulators:exec`, firebase-tools **15** + **Java 21**) + suite `rules_tests/` |
+| Cloud Functions | `npm test` (logique pure, Node 22) |
+| iOS (sans signature) | `flutter build ios --no-codesign` — **déclenchement manuel uniquement** (minutes macOS coûteuses) |
 
 ---
 
