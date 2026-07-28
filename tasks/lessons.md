@@ -2,6 +2,17 @@
 
 Format : `[date] | ce qui a mal tourné | règle pour l'éviter`
 
+- **2026-07-28 | Upload iOS en ligne de commande : 3 pièges qui se déguisent en échec** :
+  ① `pod install` meurt en `Encoding::CompatibilityError` (« Unicode Normalization not
+  appropriate for ASCII-8BIT ») dans un shell **sans locale UTF-8** → `export
+  LANG=en_US.UTF-8` d'abord (les shells non interactifs/scripts n'héritent pas du LANG
+  du terminal). ② `flutter build ipa` avec un ExportOptions `destination: upload`
+  **uploade PUIS échoue** sur « build/ios/ipa introuvable » — l'erreur est cosmétique,
+  l'upload est fait ; vérifier sur ASC avant de re-tenter. ③ Un « Redundant Binary
+  Upload » en re-tentant = **preuve de succès** du premier envoi, pas un échec. Les
+  warnings dSYM grpc/grpcpp/openssl_grpc sont connus et bénins (binaires précompilés
+  Firestore sans dSYM). Options d'export pérennisées : `ios/ExportOptions-appstore.plist`.
+
 - **2026-07-27 | CI rouge en continu après la montée de chaîne (3 causes distinctes
   empilées)** : ① le formateur Dart 3.12 (Flutter 3.44) a un nouveau style → 131
   fichiers « non formatés » pour `--set-exit-if-changed` ; ② `firestore.rules` avait

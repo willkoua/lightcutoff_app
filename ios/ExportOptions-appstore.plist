@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<!-- Options d'export App Store Connect (chaîne établie le 2026-07-23) :
+     signature MANUELLE (profil « NJUKA AppStore »), archive déjà signée,
+     destination upload = envoi direct vers ASC via la session Xcode.
+     Usage :
+       xcodebuild -exportArchive \
+         -archivePath build/ios/archive/Runner.xcarchive \
+         -exportOptionsPlist ios/ExportOptions-appstore.plist \
+         -exportPath build/ios/upload -allowProvisioningUpdates -->
+<dict>
+  <key>method</key>
+  <string>app-store-connect</string>
+  <key>destination</key>
+  <string>upload</string>
+  <key>signingStyle</key>
+  <string>manual</string>
+  <key>teamID</key>
+  <string>M7ZPLSL3JN</string>
+  <key>provisioningProfiles</key>
+  <dict>
+    <key>com.njuka.app</key>
+    <string>NJUKA AppStore</string>
+  </dict>
+  <key>uploadSymbols</key>
+  <true/>
+</dict>
+</plist>
