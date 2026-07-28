@@ -653,10 +653,11 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
                     (set) => setState(() => _serviceType = set.first),
               ),
               const SizedBox(height: 16),
-              // Position du signalement : la position détectée est affichée
-              // (plus un texte générique), et « Décrire ma position » est
-              // TOUJOURS disponible (2026-07-28) — plus seulement en repli
-              // quand le GPS manque.
+              // Position du signalement : la position détectée est affichée.
+              // « Décrire ma position » n'apparaît QUE si aucune position n'a
+              // pu être obtenue (permission refusée, service coupé, échec) —
+              // décision 2026-07-28 : quand le GPS marche, on signale la
+              // réalité où l'on se trouve (pas de signalement à distance).
               Row(
                 children: [
                   Icon(
@@ -688,7 +689,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
                             _describedQuery = null;
                           }),
                     )
-                  else
+                  else if (!_locating && _current == null)
                     TextButton(
                       onPressed: _pickDescribedPosition,
                       child: Text(

@@ -67,6 +67,7 @@ par **confirmations** (voir sous-collection), pas par création de nouveaux docs
 | `description` | string \| null | ✅ | texte libre |
 | `mediaUrl` | string \| null | ✅ | média joint (GIF/JPEG/PNG) sur Firebase Storage ; images fixes redimensionnées à ≤ 1280 px |
 | `geohash` | string \| null | ✅ | geohash de `position` (index de proximité ; `AppConstants.geohashPrecision`) |
+| `positionSource` | string enum | ✅ | `gps` (position vécue, défaut — champ absent = `gps`) \| `described` (géocodée depuis un texte, précision quartier/ville — possible uniquement quand le GPS est indisponible). Provenance = base de pondération de fiabilité future + donnée pour trancher le modèle de localisation WhatsApp. |
 | `confirmationCount` | int | ✅ | nb de confirmations (dénormalisé) |
 | `restorationCount` | int | ✅ | nb de déclarations « courant revenu » (dénormalisé) ; quand le seuil est franchi, la Cloud Function `onRestorationCreated` passe le `status` à `resolved`. |
 | `notifiedUserIds` | string[] | ✅ | dédup des notifications de proximité : un utilisateur est notifié **au plus une fois par report** (posé par la CF `onConfirmationCreated` via Admin SDK) |

@@ -24,6 +24,11 @@ class Report {
 
   /// Geohash de [position] — index de proximité (filtres de zone, notifications).
   final String? geohash;
+
+  /// Provenance de [position] : `gps` (position vécue) ou `described`
+  /// (géocodée depuis un texte — précision quartier/ville). Reports
+  /// antérieurs sans le champ → `gps` (cf. [PositionSource.fromName]).
+  final PositionSource positionSource;
   final int confirmationCount;
 
   /// Nombre de déclarations « le courant est revenu chez moi ». Quand ce
@@ -54,6 +59,7 @@ class Report {
     this.mediaUrl,
     this.authorUsername,
     this.geohash,
+    this.positionSource = PositionSource.gps,
     this.confirmationCount = 0,
     this.restorationCount = 0,
     this.reportedAt,
@@ -79,6 +85,7 @@ class Report {
       mediaUrl: map['mediaUrl'] as String?,
       authorUsername: map['authorUsername'] as String?,
       geohash: map['geohash'] as String?,
+      positionSource: PositionSource.fromName(map['positionSource'] as String?),
       confirmationCount: (map['confirmationCount'] as num?)?.toInt() ?? 0,
       restorationCount: (map['restorationCount'] as num?)?.toInt() ?? 0,
       reportedAt: (map['reportedAt'] as Timestamp?)?.toDate(),
@@ -101,6 +108,7 @@ class Report {
     'mediaUrl': mediaUrl,
     'authorUsername': authorUsername,
     'geohash': geohash,
+    'positionSource': positionSource.name,
     'confirmationCount': 0,
     'restorationCount': 0,
     'reportedAt':

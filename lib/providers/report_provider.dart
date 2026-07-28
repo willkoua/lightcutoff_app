@@ -30,7 +30,17 @@ import '../utils/geohash.dart';
 class ReportDraft {
   final GeoPosition position;
   final GeoArea area;
-  const ReportDraft({required this.position, required this.area});
+
+  /// Provenance de la position (GPS vécue vs décrite/géocodée) — posée par
+  /// [ReportProvider.prepareReport] / [prepareReportFromDescription] et
+  /// recopiée sur le report à la création.
+  final PositionSource source;
+
+  const ReportDraft({
+    required this.position,
+    required this.area,
+    this.source = PositionSource.gps,
+  });
 }
 
 /// Résultat de la préparation d'un signalement.
@@ -772,7 +782,11 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
     try {
       final loc = await _location.locationFromDescription(query);
-      final draft = ReportDraft(position: loc.position, area: loc.area);
+      final draft = ReportDraft(
+        position: loc.position,
+        area: loc.area,
+        source: PositionSource.described,
+      );
       return PrepareOutcome(
         draft: draft,
         nearby: findNearbyOngoing(loc.position, serviceType: serviceType),
@@ -849,6 +863,7 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
         serviceType: serviceType,
         position: draft.position,
         location: area,
+        positionSource: draft.source,
         description:
             (description?.trim().isEmpty ?? true) ? null : description!.trim(),
         mediaUrl: mediaUrl,

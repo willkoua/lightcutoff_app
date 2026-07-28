@@ -161,6 +161,47 @@ void main() {
     expect(loc?.area.city, 'Yaoundé');
   });
 
+  test(
+    'positionSource : draft décrit → described, recopié sur le report créé',
+    () async {
+      when(() => location.locationFromDescription('Douala')).thenAnswer(
+        (_) async => const LocationResult(
+          position: GeoPosition(lat: 4.05, lng: 9.7),
+          area: GeoArea(city: 'Douala'),
+        ),
+      );
+      when(() => service.createReport(any())).thenAnswer((_) async {});
+      final provider = build();
+      final outcome = await provider.prepareReportFromDescription('Douala');
+      expect(outcome.draft!.source, PositionSource.described);
+
+      await provider.createFromDraft(outcome.draft!);
+      final captured =
+          verify(() => service.createReport(captureAny())).captured;
+      expect(
+        (captured.single as Report).positionSource,
+        PositionSource.described,
+      );
+    },
+  );
+
+  test(
+    'positionSource : draft GPS (défaut) → gps sur le report créé',
+    () async {
+      when(() => service.createReport(any())).thenAnswer((_) async {});
+      final provider = build();
+      await provider.createFromDraft(
+        const ReportDraft(
+          position: GeoPosition(lat: 1, lng: 2),
+          area: GeoArea(),
+        ),
+      );
+      final captured =
+          verify(() => service.createReport(captureAny())).captured;
+      expect((captured.single as Report).positionSource, PositionSource.gps);
+    },
+  );
+
   test('locateDescription : géocode, null si introuvable', () async {
     when(() => location.locationFromDescription('Douala')).thenAnswer(
       (_) async => const LocationResult(

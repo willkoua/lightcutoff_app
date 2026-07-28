@@ -60,6 +60,22 @@ enum ServiceType {
   );
 }
 
+/// Provenance de la position d'un signalement : vécue (GPS) ou **décrite**
+/// (géocodée depuis un texte — précision quartier/ville au mieux). Sert à
+/// mesurer/pondérer la fiabilité (2026-07-28) ; nourrira aussi la décision du
+/// modèle de localisation du bot WhatsApp.
+enum PositionSource {
+  gps,
+  described;
+
+  static PositionSource fromName(String? value) =>
+      PositionSource.values.firstWhere(
+        (e) => e.name == value,
+        // Champ absent (legacy) → gps (seule source avant 2026-06-29).
+        orElse: () => PositionSource.gps,
+      );
+}
+
 extension UserRoleLabel on UserRole {
   String get label => switch (this) {
     UserRole.citizen => 'Citoyen',
