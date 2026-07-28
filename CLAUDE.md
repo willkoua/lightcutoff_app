@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Branching model (2026-07-28)
 
-Trunk-based, solo-friendly. Environments are BUILD configs (`APP_ENV` + `tool/use_env.sh`), never branches.
+Trunk-based, solo-friendly. Environments are BUILD configs (`APP_ENV` + `tool/use_env.sh`), never code-diverging branches.
 
-- **`master`** — the trunk, always green (CI), always releasable. Day-to-day work commits here.
-- **`prod`** — a POINTER to what is live in production, never committed to directly. Move it when a prod release ships: `git branch -f prod v1.2.0+N && git push -f origin prod`. `git log prod..master` = what staging has that prod doesn't.
+- **`dev`** — the trunk, always green (CI), always releasable. Day-to-day work commits here. This is the default working branch.
+- **`master`** — a POINTER to what is live in production, never committed to directly. Move it when a prod release ships: `git branch -f master v1.2.0+N && git push -f origin master`. `git log master..dev` = what dev/staging has that prod doesn't.
 - **Tags `v1.2.0+N`** — every shipped build (staging closed-test or prod).
-- **`feat/…`** — short-lived only (risky/multi-day work), merged fast, deleted after. A stale feature branch is archived as a tag (`archive/<name>`) before deletion.
-- **`hotfix/…`** — created LAZILY from the prod tag only when prod needs a fix while master has moved on; cherry-pick back to master, delete after.
+- **`feat/…`** — short-lived only (risky/multi-day work), merged into `dev` fast, deleted after. A stale feature branch is archived as a tag (`archive/<name>`) before deletion.
+- **`hotfix/…`** — created LAZILY from `master` (the prod tag) only when prod needs a fix while dev has moved on; cherry-pick back to `dev`, delete after.
 
 ## Commands
 
