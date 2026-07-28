@@ -73,8 +73,13 @@ class AppConfig {
   /// config Firebase n'est pas faite (provider Google activé + empreintes SHA-1
   /// debug/release/Play App Signing + `google-services.json` régénéré — voir
   /// `tasks/SETUP-AUTH-GOOGLE.md`). Sans cette config, le bouton planterait
-  /// (`ApiException: 10`). Passer à `true` puis rebuild une fois la config prête.
-  static const bool enableGoogleSignIn = true;
+  /// (`ApiException: 10`).
+  ///
+  /// **PROD UNIQUEMENT depuis le jour J OAuth (2026-07-28)** : les clients
+  /// OAuth Android (package + SHA) ont été basculés de `lightcutoff-dev` vers
+  /// `njuka-prod` — contrainte Google : un seul projet par combinaison. En
+  /// dev/staging le bouton échouerait (`ApiException: 10`) → masqué.
+  static bool get enableGoogleSignIn => isProd;
 
   /// Affiche le bouton « Continuer avec Apple » — **iOS uniquement** (exigence
   /// App Store 4.8 : obligatoire dès qu'une connexion tierce est proposée).
