@@ -288,3 +288,16 @@ Puis **http://127.0.0.1:4000** → Firestore → collection `official_outages` :
        Cameroun), sa ville reste la vraie (ex. Montréal).
 8. [ ] Repasser le pays en « Automatique » → plus de bandeau ; le signalement
        suivant est rattaché au pays détecté.
+
+### Formulaire : position affichée + « Décrire ma position » permanent (2026-07-28)
+9.  [ ] Ouvrir le formulaire (GPS autorisé) → la ligne 📍 affiche **ta position
+        réelle** (quartier, ville) après un court « Recherche de ta position… ».
+10. [ ] Bouton **« Décrire ma position »** visible À CÔTÉ (même quand le GPS
+        marche). Saisir « Douala » → la ligne passe en 🖊 avec le lieu décrit ;
+        un ✕ permet de revenir au GPS.
+11. [ ] Envoyer avec une position décrite → le signalement est créé au lieu
+        décrit (vérifier le pin sur la carte), anti-doublon compris.
+12. [ ] Saisie introuvable (« azerty ») → snack « Lieu introuvable », la
+        position précédente est conservée.
+13. [ ] GPS refusé → la ligne dit « Position indisponible — décris ta
+        position pour signaler » ; l'envoi propose toujours le repli existant.

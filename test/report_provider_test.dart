@@ -144,6 +144,38 @@ void main() {
     },
   );
 
+  test('currentLocation : null si GPS refusé, LocationResult sinon', () async {
+    final provider = build();
+    expect(await provider.currentLocation(), isNull); // denied (setUp)
+
+    when(
+      () => location.checkAccess(),
+    ).thenAnswer((_) async => LocationAccess.granted);
+    when(() => location.getCurrentLocation()).thenAnswer(
+      (_) async => const LocationResult(
+        position: GeoPosition(lat: 3.8, lng: 11.5),
+        area: GeoArea(city: 'Yaoundé', neighborhood: 'Bastos'),
+      ),
+    );
+    final loc = await provider.currentLocation();
+    expect(loc?.area.city, 'Yaoundé');
+  });
+
+  test('locateDescription : géocode, null si introuvable', () async {
+    when(() => location.locationFromDescription('Douala')).thenAnswer(
+      (_) async => const LocationResult(
+        position: GeoPosition(lat: 4.05, lng: 9.7),
+        area: GeoArea(city: 'Douala'),
+      ),
+    );
+    when(
+      () => location.locationFromDescription('xyz'),
+    ).thenThrow(const LocationException(AppError.locationNotFound));
+    final provider = build();
+    expect((await provider.locateDescription('Douala'))?.area.city, 'Douala');
+    expect(await provider.locateDescription('xyz'), isNull);
+  });
+
   test(
     'createFromDraft avec countryOverrideIso rattache le report au pays choisi',
     () async {

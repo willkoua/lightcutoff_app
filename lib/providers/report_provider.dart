@@ -704,6 +704,28 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// État d'accès à la localisation (sans déclencher la demande système).
   Future<LocationAccess> checkLocationAccess() => _location.checkAccess();
 
+  /// Position courante pour AFFICHAGE (formulaire) — best-effort, sans état
+  /// `submitting` ni demande système. `null` si refusée/indisponible.
+  Future<LocationResult?> currentLocation() async {
+    try {
+      if (await _location.checkAccess() != LocationAccess.granted) return null;
+      return await _location.getCurrentLocation();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Géocode une position décrite pour AFFICHAGE/validation immédiate dans le
+  /// formulaire — `null` si le lieu est introuvable. La création passe ensuite
+  /// par [prepareReportFromDescription] (mêmes garanties anti-doublon).
+  Future<LocationResult?> locateDescription(String query) async {
+    try {
+      return await _location.locationFromDescription(query);
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Ouvre les réglages système de l'app.
   Future<void> openLocationSettings() => _location.openSettings();
 

@@ -75,11 +75,32 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
   /// veut signaler une coupure d'eau) ; défaut `electricity` sinon.
   ServiceType? _serviceType;
 
+  /// Position GPS courante, chargée à l'ouverture (affichage uniquement —
+  /// la création re-résout la position au moment de l'envoi).
+  LocationResult? _current;
+  bool _locating = true;
+
+  /// Position DÉCRITE par l'utilisateur (bouton « Décrire ma position »,
+  /// désormais toujours disponible — plus seulement en repli sans GPS).
+  /// Quand posée, elle remplace le GPS à l'envoi.
+  String? _describedQuery;
+  LocationResult? _described;
+
   @override
   void initState() {
     super.initState();
     final region = context.read<RegionProvider>();
     _serviceType = region.serviceFilter ?? ServiceType.electricity;
+    _loadCurrentPosition();
+  }
+
+  Future<void> _loadCurrentPosition() async {
+    final loc = await context.read<ReportProvider>().currentLocation();
+    if (!mounted) return;
+    setState(() {
+      _locating = false;
+      _current = loc;
+    });
   }
 
   @override
@@ -232,8 +253,59 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
     ];
   }
 
+  /// Libellé de la ligne « position » du formulaire : position décrite si
+  /// posée, sinon position GPS détectée, sinon état (recherche / indisponible).
+  String _positionLabel(AppLocalizations l) {
+    final described = _described;
+    if (described != null) {
+      final label = described.area.label;
+      return label.isEmpty ? _describedQuery! : label;
+    }
+    if (_locating) return l.reportFormPositionLocating;
+    final area = _current?.area;
+    if (area == null) return l.reportFormPositionUnavailable;
+    final label = area.label;
+    return label.isEmpty ? l.reportFormPositionHint : label;
+  }
+
+  /// Ouvre le dialogue « Décrire ma position » et géocode tout de suite la
+  /// saisie (feedback immédiat) : la position décrite remplace le GPS jusqu'à
+  /// son effacement (✕).
+  Future<void> _pickDescribedPosition() async {
+    final l = AppLocalizations.of(context);
+    final provider = context.read<ReportProvider>();
+    final query = await _showDescribePosition();
+    if (!mounted || query == null || query.trim().isEmpty) return;
+    final loc = await provider.locateDescription(query.trim());
+    if (!mounted) return;
+    if (loc == null) {
+      _snack(l.reportFormAddressNotFound);
+      return;
+    }
+    setState(() {
+      _describedQuery = query.trim();
+      _described = loc;
+    });
+  }
+
   Future<void> _submit() async {
     final provider = context.read<ReportProvider>();
+    // Position décrite explicitement dans le formulaire → elle prime sur le
+    // GPS (re-géocodée à l'envoi, mêmes garanties anti-doublon).
+    if (_describedQuery != null) {
+      final l = AppLocalizations.of(context);
+      final outcome = await provider.prepareReportFromDescription(
+        _describedQuery!,
+        serviceType: _serviceType ?? ServiceType.electricity,
+      );
+      if (!mounted) return;
+      if (outcome.error == AppError.locationNotFound) {
+        _snack(l.reportFormAddressNotFound);
+        return;
+      }
+      await _continueWithOutcome(provider, outcome);
+      return;
+    }
     final access = await provider.checkLocationAccess();
     if (!mounted) return;
     if (access == LocationAccess.granted) {
@@ -581,23 +653,49 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
                     (set) => setState(() => _serviceType = set.first),
               ),
               const SizedBox(height: 16),
+              // Position du signalement : la position détectée est affichée
+              // (plus un texte générique), et « Décrire ma position » est
+              // TOUJOURS disponible (2026-07-28) — plus seulement en repli
+              // quand le GPS manque.
               Row(
                 children: [
-                  const Icon(
-                    Icons.my_location,
+                  Icon(
+                    _described != null
+                        ? Icons.edit_location_alt
+                        : Icons.my_location,
                     size: 18,
-                    color: AppColors.gray,
+                    color:
+                        _described != null ? AppColors.primary : AppColors.gray,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      l.reportFormPositionHint,
+                      _positionLabel(l),
                       style: const TextStyle(
                         color: AppColors.gray,
                         fontSize: 13,
                       ),
                     ),
                   ),
+                  if (_described != null)
+                    IconButton(
+                      icon: const Icon(Icons.clear, size: 18),
+                      color: AppColors.gray,
+                      tooltip: l.reportFormBackToGps,
+                      onPressed:
+                          () => setState(() {
+                            _described = null;
+                            _describedQuery = null;
+                          }),
+                    )
+                  else
+                    TextButton(
+                      onPressed: _pickDescribedPosition,
+                      child: Text(
+                        l.reportFormDescribePositionAction,
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                    ),
                 ],
               ),
               const SizedBox(height: 24),
