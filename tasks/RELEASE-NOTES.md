@@ -5,6 +5,35 @@
 
 ---
 
+## 🚀 PRODUCTION — `1.2.0 (63)` — njuka-prod (soumis stores le 2026-07-30)
+
+> Premier lancement public (Play production + App Store). Nom de release
+> interne : `1.2.0+63 — Lancement production`.
+
+### 🇫🇷 fr-FR
+```
+Bienvenue sur NJUKA — Ensemble, on y voit plus clair ⚡💧
+
+• Signale les coupures d'électricité et d'eau autour de toi, sans créer de compte
+• Confirme ou démens les coupures signalées par tes voisins
+• Reçois une alerte quand une coupure touche ta zone — et quand le service revient
+• Consulte le programme officiel des coupures (Eneo) et suis ton quartier pour être prévenu la veille
+• Crée un compte (e-mail, Google, Facebook) pour tes statistiques et tes quartiers suivis
+```
+
+### 🇬🇧 en-US
+```
+Welcome to NJUKA — Together, we see clearly ⚡💧
+
+• Report power and water outages around you, no account needed
+• Confirm or dispute outages reported by your neighbors
+• Get alerted when an outage hits your area — and when service is back
+• Check the official outage schedule (Eneo) and follow your neighborhood to be notified the day before
+• Create an account (email, Google, Facebook) for your stats and followed areas
+```
+
+---
+
 ## Test fermé — `1.2.0 (57)` — staging
 
 ### 🇫🇷 fr-FR
