@@ -60,6 +60,10 @@
 	<string>NJUKA utilise l'appareil photo pour joindre une photo à un signalement de coupure.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>NJUKA utilise votre position pour localiser les coupures que vous signalez et vous alerter de celles proches de chez vous.</string>
+	<!-- Exigé par Apple (ITMS-90683) : geolocator référence l'API « toujours »
+	     même si l'app ne demande jamais ce niveau d'accès. -->
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>NJUKA utilise votre position pour localiser les coupures que vous signalez et vous alerter de celles proches de chez vous. L'app ne suit pas votre position en arrière-plan.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>NJUKA accède à vos photos pour joindre une image à un signalement de coupure.</string>
 	<key>UIApplicationSceneManifest</key>
