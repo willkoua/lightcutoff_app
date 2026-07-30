@@ -100,6 +100,23 @@ autorisent un non-auteur à modifier uniquement les compteurs
 500 m autour du signalement et de chaque confirmeur, dédup `notifiedUserIds`,
 garde-fou épicentre <100 m déjà couvert).
 
+### Sous-collection `reports/{id}/flags/{uid}`
+
+> **Signalement de contenu abusif** (exigence UGC des stores, 2026-07-30).
+> L'id du document = l'`uid` du déposant → un seul flag par utilisateur.
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| `createdAt` | timestamp | date du signalement |
+| `reason` | string | `abusive` \| `fake` \| `spam` \| `other` (≤ 40 car.) |
+| `details` | string \| null | précision libre (≤ 200 car.), surtout avec `other` |
+
+**Aucun compteur public** (pas de branche `bumpsCounterByOne`) — pas de bouton
+de contestation sociale. Flag **immuable** (update interdit), l'auteur ne peut
+pas signaler son propre report. Lecture : déposant/admin. L'examen se fait via
+la console / Admin SDK ; UI : lien discret « Signaler ce contenu » en pied du
+détail d'un signalement (non-auteurs).
+
 ### Sous-collection `reports/{id}/restorations/{uid}`
 
 > Symétrique aux confirmations. L'id du document = l'`uid` qui déclare que le

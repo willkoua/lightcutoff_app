@@ -81,6 +81,12 @@ class AppConfig {
   /// dev/staging le bouton échouerait (`ApiException: 10`) → masqué.
   static bool get enableGoogleSignIn => isProd;
 
+  /// Autorise l'ajout d'un média (photo/GIF) au signalement. **DÉSACTIVÉ le
+  /// 2026-07-30** : réduction de la surface UGC avant publication stores
+  /// (pas de pipeline de modération d'images). Les médias des reports
+  /// existants restent affichés. Réactiver quand une modération existera.
+  static const bool enableReportMedia = false;
+
   /// Affiche le bouton « Continuer avec Apple » — **iOS uniquement** (exigence
   /// App Store 4.8 : obligatoire dès qu'une connexion tierce est proposée).
   /// Nécessite : capability « Sign in with Apple » (Xcode) + provider Apple

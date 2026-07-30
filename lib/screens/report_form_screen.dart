@@ -5,6 +5,7 @@ import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
+import '../config/app_config.dart';
 import '../config/app_constants.dart';
 import '../config/utilities.dart';
 import '../models/app_error.dart';
@@ -714,12 +715,17 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              _MediaField(
-                mediaUrl: _mediaUrl,
-                uploading: _uploadingMedia,
-                onPick: _pickMedia,
-                onRemove: () => setState(() => _mediaUrl = null),
-              ),
+              // Ajout de média DÉSACTIVÉ (2026-07-30) : surface UGC réduite
+              // tant qu'aucune modération d'images n'existe — cf.
+              // AppConfig.enableReportMedia.
+              if (AppConfig.enableReportMedia) ...[
+                _MediaField(
+                  mediaUrl: _mediaUrl,
+                  uploading: _uploadingMedia,
+                  onPick: _pickMedia,
+                  onRemove: () => setState(() => _mediaUrl = null),
+                ),
+              ],
               const SizedBox(height: 16),
               // Attestation anti-faux signalement (obligatoire pour envoyer).
               InkWell(

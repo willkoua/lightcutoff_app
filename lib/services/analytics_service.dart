@@ -71,6 +71,10 @@ class AnalyticsService {
 
   Future<void> logReportConfirmed() => _log('report_confirmed');
 
+  /// Contenu signalé comme abusif (exigence UGC stores).
+  Future<void> logReportFlagged(String reason) =>
+      _log('report_flagged', {'reason': reason});
+
   Future<void> logReportRestored() => _log('report_restored');
 
   /// Réponse « Non, pas chez moi » au prompt d'ouverture (signal négatif).

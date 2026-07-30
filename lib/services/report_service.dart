@@ -169,6 +169,27 @@ class ReportService implements ReportRepository {
   }
 
   @override
+  Future<void> flagReport(
+    String reportId,
+    String uid, {
+    required String reason,
+    String? details,
+  }) {
+    return _reports.doc(reportId).collection('flags').doc(uid).set({
+      'createdAt': FieldValue.serverTimestamp(),
+      'reason': reason,
+      if (details != null && details.trim().isNotEmpty)
+        'details': details.trim(),
+    });
+  }
+
+  @override
+  Future<bool> hasFlagged(String reportId, String uid) async {
+    final doc = await _reports.doc(reportId).collection('flags').doc(uid).get();
+    return doc.exists;
+  }
+
+  @override
   Future<bool> hasDenied(String reportId, String uid) async {
     final doc =
         await _reports.doc(reportId).collection('denials').doc(uid).get();

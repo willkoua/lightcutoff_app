@@ -361,6 +361,66 @@ describe("Firestore — denials (démentis « pas de coupure chez moi »)", () =
   });
 });
 
+describe("Firestore — flags (signalement de contenu abusif)", () => {
+  beforeEach(async () => {
+    await seed((db) =>
+      setDoc(doc(db, "reports/r1"), { userId: "alice", confirmationCount: 0 }),
+    );
+  });
+
+  it("un tiers signale (raison + détails), pas l'auteur du report", async () => {
+    await assertSucceeds(
+      setDoc(doc(as("bob"), "reports/r1/flags/bob"), {
+        createdAt: serverTimestamp(),
+        reason: "abusive",
+        details: "propos injurieux",
+      }),
+    );
+    await assertFails(
+      setDoc(doc(as("alice"), "reports/r1/flags/alice"), {
+        createdAt: serverTimestamp(),
+        reason: "abusive",
+      }),
+    );
+  });
+
+  it("raison obligatoire, flag immuable, lecture owner/admin", async () => {
+    // Sans raison → refusé.
+    await assertFails(
+      setDoc(doc(as("bob"), "reports/r1/flags/bob"), {
+        createdAt: serverTimestamp(),
+      }),
+    );
+    await seed((db) =>
+      setDoc(doc(db, "reports/r1/flags/bob"), {
+        createdAt: serverTimestamp(),
+        reason: "spam",
+      }),
+    );
+    // Mise à jour interdite (flag immuable).
+    await assertFails(
+      updateDoc(doc(as("bob"), "reports/r1/flags/bob"), { reason: "other" }),
+    );
+    // Lecture : le déposant oui, l'auteur du report non.
+    await assertSucceeds(getDoc(doc(as("bob"), "reports/r1/flags/bob")));
+    await assertFails(getDoc(doc(as("alice"), "reports/r1/flags/bob")));
+  });
+
+  it("un flag ne peut PAS incrémenter un compteur du report", async () => {
+    const db = as("bob");
+    const batch = writeBatch(db);
+    batch.set(doc(db, "reports/r1/flags/bob"), {
+      createdAt: serverTimestamp(),
+      reason: "fake",
+    });
+    batch.update(doc(db, "reports/r1"), {
+      confirmationCount: increment(1),
+      updatedAt: serverTimestamp(),
+    });
+    await assertFails(batch.commit());
+  });
+});
+
 describe("Firestore — verrou changement de pseudo (une seule fois)", () => {
   it("changement OK avec décrément exact de usernameChangesLeft", async () => {
     await seed((db) =>

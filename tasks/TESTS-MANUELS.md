@@ -303,3 +303,19 @@ Puis **http://127.0.0.1:4000** → Firestore → collection `official_outages` :
         `positionSource = described` (vs `gps` pour un signalement normal).
 12. [ ] Saisie introuvable (« azerty ») → snack « Lieu introuvable », l'état
         précédent est conservé.
+
+## UGC : upload média désactivé + signalement de contenu abusif (2026-07-30)
+
+1. [ ] **Formulaire de signalement** : le bouton « Ajouter une photo/GIF »
+       n'apparaît PLUS (désactivé tant qu'aucune modération d'images n'existe
+       — `AppConfig.enableReportMedia`). Les médias des anciens reports
+       restent visibles sur le détail.
+2. [ ] **Détail d'un signalement d'un AUTRE utilisateur** : lien discret
+       « ⚑ Signaler ce contenu » en pied de page. Absent sur ses propres
+       signalements.
+3. [ ] Taper le lien → dialogue avec 4 raisons (abusif / faux / spam / autre
+       + champ libre). Envoyer → snack « ton signalement a été transmis ».
+4. [ ] Re-signaler le même report → snack « déjà signalé », pas de doublon
+       (vérifier en console : `reports/{id}/flags/{uid}` unique, avec
+       `reason`).
+5. [ ] Analytics : event `report_flagged` (paramètre `reason`).

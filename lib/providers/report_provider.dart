@@ -43,6 +43,9 @@ class ReportDraft {
   });
 }
 
+/// Résultat d'un signalement de contenu abusif.
+enum FlagResult { sent, already, failed }
+
 /// Résultat de la préparation d'un signalement.
 class PrepareOutcome {
   final AppError? error;
@@ -885,6 +888,33 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
     } finally {
       _submitting = false;
       notifyListeners();
+    }
+  }
+
+  /// Signale un contenu abusif (exigence UGC des stores). Un seul signalement
+  /// par utilisateur et par report ; aucun compteur public.
+  Future<FlagResult> flagReport(
+    String reportId, {
+    required String reason,
+    String? details,
+  }) async {
+    final uid = _uid;
+    if (uid == null) return FlagResult.failed;
+    if (reportById(reportId)?.userId == uid) return FlagResult.failed;
+    try {
+      if (await _service.hasFlagged(reportId, uid)) {
+        return FlagResult.already;
+      }
+      await _service.flagReport(
+        reportId,
+        uid,
+        reason: reason,
+        details: details,
+      );
+      AnalyticsService.instance.logReportFlagged(reason);
+      return FlagResult.sent;
+    } catch (_) {
+      return FlagResult.failed;
     }
   }
 

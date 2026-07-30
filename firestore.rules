@@ -167,6 +167,25 @@ service cloud.firestore {
         allow delete: if isOwner(userId);
       }
 
+      // Signalements de contenu abusif (exigence UGC des stores, 2026-07-30) :
+      // un document par utilisateur (id = uid), raison obligatoire, précision
+      // libre courte. AUCUN compteur public (pas de branche
+      // bumpsCounterByOne) — examiné par l'équipe via la console/Admin SDK.
+      // L'auteur ne peut pas signaler son propre report. Pas de mise à jour
+      // (un flag est immuable une fois déposé).
+      match /flags/{userId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId)
+                      && request.auth.uid != reportAuthor(reportId)
+                      && request.resource.data.reason is string
+                      && request.resource.data.reason.size() <= 40
+                      && (!('details' in request.resource.data)
+                          || (request.resource.data.details is string
+                              && request.resource.data.details.size() <= 200));
+        allow update: if false;
+        allow delete: if isOwner(userId);
+      }
+
       // Rétablissements (« le courant est revenu chez moi ») : un document
       // par utilisateur (id = uid). Symétrique aux confirmations, mais
       // **l'auteur peut déclarer son propre rétablissement** — il devient

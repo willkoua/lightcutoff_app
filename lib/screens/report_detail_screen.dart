@@ -76,6 +76,33 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
     }
   }
 
+  /// Signale ce contenu comme abusif (exigence UGC des stores) : dialogue de
+  /// raison puis dépôt d'un flag (un seul par utilisateur, sans compteur).
+  Future<void> _flagAbuse(
+    BuildContext context,
+    ReportProvider provider,
+    String reportId,
+  ) async {
+    final l = AppLocalizations.of(context);
+    final choice = await showDialog<({String reason, String? details})>(
+      context: context,
+      builder: (_) => const _FlagReasonDialog(),
+    );
+    if (choice == null || !context.mounted) return;
+
+    final result = await provider.flagReport(
+      reportId,
+      reason: choice.reason,
+      details: choice.details,
+    );
+    if (!context.mounted) return;
+    _snack(context, switch (result) {
+      FlagResult.sent => l.flagSentSnack,
+      FlagResult.already => l.flagAlreadySnack,
+      FlagResult.failed => l.flagFailedSnack,
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -344,6 +371,28 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
                 )
               else
                 _CountOnly(count: confirmCount),
+              // Signalement de contenu abusif (exigence UGC des stores) :
+              // lien discret en pied de page, réservé aux non-auteurs.
+              if (!isAuthor) ...[
+                const SizedBox(height: 24),
+                Center(
+                  child: TextButton.icon(
+                    onPressed: () => _flagAbuse(context, provider, report.id),
+                    icon: const Icon(
+                      Icons.flag_outlined,
+                      size: 16,
+                      color: AppColors.gray,
+                    ),
+                    label: Text(
+                      l.reportDetailFlagButton,
+                      style: const TextStyle(
+                        color: AppColors.gray,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         );
@@ -720,6 +769,108 @@ class _StatusChip extends StatelessWidget {
           style: TextStyle(color: color, fontWeight: FontWeight.w600),
         ),
       ),
+    );
+  }
+}
+
+/// Dialogue « Signaler ce contenu » : raison obligatoire, précision libre
+/// facultative. Renvoie `(reason, details)` ou `null` si annulé.
+class _FlagReasonDialog extends StatefulWidget {
+  const _FlagReasonDialog();
+
+  @override
+  State<_FlagReasonDialog> createState() => _FlagReasonDialogState();
+}
+
+class _FlagReasonDialogState extends State<_FlagReasonDialog> {
+  String? _reason;
+  final _details = TextEditingController();
+
+  @override
+  void dispose() {
+    _details.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final options = <String, String>{
+      'abusive': l.flagReasonAbusive,
+      'fake': l.flagReasonFake,
+      'spam': l.flagReasonSpam,
+      'other': l.flagReasonOther,
+    };
+    return AlertDialog(
+      title: Text(l.flagDialogTitle),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              l.flagDialogPrompt,
+              style: const TextStyle(color: AppColors.gray, fontSize: 13),
+            ),
+            const SizedBox(height: 8),
+            RadioGroup<String>(
+              groupValue: _reason,
+              onChanged: (v) => setState(() => _reason = v),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final e in options.entries)
+                    RadioListTile<String>(
+                      value: e.key,
+                      title: Text(e.value),
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      activeColor: AppColors.orange,
+                    ),
+                ],
+              ),
+            ),
+            if (_reason == 'other')
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: TextField(
+                  controller: _details,
+                  autofocus: true,
+                  maxLength: 200,
+                  maxLines: 2,
+                  minLines: 1,
+                  decoration: InputDecoration(
+                    hintText: l.flagReasonOtherHint,
+                    isDense: true,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l.actionCancel),
+        ),
+        ElevatedButton(
+          onPressed:
+              _reason == null
+                  ? null
+                  : () => Navigator.of(context).pop((
+                    reason: _reason!,
+                    details:
+                        _details.text.trim().isEmpty
+                            ? null
+                            : _details.text.trim(),
+                  )),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.orange,
+            foregroundColor: AppColors.white,
+          ),
+          child: Text(l.flagDialogSubmit),
+        ),
+      ],
     );
   }
 }

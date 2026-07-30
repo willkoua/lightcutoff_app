@@ -79,4 +79,17 @@ abstract class ReportRepository {
 
   /// Indique si [uid] a déjà répondu « pas chez moi » pour ce report.
   Future<bool> hasDenied(String reportId, String uid);
+
+  /// Signale un contenu abusif (exigence stores/UGC) : dépose
+  /// `reports/{id}/flags/{uid}` — un signalement par utilisateur, sans
+  /// compteur public. [reason] ∈ {abusive, fake, spam, other}.
+  Future<void> flagReport(
+    String reportId,
+    String uid, {
+    required String reason,
+    String? details,
+  });
+
+  /// Indique si [uid] a déjà signalé ce report comme abusif.
+  Future<bool> hasFlagged(String reportId, String uid);
 }

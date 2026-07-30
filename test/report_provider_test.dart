@@ -272,6 +272,44 @@ void main() {
     expect((captured.single as Report).reportedAt, isNull);
   });
 
+  test(
+    'flagReport : dépose le flag, refuse doublon et auto-signalement',
+    () async {
+      when(() => service.hasFlagged('r1', 'u1')).thenAnswer((_) async => false);
+      when(
+        () => service.flagReport(
+          'r1',
+          'u1',
+          reason: any(named: 'reason'),
+          details: any(named: 'details'),
+        ),
+      ).thenAnswer((_) async {});
+      final provider = build();
+      expect(
+        await provider.flagReport('r1', reason: 'abusive'),
+        FlagResult.sent,
+      );
+      verify(
+        () => service.flagReport('r1', 'u1', reason: 'abusive', details: null),
+      ).called(1);
+
+      // Déjà signalé → already, sans nouvel appel d'écriture.
+      when(() => service.hasFlagged('r1', 'u1')).thenAnswer((_) async => true);
+      expect(
+        await provider.flagReport('r1', reason: 'spam'),
+        FlagResult.already,
+      );
+      verifyNever(
+        () => service.flagReport(
+          'r1',
+          'u1',
+          reason: 'spam',
+          details: any(named: 'details'),
+        ),
+      );
+    },
+  );
+
   test('confirm délègue au service', () async {
     when(() => service.confirmReport('r1', 'u1')).thenAnswer((_) async {});
     final provider = build();
