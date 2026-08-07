@@ -5,6 +5,7 @@ import '../models/enums.dart';
 import '../models/report.dart';
 import '../theme/app_colors.dart';
 import '../utils/l10n_helpers.dart';
+import '../utils/share_report.dart';
 import 'service_visuals.dart';
 
 class ReportCard extends StatelessWidget {
@@ -65,6 +66,21 @@ class ReportCard extends StatelessWidget {
                   Text(
                     relativeTimeL10n(context, report.reportedAt),
                     style: const TextStyle(color: AppColors.gray, fontSize: 12),
+                  ),
+                  const SizedBox(width: 4),
+                  // Partage (feuille native) — levier viral : le message porte
+                  // l'info + le lien public njuka.app/s/{id}.
+                  IconButton(
+                    onPressed: () => shareReport(context, report),
+                    icon: const Icon(Icons.share_outlined, size: 18),
+                    color: AppColors.gray,
+                    tooltip: l.reportShareAction,
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
                   ),
                 ],
               ),

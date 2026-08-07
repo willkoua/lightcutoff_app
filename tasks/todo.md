@@ -1,5 +1,18 @@
 # NJUKA — État du programme (plan détaillé fait / non fait)
 
+## 🛠️ PLAN ACTIF — Partage de signalement (levier viral n°1) — go utilisateur 2026-08-08
+
+Décisions validées : page publique **sobre** (service/quartier/statut/compteur — PAS d'auteur, pas de description, pas de coords exactes) · CF de rendu serveur (aperçu riche WhatsApp via Open Graph) · App Links = phase 2.
+
+**✅ RÉALISÉ le 2026-08-08** (34 tests functions + 231 tests Flutter verts) :
+- [x] 1. CF `renderReportShare` (`functions/src/share.ts`, HTML pur testé) — OG tags, « ✓ Rétabli », 404 propre, cache CDN 120/300 s
+- [x] 2. Rewrites `/s/**` posés : prod dans `lightCutOff/firebase.json` (avant le catch-all SPA, site redéployé intact) ; staging dans le firebase.json de l'app
+- [x] 3. App : bouton Partager sur ReportCard (share_plus 12), message i18n FR/EN (zone courte quartier/ville, pluriels ICU), `AppConfig.shareBaseUrl`, analytics `report_shared{service,status}`
+- [x] 4. Déployé staging + prod, vérifié live : OG corrects sur un report seedé (staging), 404 propres, site njuka.app + pages légales intacts
+- [x] 5. Docs + commits (2 dépôts)
+- [ ] Phase 2 (backlog) : App Links / Universal Links (assetlinks.json + AASA + intent filters) pour ouvrir l'app directement
+
+
 ## 🚀 2026-08-07 (soir) — RELEASE 1.2.1+65 : **PUBLIÉE côté Play (validée)**, **en review côté Apple**. RD Congo **retirée des descriptions stores** ✅. Pointeur `master` avancé sur `v1.2.1+65`. Restants : verdict Apple (puis publier si mode manuel), routine Crashlytics/Analytics/coûts, plan de communication du lancement Cameroun.
 
 ## 🛠️ PLAN — Carte : zones d'impact au lieu de points (validé sur maquette 2026-08-07)

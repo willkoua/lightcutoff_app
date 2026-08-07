@@ -72,6 +72,7 @@ dependencies:
   # Connexion Facebook — fournit l'access token à firebase_auth. Nécessite la
   # config (app Facebook + provider Facebook activé + clé secrète + key hashes).
   flutter_facebook_auth: ^7.2.0
+  share_plus: ^12.0.2
 
 dev_dependencies:
   flutter_test:

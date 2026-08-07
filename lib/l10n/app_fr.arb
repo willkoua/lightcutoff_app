@@ -1,10 +1,10 @@
 {
   "@@locale": "fr",
-
   "appName": "NJUKA",
-  "@appName": { "description": "Nom de l'app — invariant." },
+  "@appName": {
+    "description": "Nom de l'app — invariant."
+  },
   "splashTagline": "Ensemble, on y voit plus clair.",
-
   "authOrSeparator": "ou",
   "authContinueWithGoogle": "Continuer avec Google",
   "authContinueWithFacebook": "Continuer avec Facebook",
@@ -15,12 +15,10 @@
   "errorSocialSignInCancelled": "Connexion annulée.",
   "errorSocialSignInFailed": "La connexion avec Google a échoué. Réessaie.",
   "errorAccountExistsDifferentCredential": "Cet email est déjà utilisé avec une autre méthode de connexion.",
-
   "navList": "Liste",
   "navMap": "Carte",
   "navProfile": "Profil",
   "navAccount": "Compte",
-
   "actionSignal": "Signaler",
   "actionCancel": "Annuler",
   "actionDelete": "Supprimer",
@@ -30,7 +28,6 @@
   "actionSelect": "Sélectionner…",
   "actionRetry": "Réessayer",
   "actionOpenSettings": "Ouvrir les réglages",
-
   "settingsTitle": "Paramètres",
   "settingsSectionNotifications": "Notifications",
   "settingsSectionHelp": "Aide",
@@ -44,16 +41,13 @@
   "languageSystem": "Système",
   "languageFrench": "Français",
   "languageEnglish": "Anglais",
-
   "snackOperationFailed": "Échec. Réessaie.",
   "snackPositionUnavailable": "Position indisponible.",
-
   "loginTitle": "Connexion",
   "loginIdentifierLabel": "Pseudo ou email",
   "loginPasswordLabel": "Mot de passe",
   "loginButton": "Se connecter",
   "loginForgotPassword": "Mot de passe oublié ?",
-
   "forgotPasswordTitle": "Réinitialiser le mot de passe",
   "forgotPasswordBody": "Entre ton email ou ton pseudo. On t'envoie un lien pour choisir un nouveau mot de passe.",
   "forgotPasswordIdentifierLabel": "Email ou pseudo",
@@ -62,7 +56,6 @@
   "forgotPasswordBackToLogin": "Retour à la connexion",
   "loginNoAccount": "Pas encore de compte ?",
   "loginRegisterAction": "S'inscrire",
-
   "registerTitle": "Créer un compte",
   "registerFirstNameLabel": "Prénom",
   "registerFirstNameRequired": "Le prénom",
@@ -80,9 +73,21 @@
   "usernameChangeAvailable": "Modifiable une seule fois — choisis bien !",
   "usernameChangeLocked": "Pseudo définitif (changement déjà utilisé)",
   "usernameChangeDone": "Ton nouveau pseudo : {username}",
-  "@usernameChangeDone": { "placeholders": { "username": { "type": "String" } } },
+  "@usernameChangeDone": {
+    "placeholders": {
+      "username": {
+        "type": "String"
+      }
+    }
+  },
   "generatedUsernameAnnouncement": "Bienvenue ! Ton pseudo est {username} — tu peux le personnaliser (une seule fois) dans ton profil.",
-  "@generatedUsernameAnnouncement": { "placeholders": { "username": { "type": "String" } } },
+  "@generatedUsernameAnnouncement": {
+    "placeholders": {
+      "username": {
+        "type": "String"
+      }
+    }
+  },
   "registerPhoneLabel": "Téléphone (optionnel)",
   "registerPhoneInvalid": "Numéro invalide",
   "registerPasswordLabel": "Mot de passe",
@@ -94,24 +99,25 @@
   "registerAcceptAnd": " et la ",
   "registerPrivacyLink": "Politique de confidentialité",
   "registerMustAcceptTerms": "Tu dois accepter les Conditions d'utilisation pour créer un compte.",
-
   "emailVerificationTitle": "Vérification",
   "emailVerificationHeading": "Vérifie ton email",
   "emailVerificationBody": "Un lien de vérification a été envoyé à\n{email}.\n\nCliquez sur le lien, puis revenez ici.",
-  "@emailVerificationBody": { "placeholders": { "email": {} } },
+  "@emailVerificationBody": {
+    "placeholders": {
+      "email": {}
+    }
+  },
   "emailVerificationSpamHint": "Tu ne le vois pas ? Pense à vérifier tes spams / courriers indésirables.",
   "emailVerificationCheckButton": "J'ai vérifié mon email",
   "emailVerificationNotYet": "Email pas encore vérifié. Vérifie ta boîte de réception.",
   "emailVerificationResent": "Email de vérification renvoyé.",
   "emailVerificationResendAction": "Renvoyer l'email",
   "tooltipLogout": "Se déconnecter",
-
   "anonymousRetryTitle": "Connexion",
   "anonymousRetryHeading": "Impossible de démarrer une session",
   "anonymousRetryBody": "NJUKA a besoin d'une connexion internet pour s'ouvrir. Vérifie ton réseau, puis réessaie.",
   "anonymousRetryButton": "Réessayer",
   "anonymousRetryAlreadyAccount": "J'ai déjà un compte",
-
   "profileUpgradeWallHeading": "Débloque tout le potentiel de NJUKA",
   "profileUpgradeWallBody": "C'est gratuit et rapide. Tes signalements et tes votes actuels restent attachés à ton compte.",
   "profileUpgradeWallBenefitNotifs": "Sois alerté des coupures",
@@ -126,23 +132,19 @@
   "profileUpgradeWallAlreadyAccount": "J'ai déjà un compte",
   "profileUpgradeWallLoginWarningTitle": "Avant de te connecter",
   "profileUpgradeWallLoginWarningBody": "Première connexion ? Ton compte sera créé et tes signalements/votes de cette session seront CONSERVÉS. ⚠️ En revanche, si tu te connectes à un compte NJUKA déjà existant, ils ne pourront pas lui être rattachés. Continuer ?",
-
   "upgradeAccountTitle": "Créer un compte",
   "upgradeAccountIntro": "Tes signalements et votes restent attachés à ton nouveau compte.",
   "upgradeAccountSubmit": "Créer mon compte",
   "upgradeAccountEmailInUseTitle": "Email déjà utilisé",
   "upgradeAccountEmailInUseBody": "Cet email est déjà associé à un compte NJUKA. Tu peux te connecter, mais ⚠️ les signalements et votes de cette session anonyme ne seront PAS rattachés à ton compte existant.",
-
   "anonymousFirstReportHintTitle": "Garde tes signalements",
   "anonymousFirstReportHintBody": "Tes signalements et votes sont liés à cet appareil. Crée un compte pour ne rien perdre si tu désinstalles ou changes d'appareil.",
   "anonymousFirstReportHintCTA": "Créer un compte",
   "anonymousFirstReportHintLater": "Plus tard",
-
   "settingsResetAnonymousSession": "Effacer cette session anonyme",
   "settingsResetAnonymousSessionTitle": "Effacer cette session ?",
   "settingsResetAnonymousSessionBody": "Tes signalements et votes anonymes resteront visibles sur la carte mais ne seront plus rattachés à cet appareil. Un nouvel utilisateur anonyme sera créé.",
   "settingsResetAnonymousSessionConfirm": "Effacer",
-
   "profileTitle": "Mon profil",
   "profileTitleAnonymous": "Compte",
   "profileTooltipEdit": "Modifier",
@@ -162,7 +164,6 @@
   "profileStatsSubtitle": "Mes coupures et ma zone",
   "profileFollowedTitle": "Quartiers suivis",
   "profileFollowedSubtitle": "Gérer mes alertes de coupures programmées",
-
   "followedTitle": "Quartiers suivis",
   "followedEmpty": "Tu ne suis aucun quartier pour le moment.",
   "followedEmptyHint": "Suis un quartier depuis les coupures programmées pour être alerté avant une coupure.",
@@ -171,7 +172,6 @@
   "followedUnfollowConfirmBody": "Tu ne recevras plus d'alerte avant les coupures programmées dans ce quartier.",
   "followedUnfollowConfirmAction": "Ne plus suivre",
   "followedUnfollowedSnack": "Tu ne suis plus ce quartier.",
-
   "statsTitle": "Statistiques",
   "statsSectionMine": "Mes coupures",
   "statsSectionZone": "Ma zone",
@@ -192,19 +192,33 @@
   "statsHourLabel": "{h} h",
   "@statsHourLabel": {
     "description": "Heure de la journée, ex. 18 h",
-    "placeholders": { "h": { "type": "int" } }
+    "placeholders": {
+      "h": {
+        "type": "int"
+      }
+    }
   },
   "statsDurationHm": "{h} h {m} min",
   "@statsDurationHm": {
     "description": "Durée heures + minutes",
-    "placeholders": { "h": { "type": "int" }, "m": { "type": "int" } }
+    "placeholders": {
+      "h": {
+        "type": "int"
+      },
+      "m": {
+        "type": "int"
+      }
+    }
   },
   "statsDurationM": "{m} min",
   "@statsDurationM": {
     "description": "Durée en minutes seulement",
-    "placeholders": { "m": { "type": "int" } }
+    "placeholders": {
+      "m": {
+        "type": "int"
+      }
+    }
   },
-
   "editProfileTitle": "Modifier le profil",
   "editProfileResidence": "Résidence",
   "editProfileCity": "Ville",
@@ -212,7 +226,6 @@
   "editProfileCountry": "Pays",
   "editProfileSaved": "Profil mis à jour.",
   "editProfileSaveFailed": "Échec de la mise à jour.",
-
   "securityTitle": "Sécurité",
   "securityChangeEmailHeading": "Changer l'email",
   "securityChangeEmailButton": "Changer l'email",
@@ -226,7 +239,6 @@
   "securityChangePasswordButton": "Changer le mot de passe",
   "securityChangePasswordSuccess": "Mot de passe mis à jour.",
   "securityChangePasswordFailed": "Échec du changement de mot de passe.",
-
   "reportFormTitle": "Signaler une coupure",
   "reportFormServiceLabel": "Service",
   "reportFormPositionHint": "Ta position actuelle sera utilisée pour localiser la coupure.",
@@ -255,34 +267,71 @@
   "reportFormDescribePositionConfirm": "Localiser",
   "reportFormAddressNotFound": "Lieu introuvable. Précise davantage (ajoute la ville ou le pays).",
   "reportFormCountryOverrideInfo": "Pays sélectionné : {selected}. Ta position détectée est ailleurs ({detected}) — ce signalement sera rattaché à {selected}.",
-  "@reportFormCountryOverrideInfo": { "placeholders": { "selected": {"type": "String"}, "detected": {"type": "String"} } },
+  "@reportFormCountryOverrideInfo": {
+    "placeholders": {
+      "selected": {
+        "type": "String"
+      },
+      "detected": {
+        "type": "String"
+      }
+    }
+  },
   "reportFormObservedAtLabel": "Date et heure de constatation (facultatif)",
   "reportFormObservedDate": "Date",
   "reportFormObservedTime": "Heure",
   "reportFormAttestation": "Je confirme que cette coupure est réelle, qu'elle ne vient pas de mon installation (disjoncteur, compteur, robinet d'arrêt).",
   "activeOutagesCount": "{count, plural, =0{Aucune coupure active} =1{1 coupure active en ce moment} other{{count} coupures actives en ce moment}}",
-  "@activeOutagesCount": { "placeholders": { "count": {"type": "int"} } },
+  "@activeOutagesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "reportFormCreatedSuccess": "Coupure signalée. Merci !",
   "reportFormConfirmedSuccess": "Coupure confirmée. Merci !",
-
   "duplicateOwnTitle": "Tu as déjà signalé ici",
   "duplicateOtherTitle": "Coupure déjà signalée",
   "duplicateZoneFallback": "à proximité",
   "duplicateOwnBody": "Tu as déjà signalé une coupure dans cette zone :\n\n{zone}\n{time} · {count, plural, =1{1 confirmation} other{{count} confirmations}}\n\nTu ne peux pas en créer une seconde tant qu'elle est en cours. Marque-la rétablie depuis le détail si le courant est revenu.",
-  "@duplicateOwnBody": { "placeholders": { "zone": {}, "time": {}, "count": {"type": "int"} } },
+  "@duplicateOwnBody": {
+    "placeholders": {
+      "zone": {},
+      "time": {},
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "duplicateOtherBody": "Une coupure est déjà signalée près d'ici :\n\n{zone}\n{time} · {count, plural, =1{1 confirmation} other{{count} confirmations}}\n\nVeux-tu la confirmer plutôt que d'en créer une nouvelle ?",
-  "@duplicateOtherBody": { "placeholders": { "zone": {}, "time": {}, "count": {"type": "int"} } },
+  "@duplicateOtherBody": {
+    "placeholders": {
+      "zone": {},
+      "time": {},
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "duplicateViewMine": "Voir mon signalement",
   "duplicateReportAnyway": "Signaler quand même",
-
   "reportDetailTitle": "Détail de la coupure",
   "reportDetailTitleShort": "Coupure",
   "reportDetailNotFound": "Coupure introuvable.",
   "reportDetailZoneUnknown": "Zone inconnue",
   "reportDetailReportedAt": "Signalée {time}",
-  "@reportDetailReportedAt": { "placeholders": { "time": {} } },
+  "@reportDetailReportedAt": {
+    "placeholders": {
+      "time": {}
+    }
+  },
   "reportDetailResolvedAt": "Rétablie {time}",
-  "@reportDetailResolvedAt": { "placeholders": { "time": {} } },
+  "@reportDetailResolvedAt": {
+    "placeholders": {
+      "time": {}
+    }
+  },
   "reportDetailConfirmButton": "Confirmer cette coupure",
   "reportDetailMarkRestoredButton": "Le courant est revenu chez moi",
   "reportDetailMarkRestoredButtonWater": "L'eau est revenue chez moi",
@@ -291,9 +340,21 @@
   "reportDetailSnackRestoredOk": "Merci ! Ta déclaration a été enregistrée.",
   "reportDetailSnackRestoredFailed": "Échec de la déclaration.",
   "reportDetailRestorationCount": "{count, plural, =1{1 personne a annoncé le retour du courant} other{{count} personnes ont annoncé le retour du courant}}",
-  "@reportDetailRestorationCount": { "placeholders": { "count": {"type": "int"} } },
+  "@reportDetailRestorationCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "reportDetailRestorationCountWater": "{count, plural, =1{1 personne a annoncé le retour de l'eau} other{{count} personnes ont annoncé le retour de l'eau}}",
-  "@reportDetailRestorationCountWater": { "placeholders": { "count": {"type": "int"} } },
+  "@reportDetailRestorationCountWater": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "reportDetailDeleteButton": "Supprimer ce signalement",
   "reportDetailDeleteDialogTitle": "Supprimer ce signalement ?",
   "deleteReasonPrompt": "Pourquoi supprimes-tu ce signalement ?",
@@ -322,12 +383,17 @@
   "reportDetailNoConfirmations": "Aucune confirmation pour le moment.",
   "reportDetailConfirmationsPrivate": "Le détail des confirmations est privé.",
   "reportDetailConfirmationsCount": "{count, plural, =1{1 confirmation} other{{count} confirmations}}",
-  "@reportDetailConfirmationsCount": { "placeholders": { "count": {"type": "int"} } },
+  "@reportDetailConfirmationsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "reportDetailStatPillTotal": "au total",
   "reportDetailStatPillRecent": "dernière heure",
   "reportDetailConfirmedByYou": "Toi",
   "reportDetailConfirmedByOther": "Un utilisateur",
-
   "reportCardConfirm": "Confirmer",
   "reportCardCourantRevenu": "Courant revenu",
   "reportCardCourantRevenuWater": "Eau revenue",
@@ -342,14 +408,18 @@
   "confirmRestoreBodyWater": "Tu déclares que l'eau est rétablie ? Quand assez de personnes le déclarent, la coupure passe en « Rétabli ».",
   "confirmRestoreAction": "Oui, c'est revenu",
   "reportCardConfirmationsCount": "{count, plural, =1{1 confirmation} other{{count} confirmations}}",
-  "@reportCardConfirmationsCount": { "placeholders": { "count": {"type": "int"} } },
-
+  "@reportCardConfirmationsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "homeTitle": "Coupures signalées",
   "homeEmptyAllReports": "Aucune coupure signalée pour le moment.",
   "surveyBannerText": "Aide-nous à améliorer NJUKA — réponds au sondage (2 min)",
   "surveyBannerDismiss": "Fermer",
   "homeEmptyWithFilters": "Aucune coupure ne correspond à ta recherche.",
-
   "promptNearbyHeadingElectricity": "Coupure d'électricité signalée dans ta zone",
   "promptNearbyHeadingWater": "Coupure d'eau signalée dans ta zone",
   "promptNearbyQuestion": "Chez toi aussi ?",
@@ -359,12 +429,16 @@
   "promptNearbySnackYes": "Merci ! On te préviendra dès que ça revient.",
   "promptNearbySnackNo": "Merci pour l'info !",
   "homeActiveFilters": "{count, plural, =1{Filtres actifs · 1 résultat} other{Filtres actifs · {count} résultats}}",
-  "@homeActiveFilters": { "placeholders": { "count": {"type": "int"} } },
+  "@homeActiveFilters": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "homeClearFilters": "Effacer",
-
   "mapTitle": "Carte des coupures",
   "tooltipFilter": "Filtrer / rechercher",
-
   "filterSheetTitle": "Filtres",
   "filterSheetReset": "Réinitialiser",
   "filterSheetSearchHint": "Rechercher une zone…",
@@ -379,8 +453,13 @@
   "filterSheetSortActive": "Actives",
   "filterSheetSortConfirmed": "Confirmées",
   "filterSheetSeeResults": "{count, plural, =1{Voir 1 résultat} other{Voir {count} résultats}}",
-  "@filterSheetSeeResults": { "placeholders": { "count": {"type": "int"} } },
-
+  "@filterSheetSeeResults": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "onboardingSkip": "Passer",
   "onboardingNext": "Suivant",
   "onboardingStart": "Commencer",
@@ -394,20 +473,22 @@
   "onboardingSlide3Body": "Dis-le ! Quand assez de voisins confirment le retour de l'électricité ou de l'eau, la coupure se ferme automatiquement.",
   "onboardingSlide4Title": "Alertes à proximité",
   "onboardingSlide4Body": "Avec un compte, sois alerté quand une coupure près de chez toi est confirmée par d'autres habitants — et avant les coupures programmées de ton quartier.",
-
   "locationSheetTitle": "Activer la localisation",
   "locationSheetBody": "NJUKA a besoin de ta position pour situer correctement la coupure que tu signales.",
   "locationSheetBullet1": "Localise précisément la coupure signalée",
   "locationSheetBullet2": "Utilisée uniquement pour le signalement",
   "locationSheetBullet3": "Jamais partagée à des tiers",
   "locationSheetAllowAction": "Autoriser la localisation",
-
   "validatorEmailRequired": "L'email est requis",
   "validatorEmailInvalid": "Email invalide",
   "validatorPasswordRequired": "Le mot de passe est requis",
   "validatorPasswordTooShort": "Au moins 6 caractères",
   "validatorRequired": "{label} est requis",
-  "@validatorRequired": { "placeholders": { "label": {} } },
+  "@validatorRequired": {
+    "placeholders": {
+      "label": {}
+    }
+  },
   "validatorRequiredFieldFallback": "Ce champ",
   "validatorUsernameRequired": "Le pseudo est requis",
   "validatorUsernameTooShort": "Au moins 3 caractères",
@@ -416,37 +497,67 @@
   "validatorIdentifierRequired": "Pseudo ou email requis",
   "validatorPhoneRequired": "Le téléphone est requis",
   "validatorPhoneInvalid": "Numéro invalide",
-
   "statusOngoing": "En cours",
   "statusResolved": "Rétabli",
-
   "outageTypeUnplanned": "Coupure imprévue",
   "outageTypeScheduled": "Coupure programmée",
-
   "serviceElectricity": "Électricité",
   "serviceWater": "Eau",
   "serviceFilterAll": "Tout",
   "serviceFilterElectricity": "Élec.",
   "serviceFilterWater": "Eau",
-
   "roleCitizen": "Citoyen",
   "roleOperator": "Opérateur",
   "roleAdmin": "Administrateur",
-
   "relativeNow": "à l'instant",
   "relativeMinutes": "il y a {n} min",
-  "@relativeMinutes": { "placeholders": { "n": {"type": "int"} } },
+  "@relativeMinutes": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "relativeHours": "il y a {n} h",
-  "@relativeHours": { "placeholders": { "n": {"type": "int"} } },
+  "@relativeHours": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "relativeDays": "il y a {n} j",
-  "@relativeDays": { "placeholders": { "n": {"type": "int"} } },
+  "@relativeDays": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "relativeWeeks": "il y a {n} sem",
-  "@relativeWeeks": { "placeholders": { "n": {"type": "int"} } },
+  "@relativeWeeks": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "relativeMonths": "il y a {n} mois",
-  "@relativeMonths": { "placeholders": { "n": {"type": "int"} } },
+  "@relativeMonths": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "relativeYears": "il y a {n} an(s)",
-  "@relativeYears": { "placeholders": { "n": {"type": "int"} } },
-
+  "@relativeYears": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "errorInvalidEmail": "Email invalide.",
   "errorWrongCredentials": "Email ou mot de passe incorrect.",
   "errorEmailInUse": "Cet email est déjà utilisé.",
@@ -465,26 +576,37 @@
   "errorLocationNotFound": "Position introuvable. Réessaye en extérieur ou vérifie ton GPS.",
   "errorLocationUnavailable": "Localisation impossible. Réessaie.",
   "errorGeneric": "Une erreur est survenue. Réessaie.",
-
   "offlineBannerMessage": "Hors ligne — les changements seront synchronisés à la reconnexion.",
   "reportFormMediaOffline": "Ajout de média indisponible hors ligne.",
-
   "settingsSectionLegal": "Légal",
   "settingsPrivacyPolicy": "Politique de confidentialité",
   "settingsLinkOpenFailed": "Impossible d'ouvrir le lien.",
-
   "supportTileTitle": "Signaler un problème",
   "supportTileSubtitle": "Un bug, une question ? Écris-nous",
   "supportEmailSubject": "NJUKA — problème signalé (v{version} ({build}))",
-  "@supportEmailSubject": { "placeholders": { "version": { "type": "String" }, "build": { "type": "String" } } },
+  "@supportEmailSubject": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      },
+      "build": {
+        "type": "String"
+      }
+    }
+  },
   "supportEmailBodyHint": "Décris ton problème ici (que faisais-tu ? que s'est-il passé ?) :",
   "supportDiagSeparator": "Infos techniques (à laisser, ça nous aide)",
   "supportDiagAccount": "Compte",
   "supportDiagAnonymous": "session anonyme",
   "supportDiagLanguage": "Langue",
   "supportNoMailApp": "Aucune appli email trouvée. Écris-nous à : {email}",
-  "@supportNoMailApp": { "placeholders": { "email": { "type": "String" } } },
-
+  "@supportNoMailApp": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
   "settingsSectionAdmin": "Administration",
   "settingsWorldwide": "Afficher tous les signalements (monde)",
   "settingsWorldwideDescription": "Lève le filtre par pays et affiche les coupures actives du monde entier. Réservé aux administrateurs.",
@@ -494,7 +616,9 @@
   "@settingsVersion": {
     "description": "Pied de page de l'écran Paramètres affichant la version de l'app",
     "placeholders": {
-      "version": { "type": "String" }
+      "version": {
+        "type": "String"
+      }
     }
   },
   "deleteAccountTitle": "Supprimer le compte ?",
@@ -514,9 +638,6 @@
   "confirmFollowTitle": "Suivre ce quartier ?",
   "confirmFollowBody": "Tu recevras une alerte la veille des coupures planifiées dans ce quartier.",
   "confirmFollowAction": "Suivre",
-  "confirmFollowTitle": "Suivre ce quartier ?",
-  "confirmFollowBody": "Tu recevras une alerte la veille des coupures planifiées dans ce quartier.",
-  "confirmFollowAction": "Suivre",
   "settingsSectionProviderDebug": "Pays / compagnie (debug)",
   "providerAuto": "Auto (détecté)",
   "settingsSectionRegion": "Région",
@@ -525,6 +646,32 @@
   "countryPickerTitle": "Choisir le pays",
   "countryAuto": "Automatique",
   "plannedNoProviderBody": "Pas de coupures programmées pour {country}. Si ce n'est pas ton pays, change-le dans les réglages.",
-  "@plannedNoProviderBody": { "placeholders": { "country": {"type": "String"} } }
+  "@plannedNoProviderBody": {
+    "placeholders": {
+      "country": {
+        "type": "String"
+      }
+    }
+  },
+  "reportShareAction": "Partager",
+  "shareTitleElectricity": "Coupure d'électricité",
+  "shareTitleWater": "Coupure d'eau",
+  "shareResolvedSuffix": " (rétablie)",
+  "shareZone": "à {zone}",
+  "@shareZone": {
+    "placeholders": {
+      "zone": {
+        "type": "String"
+      }
+    }
+  },
+  "shareConfirmations": "{count, plural, =0{signalée à l'instant} one{1 voisin confirme} other{{count} voisins confirment}}",
+  "@shareConfirmations": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareTagline": "Suivie en direct sur NJUKA :"
 }
-

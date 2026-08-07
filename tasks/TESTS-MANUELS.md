@@ -357,3 +357,20 @@ Build v64+ (staging), onglet Carte.
    « Résolues » les réaffiche (pins verts, pas de tache).
 6. **Dézoom ville** : les taches voisines se fondent en nappes — plus de
    ronds compteurs de cluster ; chaque pin reste tapable → détail.
+
+## Partage de signalement (2026-08-08)
+
+Build v66+ (staging).
+
+1. **Bouton** : icône partage en haut à droite d'une carte de signalement →
+   feuille native. Le message contient : émoji service, « Coupure … à
+   {quartier, ville} », le compteur de confirmations, et le lien.
+2. **Lien staging** : `lightcutoff-dev.web.app/s/{id}` → page publique avec
+   badge « En cours », compteur, boutons stores. AUCUN pseudo, aucune
+   description, aucune position exacte sur la page.
+3. **Aperçu WhatsApp** : envoyé dans un chat, le lien montre une vignette
+   riche (logo + titre « Coupure … » + description).
+4. **Résolue** : partager une coupure résolue → la page montre « ✓ Rétabli ».
+5. **Robustesse** : `/s/nimportequoi` → page « Signalement introuvable »
+   avec bouton de téléchargement (404).
+6. **EN** : app en anglais → message de partage en anglais.

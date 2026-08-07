@@ -2,7 +2,6 @@
   "@@locale": "en",
   "appName": "NJUKA",
   "splashTagline": "Together, we see clearly.",
-
   "authOrSeparator": "or",
   "authContinueWithGoogle": "Continue with Google",
   "authContinueWithFacebook": "Continue with Facebook",
@@ -46,7 +45,6 @@
   "loginPasswordLabel": "Password",
   "loginButton": "Sign in",
   "loginForgotPassword": "Forgot password?",
-
   "forgotPasswordTitle": "Reset password",
   "forgotPasswordBody": "Enter your email or username. We'll send you a link to choose a new password.",
   "forgotPasswordIdentifierLabel": "Email or username",
@@ -72,9 +70,21 @@
   "usernameChangeAvailable": "Can be changed only once — choose wisely!",
   "usernameChangeLocked": "Username is final (change already used)",
   "usernameChangeDone": "Your new username: {username}",
-  "@usernameChangeDone": { "placeholders": { "username": { "type": "String" } } },
+  "@usernameChangeDone": {
+    "placeholders": {
+      "username": {
+        "type": "String"
+      }
+    }
+  },
   "generatedUsernameAnnouncement": "Welcome! Your username is {username} — you can customize it (once) from your profile.",
-  "@generatedUsernameAnnouncement": { "placeholders": { "username": { "type": "String" } } },
+  "@generatedUsernameAnnouncement": {
+    "placeholders": {
+      "username": {
+        "type": "String"
+      }
+    }
+  },
   "registerPhoneLabel": "Phone (optional)",
   "registerPhoneInvalid": "Invalid number",
   "registerPasswordLabel": "Password",
@@ -95,13 +105,11 @@
   "emailVerificationResent": "Verification email resent.",
   "emailVerificationResendAction": "Resend email",
   "tooltipLogout": "Sign out",
-
   "anonymousRetryTitle": "Connection",
   "anonymousRetryHeading": "Couldn't start a session",
   "anonymousRetryBody": "NJUKA needs an internet connection to open. Check your network, then try again.",
   "anonymousRetryButton": "Try again",
   "anonymousRetryAlreadyAccount": "I already have an account",
-
   "profileUpgradeWallHeading": "Unlock the full power of NJUKA",
   "profileUpgradeWallBody": "It's free and quick. Your current reports and votes stay attached to your account.",
   "profileUpgradeWallBenefitNotifs": "Get outage alerts",
@@ -116,23 +124,19 @@
   "profileUpgradeWallAlreadyAccount": "I already have an account",
   "profileUpgradeWallLoginWarningTitle": "Before you sign in",
   "profileUpgradeWallLoginWarningBody": "First sign-in? Your account will be created and the reports/votes from this session will be KEPT. ⚠️ However, if you sign in to an EXISTING NJUKA account, they cannot be attached to it. Continue?",
-
   "upgradeAccountTitle": "Create account",
   "upgradeAccountIntro": "Your reports and votes will stay attached to your new account.",
   "upgradeAccountSubmit": "Create my account",
   "upgradeAccountEmailInUseTitle": "Email already in use",
   "upgradeAccountEmailInUseBody": "This email is already linked to a NJUKA account. You can sign in, but ⚠️ the reports and votes from this anonymous session will NOT be attached to your existing account.",
-
   "anonymousFirstReportHintTitle": "Keep your reports",
   "anonymousFirstReportHintBody": "Your reports and votes are linked to this device. Create an account so you don't lose anything if you uninstall or switch devices.",
   "anonymousFirstReportHintCTA": "Create account",
   "anonymousFirstReportHintLater": "Later",
-
   "settingsResetAnonymousSession": "Reset this anonymous session",
   "settingsResetAnonymousSessionTitle": "Reset this session?",
   "settingsResetAnonymousSessionBody": "Your anonymous reports and votes will stay visible on the map but will no longer be attached to this device. A new anonymous user will be created.",
   "settingsResetAnonymousSessionConfirm": "Reset",
-
   "profileTitle": "My profile",
   "profileTitleAnonymous": "Account",
   "profileTooltipEdit": "Edit",
@@ -152,7 +156,6 @@
   "profileStatsSubtitle": "My outages and my area",
   "profileFollowedTitle": "Followed areas",
   "profileFollowedSubtitle": "Manage my scheduled-outage alerts",
-
   "followedTitle": "Followed areas",
   "followedEmpty": "You aren't following any area yet.",
   "followedEmptyHint": "Follow an area from the scheduled outages to get alerted before an outage.",
@@ -161,7 +164,6 @@
   "followedUnfollowConfirmBody": "You will no longer be alerted before scheduled outages in this area.",
   "followedUnfollowConfirmAction": "Unfollow",
   "followedUnfollowedSnack": "You no longer follow this area.",
-
   "statsTitle": "Statistics",
   "statsSectionMine": "My outages",
   "statsSectionZone": "My area",
@@ -182,19 +184,33 @@
   "statsHourLabel": "{h}:00",
   "@statsHourLabel": {
     "description": "Hour of day, e.g. 18:00",
-    "placeholders": { "h": { "type": "int" } }
+    "placeholders": {
+      "h": {
+        "type": "int"
+      }
+    }
   },
   "statsDurationHm": "{h}h {m}m",
   "@statsDurationHm": {
     "description": "Duration hours + minutes",
-    "placeholders": { "h": { "type": "int" }, "m": { "type": "int" } }
+    "placeholders": {
+      "h": {
+        "type": "int"
+      },
+      "m": {
+        "type": "int"
+      }
+    }
   },
   "statsDurationM": "{m}m",
   "@statsDurationM": {
     "description": "Duration minutes only",
-    "placeholders": { "m": { "type": "int" } }
+    "placeholders": {
+      "m": {
+        "type": "int"
+      }
+    }
   },
-
   "editProfileTitle": "Edit profile",
   "editProfileResidence": "Residence",
   "editProfileCity": "City",
@@ -243,13 +259,28 @@
   "reportFormDescribePositionConfirm": "Locate",
   "reportFormAddressNotFound": "Place not found. Be more specific (add the city or country).",
   "reportFormCountryOverrideInfo": "Selected country: {selected}. Your detected position is elsewhere ({detected}) — this report will be attached to {selected}.",
-  "@reportFormCountryOverrideInfo": { "placeholders": { "selected": {"type": "String"}, "detected": {"type": "String"} } },
+  "@reportFormCountryOverrideInfo": {
+    "placeholders": {
+      "selected": {
+        "type": "String"
+      },
+      "detected": {
+        "type": "String"
+      }
+    }
+  },
   "reportFormObservedAtLabel": "Date and time observed (optional)",
   "reportFormObservedDate": "Date",
   "reportFormObservedTime": "Time",
   "reportFormAttestation": "I confirm this outage is real, not coming from my own installation (breaker, meter, shut-off valve).",
   "activeOutagesCount": "{count, plural, =0{No active outages} =1{1 active outage right now} other{{count} active outages right now}}",
-  "@activeOutagesCount": { "placeholders": { "count": {"type": "int"} } },
+  "@activeOutagesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "reportFormCreatedSuccess": "Outage reported. Thanks!",
   "reportFormConfirmedSuccess": "Outage confirmed. Thanks!",
   "duplicateOwnTitle": "You already reported here",
@@ -274,7 +305,13 @@
   "reportDetailSnackRestoredFailed": "Report failed.",
   "reportDetailRestorationCount": "{count, plural, =1{1 person reported the power back} other{{count} people reported the power back}}",
   "reportDetailRestorationCountWater": "{count, plural, =1{1 person reported the water back} other{{count} people reported the water back}}",
-  "@reportDetailRestorationCountWater": { "placeholders": { "count": {"type": "int"} } },
+  "@reportDetailRestorationCountWater": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "reportDetailDeleteButton": "Delete this report",
   "reportDetailDeleteDialogTitle": "Delete this report?",
   "deleteReasonPrompt": "Why are you deleting this report?",
@@ -326,7 +363,6 @@
   "surveyBannerText": "Help us improve NJUKA — take the survey (2 min)",
   "surveyBannerDismiss": "Dismiss",
   "homeEmptyWithFilters": "No outage matches your search.",
-
   "promptNearbyHeadingElectricity": "Power outage reported in your area",
   "promptNearbyHeadingWater": "Water outage reported in your area",
   "promptNearbyQuestion": "Is it affecting you too?",
@@ -389,13 +425,11 @@
   "statusResolved": "Restored",
   "outageTypeUnplanned": "Unplanned outage",
   "outageTypeScheduled": "Scheduled outage",
-
   "serviceElectricity": "Electricity",
   "serviceWater": "Water",
   "serviceFilterAll": "All",
   "serviceFilterElectricity": "Power",
   "serviceFilterWater": "Water",
-
   "roleCitizen": "Citizen",
   "roleOperator": "Operator",
   "roleAdmin": "Administrator",
@@ -429,18 +463,32 @@
   "settingsSectionLegal": "Legal",
   "settingsPrivacyPolicy": "Privacy policy",
   "settingsLinkOpenFailed": "Couldn't open the link.",
-
   "supportTileTitle": "Report a problem",
   "supportTileSubtitle": "A bug, a question? Write to us",
   "supportEmailSubject": "NJUKA — problem report (v{version} ({build}))",
-  "@supportEmailSubject": { "placeholders": { "version": { "type": "String" }, "build": { "type": "String" } } },
+  "@supportEmailSubject": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      },
+      "build": {
+        "type": "String"
+      }
+    }
+  },
   "supportEmailBodyHint": "Describe your problem here (what were you doing? what happened?):",
   "supportDiagSeparator": "Technical info (please keep, it helps us)",
   "supportDiagAccount": "Account",
   "supportDiagAnonymous": "anonymous session",
   "supportDiagLanguage": "Language",
   "supportNoMailApp": "No email app found. Write to us at: {email}",
-  "@supportNoMailApp": { "placeholders": { "email": { "type": "String" } } },
+  "@supportNoMailApp": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
   "settingsSectionAdmin": "Administration",
   "settingsWorldwide": "Show all reports (worldwide)",
   "settingsWorldwideDescription": "Removes the country filter and shows active outages from around the world. Admins only.",
@@ -450,7 +498,9 @@
   "@settingsVersion": {
     "description": "Settings screen footer showing the app version",
     "placeholders": {
-      "version": { "type": "String" }
+      "version": {
+        "type": "String"
+      }
     }
   },
   "deleteAccountTitle": "Delete account?",
@@ -470,9 +520,6 @@
   "confirmFollowTitle": "Follow this area?",
   "confirmFollowBody": "You'll get an alert the day before planned outages in this area.",
   "confirmFollowAction": "Follow",
-  "confirmFollowTitle": "Follow this area?",
-  "confirmFollowBody": "You'll get an alert the day before planned outages in this area.",
-  "confirmFollowAction": "Follow",
   "settingsSectionProviderDebug": "Country / company (debug)",
   "providerAuto": "Auto (detected)",
   "settingsSectionRegion": "Region",
@@ -481,5 +528,32 @@
   "countryPickerTitle": "Choose country",
   "countryAuto": "Automatic",
   "plannedNoProviderBody": "No scheduled outages for {country}. If that's not your country, change it in settings.",
-  "@plannedNoProviderBody": { "placeholders": { "country": {"type": "String"} } }
+  "@plannedNoProviderBody": {
+    "placeholders": {
+      "country": {
+        "type": "String"
+      }
+    }
+  },
+  "reportShareAction": "Share",
+  "shareTitleElectricity": "Power outage",
+  "shareTitleWater": "Water outage",
+  "shareResolvedSuffix": " (restored)",
+  "shareZone": "in {zone}",
+  "@shareZone": {
+    "placeholders": {
+      "zone": {
+        "type": "String"
+      }
+    }
+  },
+  "shareConfirmations": "{count, plural, =0{just reported} one{1 neighbor confirms} other{{count} neighbors confirm}}",
+  "@shareConfirmations": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareTagline": "Followed live on NJUKA:"
 }

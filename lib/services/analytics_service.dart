@@ -77,6 +77,12 @@ class AnalyticsService {
 
   Future<void> logReportRestored() => _log('report_restored');
 
+  /// Partage d'un signalement (feuille native) — levier viral n°1.
+  Future<void> logReportShared({
+    required String service,
+    required String status,
+  }) => _log('report_shared', {'service': service, 'status': status});
+
   /// Réponse « Non, pas chez moi » au prompt d'ouverture (signal négatif).
   Future<void> logReportDenied() => _log('report_denied');
 

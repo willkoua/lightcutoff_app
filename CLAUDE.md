@@ -199,6 +199,10 @@ final l = await AppLocalizations.delegate.load(const Locale('fr'));
 
 Verification and password-reset emails are BRANDED (logo, amber, FR/EN) and sent by Brevo from `noreply@njuka.app` — not by Firebase's locked templates. Flow: app → callable CF (`sendVerificationEmail` auth-required / `sendPasswordReset` unauthenticated + anti-enumeration) → Admin SDK generates the secure link → Brevo template (`functions/src/emails.ts`, TEMPLATE_IDS 1-4) sends it. The app (`AuthService._trySendBranded`) ALWAYS falls back to the native Firebase send if the CF fails — never blocking. Email language: `locale_override` SharedPreferences key (same as LocaleProvider), else device locale, default fr. Templates are edited in Brevo (or re-synced via `functions/scripts/createBrevoTemplates.cjs` — idempotent, needs `BREVO_API_KEY` env from Secret Manager). Secret `BREVO_API_KEY` exists in both projects; Brevo account must keep IP restriction DISABLED (dynamic CF egress IPs). DNS/DMARC: njuka.app is strictly aligned (`p=reject`) — any new sender must DKIM-sign as njuka.app.
 
+## Report sharing (2026-08-08)
+
+Every ReportCard has a share button -> native share sheet with an info-bearing message (service emoji, short zone "quartier, ville", confirmation count) + public link `AppConfig.shareBaseUrl/s/{id}` (prod: njuka.app, staging: lightcutoff-dev.web.app). The link is served by the `renderReportShare` CF (functions/src/share.ts) through a `/s/**` hosting rewrite — server-rendered HTML with Open Graph tags (WhatsApp previews don't execute JS). PRIVACY: the public page shows NO author, NO free-text description, NO exact position — service/zone/status/count only. ⚠️ The prod hosting rewrite lives in the WEBSITE repo (`../lightCutOff/firebase.json`, before its SPA catch-all) — prod hosting deploys happen from that repo, never from this one. Analytics: `report_shared{service,status}` on tap (intent, not completion). Phase 2 backlog: App Links/Universal Links.
+
 ## Data model highlights
 
 See `SCHEMA.md` for the full Firestore schema. Key points for code work:

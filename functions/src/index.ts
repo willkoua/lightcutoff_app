@@ -36,6 +36,7 @@ import {
 import { EneoAdapter } from "./sources/eneo";
 
 export { sendVerificationEmail, sendPasswordReset } from "./emails";
+export { renderReportShare } from "./share";
 
 admin.initializeApp();
 
