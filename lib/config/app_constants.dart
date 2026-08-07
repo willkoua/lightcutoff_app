@@ -98,7 +98,7 @@ class AppConstants {
 
   /// Adresse de support (tuile « Signaler un problème », Paramètres → Aide).
   /// Le brouillon d'email est pré-rempli avec le diagnostic (version, OS…).
-  static const String supportEmail = 'support@bogal.ca';
+  static const String supportEmail = 'support@njuka.app';
 
   /// Sondage de retour des testeurs (Google Forms). Affiché via une bannière
   /// sur la Liste **en staging/dev uniquement** (cf. AppConfig.showDevTools).
