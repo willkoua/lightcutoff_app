@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   buildBody,
+  nextImpactRadius,
   plannedAlertBody,
   resolutionThreshold,
   shouldResolve,
@@ -82,4 +83,21 @@ test("buildBody : quartier + ville (ordre quartier → ville)", () => {
     buildBody({ neighborhood: "Bastos", city: "Yaoundé" }),
     "Bastos, Yaoundé · à l'instant"
   );
+});
+
+test("nextImpactRadius: plancher pour une confirmation proche", () => {
+  assert.equal(nextImpactRadius(undefined, 20), 150);
+  assert.equal(nextImpactRadius(undefined, 0), 150);
+});
+
+test("nextImpactRadius: suit la distance max et ne rétrécit jamais", () => {
+  assert.equal(nextImpactRadius(undefined, 480), 480);
+  assert.equal(nextImpactRadius(480, 320), 480);
+  assert.equal(nextImpactRadius(480, 900.4), 900);
+});
+
+test("nextImpactRadius: plafond et entrées invalides", () => {
+  assert.equal(nextImpactRadius(undefined, 25000), 2000);
+  assert.equal(nextImpactRadius(2000, Number.NaN), 2000);
+  assert.equal(nextImpactRadius(undefined, -50), 150);
 });

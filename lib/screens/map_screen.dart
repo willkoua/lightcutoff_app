@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -15,6 +14,7 @@ import '../theme/app_colors.dart';
 import '../widgets/active_filters_banner.dart';
 import '../widgets/confirm_dialog.dart';
 import '../widgets/njuka_app_bar.dart';
+import '../utils/impact_zone.dart';
 import '../utils/l10n_helpers.dart';
 import '../widgets/report_card.dart';
 import '../widgets/service_filter_bar.dart';
@@ -39,6 +39,10 @@ class _MapScreenState extends State<MapScreen> {
   LatLng? _myPos;
   bool _mapReady = false;
   bool _didInitialCenter = false;
+
+  /// Les résolues sont masquées par défaut : la carte répond à « où est-ce
+  /// coupé MAINTENANT ? » — l'historique vit dans la liste et les stats.
+  bool _showResolved = false;
 
   @override
   void initState() {
@@ -169,7 +173,12 @@ class _MapScreenState extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ReportProvider>();
-    final reports = provider.filteredReports;
+    // Résolues masquées par défaut (chip « Résolues » pour les réafficher).
+    final reports = [
+      for (final r in provider.filteredReports)
+        if (_showResolved || r.status == OutageStatus.ongoing) r,
+    ];
+    final now = DateTime.now();
 
     final l = AppLocalizations.of(context);
     final region = context.watch<RegionProvider>();
@@ -233,50 +242,65 @@ class _MapScreenState extends State<MapScreen> {
                   userAgentPackageName: 'com.njuka.app',
                   maxZoom: 19,
                 ),
-              MarkerClusterLayerWidget(
-                options: MarkerClusterLayerOptions(
-                  maxClusterRadius: 48,
-                  size: const Size(44, 44),
-                  padding: const EdgeInsets.all(50),
-                  markers: [
-                    for (final report in reports)
-                      Marker(
+              // Taches d'impact : une coupure = un disque translucide couleur
+              // service. Rayon = ampleur (`impactRadiusM`, agrégat serveur
+              // calculé depuis les confirmations — positions individuelles
+              // jamais exposées), opacité = fraîcheur du dernier signal.
+              // Les nappes voisines se fondent visuellement au dézoom : c'est
+              // voulu (une coupure de secteur = une seule grande tache).
+              CircleLayer(
+                circles: [
+                  for (final report in reports)
+                    if (report.status == OutageStatus.ongoing)
+                      CircleMarker(
                         point: LatLng(report.position.lat, report.position.lng),
-                        width: 44,
-                        height: 44,
-                        child: GestureDetector(
-                          onTap: () => _openDetails(report),
-                          // Couleur : statut résolu = vert commun ; en cours =
-                          // couleur du service (ambre élec / sky eau).
-                          // Icône : on garde le pin (`location_on`) pour la
-                          // continuité visuelle, et on superpose une mini icône
-                          // service centrée pour différencier d'un coup d'œil.
-                          child: _ServiceMarker(
-                            color:
-                                report.status == OutageStatus.ongoing
-                                    ? serviceTypeColor(report.serviceType)
-                                    : AppColors.resolved,
-                            serviceIcon: serviceTypeIcon(report.serviceType),
+                        radius: zoneRadiusM(report.impactRadiusM),
+                        useRadiusInMeter: true,
+                        color: serviceTypeColor(report.serviceType).withValues(
+                          alpha: zoneOpacity(
+                            report.updatedAt ?? report.reportedAt,
+                            now: now,
                           ),
                         ),
-                      ),
-                  ],
-                  builder:
-                      (context, markers) => Container(
-                        decoration: const BoxDecoration(
-                          color: AppColors.primary,
-                          shape: BoxShape.circle,
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          '${markers.length}',
-                          style: const TextStyle(
-                            color: AppColors.dark,
-                            fontWeight: FontWeight.bold,
+                        borderColor: serviceTypeColor(
+                          report.serviceType,
+                        ).withValues(
+                          alpha: zoneBorderOpacity(
+                            zoneOpacity(
+                              report.updatedAt ?? report.reportedAt,
+                              now: now,
+                            ),
                           ),
                         ),
+                        borderStrokeWidth: 1.5,
                       ),
-                ),
+                ],
+              ),
+              // Pins : cible de tap vers le détail, posés sur l'épicentre.
+              // Le clustering a été retiré (2026-08-07) : les taches portent
+              // désormais la sémantique de densité — à réévaluer si la vraie
+              // densité rend les pins illisibles.
+              MarkerLayer(
+                markers: [
+                  for (final report in reports)
+                    Marker(
+                      point: LatLng(report.position.lat, report.position.lng),
+                      width: 44,
+                      height: 44,
+                      child: GestureDetector(
+                        onTap: () => _openDetails(report),
+                        // Couleur : statut résolu = vert commun ; en cours =
+                        // couleur du service (ambre élec / sky eau).
+                        child: _ServiceMarker(
+                          color:
+                              report.status == OutageStatus.ongoing
+                                  ? serviceTypeColor(report.serviceType)
+                                  : AppColors.resolved,
+                          serviceIcon: serviceTypeIcon(report.serviceType),
+                        ),
+                      ),
+                    ),
+                ],
               ),
               if (_myPos != null)
                 MarkerLayer(
@@ -358,6 +382,19 @@ class _MapScreenState extends State<MapScreen> {
                     elevation: 2,
                     color: AppColors.white,
                     child: const ServiceFilterBar(),
+                  ),
+                  // Chip « Résolues » : réaffiche les coupures terminées
+                  // (masquées par défaut pour garder la carte au présent).
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 8, right: 12),
+                      child: FilterChip(
+                        selected: _showResolved,
+                        label: Text(l.mapShowResolved),
+                        onSelected: (v) => setState(() => _showResolved = v),
+                      ),
+                    ),
                   ),
                 ],
               ),

@@ -141,6 +141,7 @@ void main() {
         'geohash': 's2x9c',
         'authorUsername': 'willk',
         'description': 'coupure',
+        'impactRadiusM': 480,
       });
 
       final r = Report.fromDoc(doc);
@@ -155,6 +156,7 @@ void main() {
       expect(r.geohash, 's2x9c');
       expect(r.authorUsername, 'willk');
       expect(r.description, 'coupure');
+      expect(r.impactRadiusM, 480);
     });
 
     test('document vide -> valeurs par défaut', () {

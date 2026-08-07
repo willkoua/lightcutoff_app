@@ -339,3 +339,21 @@ Build staging (ou prod), compte email/mot de passe.
    le mur Compte → email de vérification brandé reçu (même gabarit qu'en 1).
 6. (Boîte à outils) Panne Brevo simulée = repli silencieux sur l'email Firebase
    générique — le parcours ne doit jamais bloquer.
+
+## Carte : zones d'impact (2026-08-07)
+
+Build v64+ (staging), onglet Carte.
+
+1. **Tache autour d'un signalement** : créer un signalement élec → au zoom
+   quartier, un disque ambre translucide (~150 m) entoure le pin.
+2. **La tache grandit avec les confirmations** : confirmer depuis un 2e
+   compte/appareil éloigné de 300-800 m → après quelques secondes (refresh),
+   le disque s'étend jusqu'au confirmeur (plafond 2 km).
+3. **Couleur service** : un signalement eau → disque bleu ciel.
+4. **Fraîcheur** : les taches d'hier sont nettement plus pâles que celles de
+   l'heure (données seedées : comparer Bastos [2 h] vs Akwa [14 h]).
+5. **Résolues masquées** : résoudre une coupure → sa tache ET son pin
+   disparaissent de la carte ; le chip « Résolues » (sous le sélecteur de
+   service) les réaffiche (pins verts, pas de tache).
+6. **Dézoom ville** : les taches voisines se fondent en nappes — plus de
+   ronds compteurs de cluster ; chaque pin reste tapable → détail.

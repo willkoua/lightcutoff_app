@@ -111,3 +111,25 @@ export function plannedAlertBody(input: PlannedAlertInput): string {
   const window = s && e ? ` de ${s} à ${e}` : "";
   return `Coupure planifiée demain à ${q}${window}.`;
 }
+
+/** Bornes du rayon d'impact affiché sur la carte (agrégat anonyme). */
+export const IMPACT_MIN_M = 150;
+export const IMPACT_MAX_M = 2000;
+
+/**
+ * Rayon d'impact d'un report après une nouvelle confirmation (pur, testable).
+ *
+ * Le rayon stocké est la plus grande distance épicentre↔confirmeur observée,
+ * bornée à [IMPACT_MIN_M, IMPACT_MAX_M] : le plancher donne une taille
+ * lisible aux coupures peu confirmées, le plafond évite qu'une confirmation
+ * aberrante (GPS erratique, repli device) ne dessine une tache absurde.
+ * Ne décroît jamais — l'emprise d'une coupure ne rétrécit pas.
+ */
+export function nextImpactRadius(
+  current: number | undefined,
+  distanceM: number
+): number {
+  const sane = Number.isFinite(distanceM) && distanceM >= 0 ? distanceM : 0;
+  const clamped = Math.min(Math.max(sane, IMPACT_MIN_M), IMPACT_MAX_M);
+  return Math.round(Math.max(current ?? 0, clamped));
+}

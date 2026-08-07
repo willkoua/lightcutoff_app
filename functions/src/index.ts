@@ -27,6 +27,7 @@ import { geohashQueryBounds, distanceBetween } from "geofire-common";
 import {
   buildBody,
   plannedAlertBody,
+  nextImpactRadius,
   resolutionThreshold,
   resolvedNotifContent,
   shouldResolve,
@@ -74,6 +75,7 @@ interface ReportDoc {
   cause?: string; // anciens docs (avant le rename type)
   serviceType?: string; // electricity | water (absent = electricity, legacy)
   archivedAt?: FirebaseFirestore.Timestamp | null;
+  impactRadiusM?: number; // agrégat anonyme (carte) — écrit UNIQUEMENT ici
 }
 
 interface DeviceDoc {
@@ -161,6 +163,22 @@ export const onConfirmationCreated = onDocumentCreated(
     if (!reportSnap.exists) return;
     const report = reportSnap.data() as ReportDoc & ReportNotifState;
     if (report.archivedAt) return;
+
+    // Rayon d'impact (tache sur la carte) : agrégat anonyme — seule la
+    // distance max épicentre↔confirmeur est publiée, jamais une position.
+    // Calculé AVANT le garde-fou d'épicentres : une confirmation peut étendre
+    // la tache même quand elle ne déclenche pas de nouvelle vague de notifs.
+    if (report.position) {
+      const distM =
+        distanceBetween(
+          [report.position.lat, report.position.lng],
+          [cp.lat, cp.lng]
+        ) * 1000;
+      const next = nextImpactRadius(report.impactRadiusM, distM);
+      if (next > (report.impactRadiusM ?? 0)) {
+        await reportRef.update({ impactRadiusM: next });
+      }
+    }
 
     const epicenters = report.notificationEpicenters ?? [];
 

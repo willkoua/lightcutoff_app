@@ -363,6 +363,7 @@
   "homeClearFilters": "Effacer",
 
   "mapTitle": "Carte des coupures",
+  "mapShowResolved": "Résolues",
   "tooltipFilter": "Filtrer / rechercher",
 
   "filterSheetTitle": "Filtres",

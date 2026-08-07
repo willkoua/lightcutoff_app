@@ -71,6 +71,7 @@ par **confirmations** (voir sous-collection), pas par création de nouveaux docs
 | `confirmationCount` | int | ✅ | nb de confirmations (dénormalisé) |
 | `restorationCount` | int | ✅ | nb de déclarations « courant revenu » (dénormalisé) ; quand le seuil est franchi, la Cloud Function `onRestorationCreated` passe le `status` à `resolved`. |
 | `notifiedUserIds` | string[] | ✅ | dédup des notifications de proximité : un utilisateur est notifié **au plus une fois par report** (posé par la CF `onConfirmationCreated` via Admin SDK) |
+| `impactRadiusM` | number \| absent | ✅ | rayon d'impact (m) de la tache carte — **agrégat anonyme** posé par `onConfirmationCreated` : distance max épicentre↔confirmeur, bornée serveur [150, 2000] ; ne décroît jamais ; absent = jamais confirmé (plancher 150 m à l'affichage) |
 | `photoUrls` | string[] | 🔵 | preuves visuelles (Firebase Storage) |
 | `reportedAt` | timestamp | ✅ | début de coupure signalé |
 | `resolvedAt` | timestamp \| null | ✅ | retour du courant |

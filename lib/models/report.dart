@@ -47,6 +47,12 @@ class Report {
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
+  /// Rayon d'impact (mètres) de la tache dessinée sur la carte — agrégat
+  /// anonyme écrit par la CF `onConfirmationCreated` (distance max
+  /// épicentre↔confirmeur, bornée serveur). `null` (report jamais confirmé
+  /// ou legacy) → rayon plancher à l'affichage.
+  final double? impactRadiusM;
+
   const Report({
     required this.id,
     required this.userId,
@@ -67,6 +73,7 @@ class Report {
     this.archivedAt,
     this.createdAt,
     this.updatedAt,
+    this.impactRadiusM,
   });
 
   factory Report.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -93,6 +100,7 @@ class Report {
       archivedAt: (map['archivedAt'] as Timestamp?)?.toDate(),
       createdAt: (map['createdAt'] as Timestamp?)?.toDate(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate(),
+      impactRadiusM: (map['impactRadiusM'] as num?)?.toDouble(),
     );
   }
 

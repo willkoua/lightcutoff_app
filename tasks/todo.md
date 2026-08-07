@@ -1,6 +1,19 @@
 # NJUKA — État du programme (plan détaillé fait / non fait)
 
-## 🛠️ PLAN ACTIF — Emails personnalisés NJUKA (Brevo) — rédigé 2026-08-07
+## 🛠️ PLAN ACTIF — Carte : zones d'impact au lieu de points (validé sur maquette 2026-08-07)
+
+**Décision** : une coupure = disque translucide couleur service (rayon = ampleur via confirmations, opacité = fraîcheur), pin conservé comme cible de tap, résolues masquées par défaut. Heatmap et cellules geohash écartées. Contrainte : positions des confirmations verrouillées serveur → agrégat anonyme calculé en CF.
+
+**✅ RÉALISÉ le 2026-08-07** (28 tests functions + 226 tests Flutter verts) :
+- [x] 1. CF : `nextImpactRadius` (logic.ts, testé) + écriture dans `onConfirmationCreated` AVANT le garde-fou d'épicentres (une confirmation étend la tache même sans nouvelle vague de notifs) — déployée staging + prod
+- [x] 2. Modèle Dart `Report.impactRadiusM` + test parsing
+- [x] 3. MapScreen : `CircleLayer` metrique sous les pins, opacité par fraîcheur (`utils/impact_zone.dart` pur+testé : 0.28 → 0.10 entre 2 h et 24 h), liseré 2×, résolues masquées + FilterChip « Résolues » (i18n mapShowResolved)
+- [x] 4. Clustering retiré (pins simples ; à réévaluer avec la densité réelle)
+- [x] 5. Vérifié en réel sur staging : simulateWave → `impactRadiusM: 200` écrit par la CF (report de test nettoyé) ; recette TESTS-MANUELS §Carte ajoutée
+- [x] 6. Docs : CLAUDE.md + SCHEMA.md
+- [ ] RESTE (utilisateur) : recette visuelle §Carte sur appareil au prochain build
+
+## 🛠️ PLAN — Emails personnalisés NJUKA (Brevo) — rédigé 2026-08-07
 
 **Objectif** : remplacer les emails Firebase génériques (vérification, reset mot de passe) par des emails aux couleurs NJUKA (logo, ambre #F88E01, tutoiement, FR/EN), envoyés via Brevo depuis `noreply@njuka.app`. Design retouchable dans Brevo sans redéploiement.
 
