@@ -5,6 +5,44 @@
 
 ---
 
+## Test fermé — `1.2.0 (64)` — staging (2026-08-07)
+
+> ⚠️ Pour les testeurs qui utilisaient **Google Sign-In** : il n'est plus
+> disponible en test fermé (bascule prod) — utilisez e-mail ou Facebook.
+
+### 🇫🇷 fr-FR
+```
+Merci de continuer à tester NJUKA !
+
+Nouveautés :
+• La carte montre l'AMPLEUR des coupures : chaque coupure dessine une
+  zone colorée qui grandit avec les confirmations et pâlit avec le temps
+• Les coupures résolues sont masquées de la carte (bouton « Résolues »
+  pour les revoir)
+• Emails de vérification et de mot de passe aux couleurs NJUKA
+• Nouvelle adresse support : support@njuka.app
+
+Note : la connexion Google n'est plus disponible en test fermé —
+utilise e-mail ou Facebook. Merci 🙏
+```
+
+### 🇬🇧 en-US
+```
+Thanks for continuing to test NJUKA!
+
+What's new:
+• The map now shows outage EXTENT: each outage draws a colored zone
+  that grows with confirmations and fades over time
+• Resolved outages are hidden from the map ("Resolved" chip to show them)
+• Verification and password emails in NJUKA colors
+• New support address: support@njuka.app
+
+Note: Google Sign-In is no longer available in closed testing —
+use email or Facebook. Thanks 🙏
+```
+
+---
+
 ## 🚀 PRODUCTION — `1.2.0 (63)` — njuka-prod (soumis stores le 2026-07-30)
 
 > Premier lancement public (Play production + App Store). Nom de release
