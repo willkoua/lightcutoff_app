@@ -158,8 +158,10 @@ class RegionProvider extends ChangeNotifier {
     // En prod, le choix manuel n'existe plus : on n'applique pas non plus une
     // éventuelle valeur persistée (résidu d'un ancien build / de staging) —
     // c'est elle qui cachait ses propres signalements à l'utilisateur
-    // (incident 2026-07-28).
-    if (!AppConfig.showDevTools) return;
+    // (incident 2026-07-28). Gate sur `isProd` (pas `showDevTools`) : le mode
+    // capture (SCREENSHOT_MODE) masque le sélecteur mais doit HONORER le pays
+    // choisi, sinon impossible de capturer les données seedées CM.
+    if (AppConfig.isProd) return;
     final prefs = await SharedPreferences.getInstance();
     final iso = prefs.getString(_userCountryKey);
     if (iso != null && iso.isNotEmpty && iso != _userCountryIso) {
@@ -267,7 +269,7 @@ class RegionProvider extends ChangeNotifier {
   String get activeCountry {
     if (_overrideElec != null) return _overrideElec!.country;
     if (_overrideWater != null) return _overrideWater!.country;
-    if (AppConfig.showDevTools && _userCountryIso != null) {
+    if (!AppConfig.isProd && _userCountryIso != null) {
       return _userCountryIso!;
     }
     if (_detectedCountryIso != null) return _detectedCountryIso!;

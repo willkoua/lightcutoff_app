@@ -221,3 +221,4 @@ Format : `[date] | ce qui a mal tourné | règle pour l'éviter`
   async ; le défaut `unknown` suffit à couvrir le démarrage à froid. Distinguer « 1ère ouverture »
   (splash légitime) de « transition de session » (doit être invisible).
 - [2026-08-07] | Ajout d'un chip « Résolues » sur la carte alors que le tiroir de filtres de l'AppBar avait déjà le filtre de statut (défaut = En cours, donc résolues déjà masquées) | Avant d'ajouter un contrôle UI, vérifier ce que `filteredReports`/le provider filtre DÉJÀ par défaut et ce que le filter_sheet expose — la carte et la liste partagent le même provider de filtres.
+- [2026-08-08] | En mode SCREENSHOT_MODE la carte était vide : le choix manuel du pays était gaté sur `showDevTools` (faux en mode capture) → détection auto → mauvais pays → 0 données seedées | Gater l'HONORATION d'un réglage sur `isProd`, et seulement son UI sur `showDevTools` — un mode capture doit masquer les contrôles, pas changer le comportement.
