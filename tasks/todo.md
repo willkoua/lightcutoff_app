@@ -7,7 +7,7 @@
 **✅ RÉALISÉ le 2026-08-07** (28 tests functions + 226 tests Flutter verts) :
 - [x] 1. CF : `nextImpactRadius` (logic.ts, testé) + écriture dans `onConfirmationCreated` AVANT le garde-fou d'épicentres (une confirmation étend la tache même sans nouvelle vague de notifs) — déployée staging + prod
 - [x] 2. Modèle Dart `Report.impactRadiusM` + test parsing
-- [x] 3. MapScreen : `CircleLayer` metrique sous les pins, opacité par fraîcheur (`utils/impact_zone.dart` pur+testé : 0.28 → 0.10 entre 2 h et 24 h), liseré 2×, résolues masquées + FilterChip « Résolues » (i18n mapShowResolved)
+- [x] 3. MapScreen : `CircleLayer` metrique sous les pins, opacité par fraîcheur (`utils/impact_zone.dart` pur+testé : 0.28 → 0.10 entre 2 h et 24 h), liseré 2×, résolues masquées par le filtre de statut existant du provider (chip dédié ajouté puis RETIRÉ — doublon du filter_sheet, cf. lessons)
 - [x] 4. Clustering retiré (pins simples ; à réévaluer avec la densité réelle)
 - [x] 5. Vérifié en réel sur staging : simulateWave → `impactRadiusM: 200` écrit par la CF (report de test nettoyé) ; recette TESTS-MANUELS §Carte ajoutée
 - [x] 6. Docs : CLAUDE.md + SCHEMA.md

@@ -338,7 +338,6 @@
   "homeActiveFilters": "{count, plural, =1{Active filters · 1 result} other{Active filters · {count} results}}",
   "homeClearFilters": "Clear",
   "mapTitle": "Outage map",
-  "mapShowResolved": "Resolved",
   "tooltipFilter": "Filter / search",
   "filterSheetTitle": "Filters",
   "filterSheetReset": "Reset",

@@ -40,10 +40,6 @@ class _MapScreenState extends State<MapScreen> {
   bool _mapReady = false;
   bool _didInitialCenter = false;
 
-  /// Les résolues sont masquées par défaut : la carte répond à « où est-ce
-  /// coupé MAINTENANT ? » — l'historique vit dans la liste et les stats.
-  bool _showResolved = false;
-
   @override
   void initState() {
     super.initState();
@@ -173,11 +169,9 @@ class _MapScreenState extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ReportProvider>();
-    // Résolues masquées par défaut (chip « Résolues » pour les réafficher).
-    final reports = [
-      for (final r in provider.filteredReports)
-        if (_showResolved || r.status == OutageStatus.ongoing) r,
-    ];
+    // Résolues déjà masquées par défaut par le provider (statut « En cours »
+    // par défaut, modifiable dans le tiroir de filtres de l'AppBar).
+    final reports = provider.filteredReports;
     final now = DateTime.now();
 
     final l = AppLocalizations.of(context);
@@ -382,19 +376,6 @@ class _MapScreenState extends State<MapScreen> {
                     elevation: 2,
                     color: AppColors.white,
                     child: const ServiceFilterBar(),
-                  ),
-                  // Chip « Résolues » : réaffiche les coupures terminées
-                  // (masquées par défaut pour garder la carte au présent).
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 8, right: 12),
-                      child: FilterChip(
-                        selected: _showResolved,
-                        label: Text(l.mapShowResolved),
-                        onSelected: (v) => setState(() => _showResolved = v),
-                      ),
-                    ),
                   ),
                 ],
               ),

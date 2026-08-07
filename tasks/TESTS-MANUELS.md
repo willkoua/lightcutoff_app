@@ -353,7 +353,7 @@ Build v64+ (staging), onglet Carte.
 4. **Fraîcheur** : les taches d'hier sont nettement plus pâles que celles de
    l'heure (données seedées : comparer Bastos [2 h] vs Akwa [14 h]).
 5. **Résolues masquées** : résoudre une coupure → sa tache ET son pin
-   disparaissent de la carte ; le chip « Résolues » (sous le sélecteur de
-   service) les réaffiche (pins verts, pas de tache).
+   disparaissent de la carte ; le tiroir de filtres (AppBar) → statut
+   « Résolues » les réaffiche (pins verts, pas de tache).
 6. **Dézoom ville** : les taches voisines se fondent en nappes — plus de
    ronds compteurs de cluster ; chaque pin reste tapable → détail.

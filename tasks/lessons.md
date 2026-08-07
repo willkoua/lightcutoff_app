@@ -220,3 +220,4 @@ Format : `[date] | ce qui a mal tourné | règle pour l'éviter`
   vers l'écran de chargement plein écran**. Laisser le statut courant (MainShell) pendant l'appel
   async ; le défaut `unknown` suffit à couvrir le démarrage à froid. Distinguer « 1ère ouverture »
   (splash légitime) de « transition de session » (doit être invisible).
+- [2026-08-07] | Ajout d'un chip « Résolues » sur la carte alors que le tiroir de filtres de l'AppBar avait déjà le filtre de statut (défaut = En cours, donc résolues déjà masquées) | Avant d'ajouter un contrôle UI, vérifier ce que `filteredReports`/le provider filtre DÉJÀ par défaut et ce que le filter_sheet expose — la carte et la liste partagent le même provider de filtres.
