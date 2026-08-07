@@ -1,5 +1,13 @@
 # 🧪 NJUKA — Guide de test
 
+> ⚠️ **Mise à jour 2026-08-07 (v64+)** : la **connexion Google n'est plus disponible en test
+> fermé** (elle est réservée à la version publique). Utilise **e-mail** ou **Facebook** —
+> les sections « Google » ci-dessous ne s'appliquent plus au test fermé.
+> Nouveauté v64 : la carte affiche des **zones colorées** autour des coupures (taille =
+> ampleur confirmée, transparence = ancienneté) — dis-nous ce que tu en penses !
+> Support : **support@njuka.app**.
+
+
 Merci de tester **NJUKA** 🙏 — l'appli qui **signale les coupures d'électricité et d'eau**
 autour de toi et **annonce les coupures planifiées** (programme de l'opérateur).
 

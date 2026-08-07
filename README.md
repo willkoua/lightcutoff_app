@@ -26,7 +26,7 @@ Sans `APP_ENV` → `staging` (comportement historique) ; `USE_EMULATOR=true` →
 
 ### État d'avancement
 
-**MVP+ complet** — en **test fermé Play Store** (release `1.2.0+55` déployée ; `1.2.0+57` = migration API 36, buildée). **iOS** : premier build `1.2.0 (57)` uploadé sur App Store Connect (TestFlight). **Prod `njuka-prod`** créée et validée de bout en bout, publication à déclencher.
+**🚀 EN PRODUCTION sur les deux stores** depuis le 2026-08-07 (`1.2.0+63` approuvée Apple + Google ; mise à jour `1.2.1+65` — zones d'impact carte + emails de marque — soumise dans la foulée). Le **test fermé** Play continue en parallèle sur staging (`1.2.0+64`). Domaine officiel : **njuka.app** (emails `noreply@` / `support@`, DNS authentifié Firebase + Brevo, DMARC strict).
 
 | Domaine | Livré |
 |---------|-------|
@@ -38,12 +38,13 @@ Sans `APP_ENV` → `staging` (comportement historique) ; `USE_EMULATOR=true` →
 | Mesure | **Firebase Analytics** (funnel : `anonymous_started` → `anonymous_first_report` → `upgrade_started` → `upgrade_completed` + signalement/confirmation/restauration + screen views), collecte coupée en dev |
 | Coupures officielles | **programme Eneo ingéré quotidiennement** (Cloud Function) → segment « Programmées » (recherche quartier + filtre région), **suivre un quartier** + alerte push la veille |
 | Multi-pays | fournisseurs résolus automatiquement (profil → locale → défaut), registre extensible ([`lib/config/utilities.dart`](lib/config/utilities.dart) — `Utility { id, service, country, … }` unifié élec/eau) |
-| Carte | `flutter_map` + tuiles Stadia Maps (repli OSM) + clustering + marqueurs par service |
+| Carte | `flutter_map` + tuiles Stadia Maps (repli OSM) ; **zones d'impact** (2026-08-07) : chaque coupure en cours = disque translucide couleur service, **rayon = ampleur** (`impactRadiusM`, agrégat anonyme serveur calculé sur les confirmations), **opacité = fraîcheur** ; pins par service = cibles de tap ; résolues masquées par le filtre de statut par défaut |
+| Emails | **transactionnels de marque via Brevo** (2026-08-07) : vérification + réinitialisation aux couleurs NJUKA (FR/EN, logo, expéditeur `noreply@njuka.app`), CFs `sendVerificationEmail`/`sendPasswordReset` (liens Admin SDK, anti-énumération) avec **repli automatique** sur l'envoi Firebase natif ; support utilisateurs : `support@njuka.app` |
 | Incitations | **prompt d'ouverture « Chez toi aussi ? »** (coupure <1 km : confirmer / **démentir** `denials` / passer), **vote 1-tap depuis la notification** (boutons Oui/Non, vote en arrière-plan sans ouvrir l'app), **notification de rétablissement** à l'auteur + confirmeurs |
 | Notifications | FCM **data-only** pilotées par les **confirmations** (rayon 500 m d'extension de proche en proche, dédup 1 notif/user/report, position exacte à lecture verrouillée admin/owner), préférence opt-out, **N/A en anonyme** |
 | i18n | **FR / EN** complet (UI + erreurs), ARB + `flutter gen-l10n` |
 | Hors-ligne | persistance Firestore + bandeau global « Hors ligne », écran « Réessayer » dédié si Anonymous Auth échoue au démarrage |
-| Qualité | App Check, Crashlytics, règles Firestore/Storage **testées** (compteurs durcis : +1 lié au vote ; `!isAnonymous()` sur `users`/`usernames`/`devices` ; verrou changement de pseudo), CI 3 jobs, **210 tests Dart** + 21 tests functions + tests de règles |
+| Qualité | App Check, Crashlytics, règles Firestore/Storage **testées** (compteurs durcis : +1 lié au vote ; `!isAnonymous()` sur `users`/`usernames`/`devices` ; verrou changement de pseudo), CI 3 jobs, **226 tests Dart** + 28 tests functions + tests de règles |
 
 Pistes restantes : bot WhatsApp (spec `tasks/SPEC-WHATSAPP-BOT.md`), prédiction de délestage, photo de profil, ingestion CAMWATER (eau).
 
