@@ -69,11 +69,11 @@ class AppConfig {
   /// Masqués aussi en [screenshotMode].
   static bool get showDevTools => !isProd && !screenshotMode;
 
-  /// Base des liens de partage public (`{base}/s/{reportId}`) — servis par la
-  /// CF `renderReportShare` via une réécriture hosting. Le staging garde ses
-  /// liens sur son propre hosting pour ne jamais mélanger les données.
-  static String get shareBaseUrl =>
-      isProd ? 'https://njuka.app' : 'https://lightcutoff-dev.web.app';
+  /// Base des liens de partage public (`{base}/s/{reportId}`) — TOUJOURS le
+  /// domaine officiel (décision 2026-08-08) : la CF prod `renderReportShare`
+  /// lit njuka-prod puis retombe sur lightcutoff-dev, les liens partagés
+  /// depuis un build de test restent donc valides ET à la marque.
+  static String get shareBaseUrl => 'https://njuka.app';
 
   /// Affiche le bouton « Continuer avec Google ». **Désactivé** tant que la
   /// config Firebase n'est pas faite (provider Google activé + empreintes SHA-1

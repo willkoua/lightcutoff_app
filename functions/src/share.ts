@@ -28,6 +28,19 @@ const STORE_ANDROID =
 const STORE_IOS = "https://apps.apple.com/app/njuka/id6794127922";
 const LOGO = "https://njuka.app/assets/static/images/njuka/njuka_icon.png";
 
+/** Firestore du projet STAGING (repli de lecture, initialisation paresseuse). */
+let stagingDb: FirebaseFirestore.Firestore | null = null;
+function getStagingDb(): FirebaseFirestore.Firestore {
+  if (!stagingDb) {
+    const app = admin.initializeApp(
+      { projectId: "lightcutoff-dev" },
+      "staging-share"
+    );
+    stagingDb = app.firestore();
+  }
+  return stagingDb;
+}
+
 function esc(s: string): string {
   return s
     .replace(/&/g, "&amp;")
@@ -153,7 +166,13 @@ export const renderReportShare = onRequest(async (req, res) => {
     return;
   }
   const id = match[1];
-  const snap = await admin.firestore().collection("reports").doc(id).get();
+  let snap = await admin.firestore().collection("reports").doc(id).get();
+  // Les liens sont TOUJOURS njuka.app (marque unique) : un signalement créé
+  // sur un build de test vit dans lightcutoff-dev → repli en lecture croisée
+  // (IAM : datastore.viewer accordé au compte de service prod sur staging).
+  if (!snap.exists && process.env.GCLOUD_PROJECT === "njuka-prod") {
+    snap = await getStagingDb().collection("reports").doc(id).get();
+  }
   const data = snap.data();
   if (!snap.exists || !data || data.archivedAt) {
     res.set("Cache-Control", "public, max-age=60");
