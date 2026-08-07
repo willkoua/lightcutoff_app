@@ -5,6 +5,38 @@
 
 ---
 
+## 🚀 PRODUCTION — `1.2.1 (65)` — njuka-prod (App Store, 2026-08-07)
+
+> Mise à jour publique : zones d'impact sur la carte + emails NJUKA.
+> Côté ASC : créer la version **1.2.1**, associer le build 65, coller les
+> notes ci-dessous dans « Nouveautés », soumettre à la review.
+
+### 🇫🇷 fr-FR
+```
+La carte devient plus parlante ⚡💧
+
+• Chaque coupure dessine désormais sa zone d'impact : elle s'étend quand
+  les voisins confirment et pâlit avec le temps
+• La carte se concentre sur les coupures EN COURS (les résolues restent
+  disponibles via les filtres)
+• Emails de confirmation et de mot de passe à nos couleurs
+• Nouvelle adresse support : support@njuka.app
+```
+
+### 🇬🇧 en-US
+```
+The map now tells the story ⚡💧
+
+• Every outage draws its impact zone: it grows as neighbors confirm
+  and fades over time
+• The map focuses on ONGOING outages (resolved ones stay available
+  through filters)
+• Verification and password emails in our colors
+• New support address: support@njuka.app
+```
+
+---
+
 ## Test fermé — `1.2.0 (64)` — staging (2026-08-07)
 
 > ⚠️ Pour les testeurs qui utilisaient **Google Sign-In** : il n'est plus
