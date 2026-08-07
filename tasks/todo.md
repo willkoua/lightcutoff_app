@@ -1,5 +1,29 @@
 # NJUKA — État du programme (plan détaillé fait / non fait)
 
+## ⏸️ EN RÉSERVE — Précisions structurées sur une coupure (« commentaires » étage 1) — plan complet prêt, MIS DE CÔTÉ le 2026-08-08 (décision utilisateur : priorité au lancement). Reprendre ici le jour venu — seule décision restante : valider la liste des tags.
+
+**Concept** : sur le détail d'une coupure EN COURS, des choix fermés en 1 tap qui donnent le contexte sans texte libre (zéro modération, zéro exigence UGC, fonctionne pour les anonymes). Agrégés en compteurs publics : « 🔧 Transfo en panne ×3 ».
+
+**Tags proposés (à valider — extensibles)** :
+- Électricité : `transformer_down` (Transfo en panne) · `scheduled_announced` (Délestage annoncé) · `crew_onsite` (Eneo sur place) · `intermittent` (Revient par à-coups) · `wires_down` (Câble à terre ⚠️)
+- Eau : `pipe_burst` (Tuyau cassé) · `low_pressure` (Pression très faible) · `announced` (Coupure annoncée) · `crew_onsite` (CAMWATER sur place) · `dirty_water` (Eau trouble au retour)
+
+**Modèle** :
+- `reports/{id}/precisions/{uid}` = `{ tags: string[], updatedAt }` — 1 doc/uid (anonymes inclus), l'utilisateur coche/décoche PLUSIEURS tags. Lecture verrouillée owner/admin (même contrat que denials).
+- Agrégat public : `report.precisionCounts: {tag: n}` — écrit UNIQUEMENT par la CF (pas de gymnastique de compteurs dans les règles, contrairement aux votes).
+
+**Étapes** :
+- [ ] 1. CF `onPrecisionWritten` (onDocumentWritten) : delta before/after des tags (fonction pure `precisionCountDeltas` + tests) → `FieldValue.increment` par tag sur `precisionCounts`
+- [ ] 2. Règles : `precisions/{uid}` create/update si `request.auth.uid == uid`, `tags` ⊆ liste autorisée (hasOnly), taille ≤ 5 ; lecture owner/admin ; vérifier que les règles `reports.update` interdisent bien `precisionCounts` aux clients
+- [ ] 3. Modèle Dart : `Report.precisionCounts` (map, parsing tolérant) + registre `kPrecisionTags` par service (`lib/config/precisions.dart` — ⚠️ à garder synchrone avec CF + règles)
+- [ ] 4. Repo/Service : `myPrecisions(reportId)` (get 1 doc), `setPrecisions(reportId, tags)` (set) — pas de stream (chargé à l'ouverture du détail)
+- [ ] 5. UI détail (ReportCard en sheet) : section « Précisions des voisins » — chips par tag du service, compteur ×n, sélection de l'utilisateur surlignée, tap = toggle (optimiste). Sur la carte de liste : 1 ligne max avec le tag dominant si compteurs > 0. Masqué si résolu.
+- [ ] 6. i18n FR/EN (labels des tags + titre de section) ; analytics `precision_set{tag, service}`
+- [ ] 7. Tests : logic CF, parsing modèle, widget de la section, provider mocké ; analyze + suite complète
+- [ ] 8. Déploiement CF+règles staging → recette sur téléphone (TESTS-MANUELS §Précisions) → prod
+- **Hors scope étage 1** : texte libre (étage 2 — exigences UGC : blocage utilisateur, modération), notification à l'auteur sur précision, affichage sur la page de partage publique (v2 possible).
+
+
 ## 🛠️ PLAN ACTIF — Partage de signalement (levier viral n°1) — go utilisateur 2026-08-08
 
 Décisions validées : page publique **sobre** (service/quartier/statut/compteur — PAS d'auteur, pas de description, pas de coords exactes) · CF de rendu serveur (aperçu riche WhatsApp via Open Graph) · App Links = phase 2.
