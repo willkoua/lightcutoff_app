@@ -26,7 +26,7 @@ const STORE_ANDROID =
   "https://play.google.com/store/apps/details?id=com.njuka.app" +
   "&referrer=utm_source%3Dshare%26utm_medium%3Dreferral%26utm_campaign%3Dreport-share";
 const STORE_IOS = "https://apps.apple.com/app/njuka/id6794127922";
-const LOGO = "https://njuka-prod.web.app/img/njuka-logo.png";
+const LOGO = "https://njuka.app/assets/static/images/njuka/njuka_icon.png";
 
 function esc(s: string): string {
   return s

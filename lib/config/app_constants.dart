@@ -87,14 +87,13 @@ class AppConstants {
 
   // --- Liens légaux ---
 
-  /// URL publique de la politique de confidentialité (Firebase Hosting).
-  /// Source : `public/privacy.html`. Exigée par les stores + lien in-app.
-  static const String privacyPolicyUrl =
-      'https://lightcutoff-dev.web.app/privacy';
+  /// URL publique de la politique de confidentialité — domaine officiel
+  /// njuka.app (même contenu que les pages des stores).
+  static const String privacyPolicyUrl = 'https://njuka.app/privacy';
 
-  /// URL publique des Conditions d'utilisation (Firebase Hosting).
-  /// Source : `public/cgu.html`. Liée à la case d'acceptation à l'inscription.
-  static const String termsUrl = 'https://lightcutoff-dev.web.app/cgu';
+  /// URL publique des Conditions d'utilisation (domaine officiel). Liée à la
+  /// case d'acceptation à l'inscription.
+  static const String termsUrl = 'https://njuka.app/cgu';
 
   /// Adresse de support (tuile « Signaler un problème », Paramètres → Aide).
   /// Le brouillon d'email est pré-rempli avec le diagnostic (version, OS…).

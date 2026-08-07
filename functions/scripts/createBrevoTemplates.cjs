@@ -18,7 +18,7 @@ if (!KEY) {
   process.exit(1);
 }
 
-const LOGO = "https://njuka-prod.web.app/img/njuka-logo.png";
+const LOGO = "https://njuka.app/assets/static/images/njuka/njuka_icon.png";
 const AMBER = "#F88E01";
 const DARK = "#1A1A1A";
 
@@ -47,7 +47,7 @@ function shell({ title, intro, cta, outro, footer }) {
   </td></tr>
   <tr><td align="center" style="padding:20px 32px;background-color:#fafafa;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:#999999;">
     ${footer}<br>
-    <a href="https://njuka-prod.web.app" style="color:#999999;">njuka.app</a> ·
+    <a href="https://njuka.app" style="color:#999999;">njuka.app</a> ·
     <a href="mailto:support@njuka.app" style="color:#999999;">support@njuka.app</a>
   </td></tr>
 </table>
