@@ -1,6 +1,8 @@
 # NJUKA — État du programme (plan détaillé fait / non fait)
 
-## 🛠️ PLAN ACTIF — Carte : zones d'impact au lieu de points (validé sur maquette 2026-08-07)
+## 🚀 2026-08-07 (soir) — RELEASE 1.2.1+65 : **PUBLIÉE côté Play (validée)**, **en review côté Apple**. RD Congo **retirée des descriptions stores** ✅. Pointeur `master` avancé sur `v1.2.1+65`. Restants : verdict Apple (puis publier si mode manuel), routine Crashlytics/Analytics/coûts, plan de communication du lancement Cameroun.
+
+## 🛠️ PLAN — Carte : zones d'impact au lieu de points (validé sur maquette 2026-08-07)
 
 **Décision** : une coupure = disque translucide couleur service (rayon = ampleur via confirmations, opacité = fraîcheur), pin conservé comme cible de tap, résolues masquées par défaut. Heatmap et cellules geohash écartées. Contrainte : positions des confirmations verrouillées serveur → agrégat anonyme calculé en CF.
 
