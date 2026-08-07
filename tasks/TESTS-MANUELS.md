@@ -319,3 +319,23 @@ Puis **http://127.0.0.1:4000** → Firestore → collection `official_outages` :
        (vérifier en console : `reports/{id}/flags/{uid}` unique, avec
        `reason`).
 5. [ ] Analytics : event `report_flagged` (paramètre `reason`).
+
+## Emails personnalisés NJUKA (Brevo) — 2026-08-07
+
+Build staging (ou prod), compte email/mot de passe.
+
+1. **Inscription email** : créer un compte → l'email de vérification reçu doit être
+   AUX COULEURS NJUKA (logo, bouton ambre « Confirmer mon email », tutoiement),
+   expéditeur `NJUKA <noreply@njuka.app>`. Cliquer le bouton → page de confirmation
+   Firebase → retour app → compte vérifié.
+2. **Langue** : passer l'app en EN (Paramètres → Langue) → « Renvoyer l'email »
+   depuis l'écran de vérification → l'email doit arriver en anglais.
+3. **Mot de passe oublié** : depuis l'écran de connexion → email brandé
+   « Réinitialise ton mot de passe » → le lien ouvre le formulaire Firebase →
+   nouveau mot de passe accepté → reconnexion OK.
+4. **Anti-énumération** : demander un reset pour `inexistant@exemple.com` →
+   même message de succès dans l'app, AUCUN email reçu.
+5. **Upgrade anonyme → email** : depuis une session anonyme, créer le compte via
+   le mur Compte → email de vérification brandé reçu (même gabarit qu'en 1).
+6. (Boîte à outils) Panne Brevo simulée = repli silencieux sur l'email Firebase
+   générique — le parcours ne doit jamais bloquer.

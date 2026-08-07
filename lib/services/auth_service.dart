@@ -1,8 +1,11 @@
+import 'dart:ui' as ui;
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/app_user.dart';
 import '../models/enums.dart';
@@ -405,7 +408,7 @@ class AuthService implements AuthRepository {
     batch.set(_usernamesRef.doc(uname), {'uid': uid, 'email': email.trim()});
     await batch.commit();
 
-    await cred.user!.sendEmailVerification();
+    await _sendVerificationBranded(cred.user!);
   }
 
   @override
@@ -466,7 +469,7 @@ class AuthService implements AuthRepository {
     batch.set(_usernamesRef.doc(uname), {'uid': uid, 'email': email.trim()});
     await batch.commit();
 
-    await upgraded.sendEmailVerification();
+    await _sendVerificationBranded(upgraded);
   }
 
   @override
@@ -553,9 +556,46 @@ class AuthService implements AuthRepository {
     await user.reauthenticateWithCredential(cred);
   }
 
+  /// Langue des emails transactionnels : choix in-app (même clé que
+  /// `LocaleProvider._prefKey`), sinon langue du système.
+  Future<String> _emailLang() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString('locale_override') ??
+          ui.PlatformDispatcher.instance.locale.languageCode;
+    } catch (_) {
+      return ui.PlatformDispatcher.instance.locale.languageCode;
+    }
+  }
+
+  /// Tente l'envoi brandé (CF → Brevo). `false` = l'appelant fait le repli
+  /// Firebase natif — une panne d'email personnalisé ne bloque jamais.
+  Future<bool> _trySendBranded(
+    String callable,
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      await FirebaseFunctions.instance.httpsCallable(callable).call(data);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _sendVerificationBranded(User user) async {
+    final ok = await _trySendBranded('sendVerificationEmail', {
+      'lang': await _emailLang(),
+    });
+    if (!ok) await user.sendEmailVerification();
+  }
+
   @override
-  Future<void> sendEmailVerification() =>
-      _auth.currentUser?.sendEmailVerification() ?? Future.value();
+  Future<void> sendEmailVerification() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    await _sendVerificationBranded(user);
+  }
+
   @override
   Future<void> reloadUser() => _auth.currentUser?.reload() ?? Future.value();
 
@@ -578,6 +618,13 @@ class AuthService implements AuthRepository {
         return;
       }
     }
+    // Envoi brandé (CF → Brevo) d'abord ; la CF est muette sur l'existence
+    // du compte (anti-énumération, même contrat que l'envoi natif ci-dessous).
+    final branded = await _trySendBranded('sendPasswordReset', {
+      'email': email,
+      'lang': await _emailLang(),
+    });
+    if (branded) return;
     try {
       await _auth.sendPasswordResetEmail(email: email);
     } on FirebaseAuthException catch (e) {

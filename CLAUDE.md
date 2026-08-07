@@ -195,6 +195,10 @@ final l = await AppLocalizations.delegate.load(const Locale('fr'));
 - Debug builds only: cleartext HTTP to emulators is allowed via `android/app/src/debug/res/xml/network_security_config.xml`
 - ⚠️ **R8 minification is intentionally OFF for release** (`isMinifyEnabled = false` / `isShrinkResources = false` in `android/app/build.gradle.kts`). With it on (and no `keep` rules), R8 stripped a Firebase plugin's reflection-based registration → **NPE in `FlutterActivity.onCreate`, release crashes on startup** (debug was fine). Do **not** re-enable minify without adding tested ProGuard rules and verifying release launch on a device.
 
+## Transactional emails (Brevo, 2026-08-07)
+
+Verification and password-reset emails are BRANDED (logo, amber, FR/EN) and sent by Brevo from `noreply@njuka.app` — not by Firebase's locked templates. Flow: app → callable CF (`sendVerificationEmail` auth-required / `sendPasswordReset` unauthenticated + anti-enumeration) → Admin SDK generates the secure link → Brevo template (`functions/src/emails.ts`, TEMPLATE_IDS 1-4) sends it. The app (`AuthService._trySendBranded`) ALWAYS falls back to the native Firebase send if the CF fails — never blocking. Email language: `locale_override` SharedPreferences key (same as LocaleProvider), else device locale, default fr. Templates are edited in Brevo (or re-synced via `functions/scripts/createBrevoTemplates.cjs` — idempotent, needs `BREVO_API_KEY` env from Secret Manager). Secret `BREVO_API_KEY` exists in both projects; Brevo account must keep IP restriction DISABLED (dynamic CF egress IPs). DNS/DMARC: njuka.app is strictly aligned (`p=reject`) — any new sender must DKIM-sign as njuka.app.
+
 ## Data model highlights
 
 See `SCHEMA.md` for the full Firestore schema. Key points for code work:

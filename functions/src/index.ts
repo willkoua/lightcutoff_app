@@ -34,6 +34,8 @@ import {
 } from "./logic";
 import { EneoAdapter } from "./sources/eneo";
 
+export { sendVerificationEmail, sendPasswordReset } from "./emails";
+
 admin.initializeApp();
 
 /// Rayon de notification (mètres) autour d'un épicentre — la coupure se

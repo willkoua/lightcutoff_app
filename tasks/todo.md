@@ -1,5 +1,28 @@
 # NJUKA — État du programme (plan détaillé fait / non fait)
 
+## 🛠️ PLAN ACTIF — Emails personnalisés NJUKA (Brevo) — rédigé 2026-08-07
+
+**Objectif** : remplacer les emails Firebase génériques (vérification, reset mot de passe) par des emails aux couleurs NJUKA (logo, ambre #F88E01, tutoiement, FR/EN), envoyés via Brevo depuis `noreply@njuka.app`. Design retouchable dans Brevo sans redéploiement.
+
+**Contexte acquis** : domaine njuka.app authentifié partout (Firebase ✅ + Brevo DKIM brevo1/2 ✅, DMARC strict) ; Brevo compte « bogal consulting » ; Node 22 dans functions (fetch natif, zéro dépendance) ; CFs v2 existantes (`onCall` déjà utilisé pour deleteAccount).
+
+**Prérequis UTILISATEUR (bloquants)** :
+- [ ] Créer une clé API Brevo (Brevo → SMTP & API → Clés API) et la poser en secret SANS me la montrer :
+      `firebase functions:secrets:set BREVO_API_KEY -P staging` puis `-P prod` (coller la clé au prompt)
+- [ ] Ajouter l'expéditeur `noreply@njuka.app` dans Brevo (Expéditeurs → Ajouter — domaine déjà authentifié)
+
+**Étapes (moi)** — ✅ RÉALISÉ le 2026-08-07 :
+- [x] 1. Logo hébergé : `public/img/njuka-logo.png` (192px depuis assets/icon), déployé sur les 2 hostings
+- [x] 2. 4 templates Brevo créés via `scripts/createBrevoTemplates.cjs` (idempotent, re-lançable pour retoucher) : ids **1=verif-fr, 2=verif-en, 3=reset-fr, 4=reset-en** (référencés dans `functions/src/emails.ts`). Expéditeur `noreply@njuka.app` créé via API (id 2, actif). ⚠️ Restriction IP Brevo désactivée (obligatoire : IPs CF dynamiques)
+- [x] 3-4. CFs `sendVerificationEmail` (auth requise) + `sendPasswordReset` (sans auth, anti-énumération : silencieux si email inconnu OU compte social sans mot de passe) — `functions/src/emails.ts`, secret BREVO_API_KEY, déployées **staging + prod** (us-central1, comme deleteAccount)
+- [x] 5. App : `_sendVerificationBranded`/`_trySendBranded` dans AuthService — register, upgradeAnonymous, renvoi et reset passent par les CFs avec **repli natif Firebase** (une panne Brevo ne bloque jamais) ; langue lue depuis `locale_override` (SharedPreferences, même clé que LocaleProvider) sinon locale système
+- [x] 6. Tests : 25 tests functions (dont resolveLang/resolveFirstName), analyze clean, **220 tests Flutter verts** ; smoke test réel : reset déclenché sur staging → email brandé template 3 parti via Brevo vers willkoua@gmail.com (vérifié dans les logs transactionnels Brevo)
+- [x] 7. Docs : todo (ici), CLAUDE.md, TESTS-MANUELS.md
+- [ ] RESTE (utilisateur) : vérifier le rendu de l'email reçu sur mobile + cliquer le lien ; recette complète §Emails de TESTS-MANUELS.md au prochain build staging
+
+**Hors scope (backlog)** : email de bienvenue post-inscription, campagnes marketing Brevo, templates Firebase console FR (fait à la main par l'utilisateur).
+
+
 > Audit basé sur le **code réel** (pas sur CONTEXT.md, qui date du 22 mai et est en
 > retard sur les faits). Vérifié le 2026-06-03. `flutter analyze` clean, **70 tests verts**.
 
@@ -28,6 +51,8 @@
 - **2026-07-23 fin de soirée — chaîne iOS COMPLÈTE côté serveur** : ✅ déclaration chiffrement faite (+ `ITSAppUsesNonExemptEncryption=false` dans Info.plist → plus jamais demandé) ; ✅ **clé APNs** `HCJ985KX3Q` (Sandbox & Production, Team Scoped) importée dans Firebase Cloud Messaging (dev + prod, app `com.njuka.app` — ignorer les 2 vieilles entrées iOS lightcutoff/example) ; ✅ provider **Apple activé** dans Firebase Auth ; ✅ CFs adaptées iOS : habillage APNs (alerte visible) sur les vagues data-only — Android garde les boutons, iOS affiche titre/corps/son (déployé). TestFlight : groupe `test_interne` (1 testeur), notes de test remplies.
 - Reste iOS : **un iPhone réel pour valider** (auth Apple/Google/FB, notifs APNs, parcours complet) → puis associer le build à la version 1.2.0 et **soumettre à la review**. Backlog iOS : boutons de vote sur notifications (categories APNs), basculer sur Firebase prod avant publication réelle.
 - **2026-07-30 — 🚀🚀 VERSION 63 SOUMISE SUR LES DEUX STORES (le vrai lancement)** : App Store (build 63 iPhone-only, dossier complet : confidentialité, âge 13+ UGC, Gratuit, droits contenu, compte démo) + Play production (`1.2.0+63`, rollout progressif recommandé 10 %). Même code des deux côtés (tag `v1.2.0+63`), pointeur `master` avancé. Contient les protections UGC (flag + média off). Après approbation : ① publier manuellement côté Apple (réglage choisi) ; ② **purger le compte démo + les 6 reports `seed_us_*`** ; ③ surveiller Crashlytics/Analytics/coûts ; ④ AAB staging v64+ pour les testeurs.
+
+**2026-08-07 — ✅✅ APP APPROUVÉE PAR LES DEUX STORES (Apple + Play)** — publication prod validée. **Purge post-review FAITE le 2026-08-07** : compte démo `review@njuka.app` (Auth + `users` + `usernames/apple_review`) et les **6 reports seedés Bay Area supprimés** de njuka-prod (recursiveDelete, sous-collections incluses) — backup JSON : `tasks/backups/njuka-prod-review-data-2026-08-07.json` (racine projet). Base prod **100 % vierge** (0 reports / 0 users / 0 usernames ; `official_outages` intacte). **Restant post-lancement** : ① si publication Apple en mode manuel → déclencher « Publier » dans ASC ; ② suivre le rollout Play (10 % → 100 %) ; ③ surveiller Crashlytics/Analytics/coûts njuka-prod ; ④ AAB staging v64+ pour les testeurs (+ prévenir : Google Sign-In staging perdu) ; ⑤ App Check enforcement ; ⑥ modèles email Auth en FR ; ⑦ retirer « RD Congo » des descriptions stores ; ⑧ vérifier boîte `support@bogal.ca`.
 
 **2026-07-30 — Préparation review Apple (build 61)** : compte démo **`review@njuka.app` / `NjukaReview#2026`** (uid `ZlR0tmL2…`, email vérifié, pseudo `apple_review`) + **6 signalements seedés Bay Area (US)** dans njuka-prod — le reviewer est à Cupertino et la liste est cloisonnée par pays détecté, des données CM lui seraient invisibles. ⚠️ **À PURGER après l'approbation** (compte + reports `seed_us_*` — visibles par tout utilisateur US réel). Builds ASC : 61 = prod candidat store · 62 = staging TestFlight (jamais pour le store).
 
