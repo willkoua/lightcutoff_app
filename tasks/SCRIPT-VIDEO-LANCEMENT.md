@@ -65,18 +65,22 @@ c'est un VOISIN qui déclare le retour, pas l'app toute seule.
 affirmation tranquille — on affirme ce que le projet EST, on ne se
 défend de rien.*
 
-## Séquence 4 — L'APPEL À L'ACTION double (1:12 – 1:32)
+## Séquence 4 — L'APPEL À L'ACTION double (1:12 – 1:35)
 
 **Visuel** : face caméra, sourire, rythme qui remonte. Terminer sur un
 écran final : logo NJUKA + « njuka.app » + badges Play Store / App Store.
 
-**Texte à l'écran** : « 📲 njuka.app — et partage au groupe du quartier »
+**Texte à l'écran** (2 cartons) :
+① « 🇨🇲 Disponible au Cameroun — d'autres pays bientôt »
+② « 📲 njuka.app — et partage au groupe du quartier »
 
-> « L'app est disponible sur Play Store et App Store : cherche NJUKA, ou
-> va sur njuka **point app** — pas point com, point A-P-P. Et surtout :
-> NJUKA marche si ton quartier est dessus. Alors télécharge-la… et envoie
-> cette vidéo dans ton groupe de quartier. C'est comme ça qu'on y verra
-> plus clair, ensemble. »
+> « Pour l'instant, NJUKA couvre le **Cameroun** — et on veut l'amener
+> au plus vite dans d'autres pays. L'app est sur Play Store et App
+> Store : cherche NJUKA, ou va sur njuka **point app** — pas point com,
+> point A-P-P. Et surtout : NJUKA marche si ton quartier est dessus.
+> Alors télécharge-la, envoie cette vidéo dans ton groupe de quartier —
+> et si tu vis ailleurs, **partage-la à ta famille au Cameroun**. C'est
+> comme ça qu'on y verra plus clair, ensemble. »
 
 ---
 
@@ -95,7 +99,7 @@ défend de rien.*
   utilise le mode `SCREENSHOT_MODE` avec les données seedées propres
   (Bastos 900 m = la belle zone) — je peux préparer le téléphone pour la
   captation, comme pour les captures stores.
-- **Durée cible : ~95 secondes.** Si tu dois couper : jamais la séquence 2,
+- **Durée cible : ~95-100 secondes.** Si tu dois couper : jamais la séquence 2,
   et garde TOUJOURS dans la 3 : l'idée « signaler = informer ses voisins /
   s'entraider », ton nom + métier, et « gratuit, sans pub, sans politique ».
 - **Fin de l'écran final** : 3 secondes minimum de statique (le temps de
