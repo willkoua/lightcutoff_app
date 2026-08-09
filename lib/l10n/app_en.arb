@@ -555,5 +555,8 @@
       }
     }
   },
-  "shareTagline": "Followed live on NJUKA:"
+  "shareTagline": "Followed live on NJUKA:",
+  "pingStillOut": "Still out",
+  "pingRestored": "It's back ✓",
+  "reportFormReturnPromise": "By reporting, you'll be notified as soon as the service is back — and your neighbors will know they're not alone."
 }

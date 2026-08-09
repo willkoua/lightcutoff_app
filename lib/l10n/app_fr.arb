@@ -673,5 +673,8 @@
       }
     }
   },
-  "shareTagline": "Suivie en direct sur NJUKA :"
+  "shareTagline": "Suivie en direct sur NJUKA :",
+  "pingStillOut": "Toujours coupé",
+  "pingRestored": "C'est revenu ✓",
+  "reportFormReturnPromise": "En signalant, tu seras prévenu dès que le service revient — et tes voisins sauront qu'ils ne sont pas seuls."
 }

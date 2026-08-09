@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:ui' show DartPluginRegistrant, Locale, PlatformDispatcher;
 
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -17,6 +18,8 @@ import 'report_service.dart';
 /// Doivent rester stables : ils sont gravés dans les notifs déjà affichées.
 const String kNotifActionConfirm = 'njuka_confirm';
 const String kNotifActionDeny = 'njuka_deny';
+const String kNotifActionStillOut = 'njuka_still_out';
+const String kNotifActionRestored = 'njuka_restored';
 
 /// Handler des taps sur un **bouton d'action** de notification.
 ///
@@ -49,7 +52,13 @@ Future<void> notificationActionBackgroundHandler(
 /// in-app : un doc par uid, transaction côté confirmation).
 Future<void> handleNotificationAction(NotificationResponse response) async {
   final action = response.actionId;
-  if (action != kNotifActionConfirm && action != kNotifActionDeny) return;
+  const known = {
+    kNotifActionConfirm,
+    kNotifActionDeny,
+    kNotifActionStillOut,
+    kNotifActionRestored,
+  };
+  if (!known.contains(action)) return;
   final raw = response.payload;
   if (raw == null || raw.isEmpty) return;
   final data = jsonDecode(raw) as Map<String, dynamic>;
@@ -84,6 +93,23 @@ Future<void> handleNotificationAction(NotificationResponse response) async {
   }
 
   final service = ReportService();
+  if (action == kNotifActionRestored) {
+    // Ping « Toujours coupé ? » → vote de rétablissement (mêmes garanties
+    // que le bouton in-app : 1 doc/uid, transactionnel).
+    await service.markRestored(reportId, uid, geohash: geohash);
+    debugPrint('[FCM action] retour du service enregistré pour $reportId');
+    return;
+  }
+  if (action == kNotifActionStillOut) {
+    // Rafraîchit l'activité de la coupure côté serveur (tache vive, le
+    // chrono d'expiration repart) — via callable, les règles interdisant
+    // cette écriture aux clients.
+    await FirebaseFunctions.instance
+        .httpsCallable('markStillOut')
+        .call<Map<String, dynamic>>({'reportId': reportId});
+    debugPrint('[FCM action] toujours coupé confirmé pour $reportId');
+    return;
+  }
   if (action == kNotifActionConfirm) {
     await service.confirmReport(
       reportId,
@@ -108,9 +134,8 @@ Future<void> handleNotificationAction(NotificationResponse response) async {
 /// Libellés localisés des actions, utilisables **sans BuildContext** (isolate
 /// d'arrière-plan inclus) via la locale système. Repli français si la locale
 /// n'est pas supportée.
-({String confirm, String deny}) notificationActionLabels(
-  Map<String, dynamic> data,
-) {
+({String confirm, String deny, String stillOut, String restored})
+notificationActionLabels(Map<String, dynamic> data) {
   AppLocalizations l;
   try {
     l = lookupAppLocalizations(PlatformDispatcher.instance.locale);
@@ -121,6 +146,8 @@ Future<void> handleNotificationAction(NotificationResponse response) async {
   return (
     confirm: l.promptNearbyYes,
     deny: isWater ? l.promptNearbyNoWater : l.promptNearbyNoElectricity,
+    stillOut: l.pingStillOut,
+    restored: l.pingRestored,
   );
 }
 
@@ -138,6 +165,7 @@ Future<void> showOutageNotification(
   if (title == null || body == null) return;
   final labels = notificationActionLabels(data);
   final reportId = data['reportId'] as String? ?? '';
+  final isStillOutPing = data['kind'] == 'still_out_ping';
 
   await plugin.show(
     // ID stable par report : une nouvelle vague pour la même coupure REMPLACE
@@ -155,20 +183,36 @@ Future<void> showOutageNotification(
         importance: Importance.high,
         priority: Priority.high,
         icon: '@mipmap/ic_launcher',
-        actions: [
-          AndroidNotificationAction(
-            kNotifActionConfirm,
-            labels.confirm,
-            showsUserInterface: false,
-            cancelNotification: true,
-          ),
-          AndroidNotificationAction(
-            kNotifActionDeny,
-            labels.deny,
-            showsUserInterface: false,
-            cancelNotification: true,
-          ),
-        ],
+        actions:
+            isStillOutPing
+                ? [
+                  AndroidNotificationAction(
+                    kNotifActionStillOut,
+                    labels.stillOut,
+                    showsUserInterface: false,
+                    cancelNotification: true,
+                  ),
+                  AndroidNotificationAction(
+                    kNotifActionRestored,
+                    labels.restored,
+                    showsUserInterface: false,
+                    cancelNotification: true,
+                  ),
+                ]
+                : [
+                  AndroidNotificationAction(
+                    kNotifActionConfirm,
+                    labels.confirm,
+                    showsUserInterface: false,
+                    cancelNotification: true,
+                  ),
+                  AndroidNotificationAction(
+                    kNotifActionDeny,
+                    labels.deny,
+                    showsUserInterface: false,
+                    cancelNotification: true,
+                  ),
+                ],
       ),
       // iOS : pas de boutons pour l'instant (nécessite les categories APNs,
       // hors périmètre du test fermé Android).

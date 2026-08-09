@@ -727,6 +727,28 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
                 ),
               ],
               const SizedBox(height: 16),
+              // Boucle du signaleur : la promesse du retour, dite AVANT le
+              // geste — signaler = un deal gagnant, pas une plainte.
+              Row(
+                children: [
+                  const Icon(
+                    Icons.notifications_active_outlined,
+                    size: 18,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      l.reportFormReturnPromise,
+                      style: const TextStyle(
+                        color: AppColors.gray,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
               // Attestation anti-faux signalement (obligatoire pour envoyer).
               InkWell(
                 onTap: () => setState(() => _attested = !_attested),
