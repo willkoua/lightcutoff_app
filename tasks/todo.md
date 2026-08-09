@@ -4,10 +4,12 @@
 
 **Décisions utilisateur** : ping « Toujours coupé ? » à **4 h** · **UN SEUL ping** par personne et par coupure (pas de relance — le prompt d'ouverture < 1 km est la 2ᵉ chance organique) · fenêtre **7 h-21 h** heure du pays (sinon reporté au matin) · **expiration à 48 h d'inactivité** (choix utilisateur : à faible densité le silence est un signal faible ; resserrer vers 24 h quand la densité viendra) · expiration = état DISTINCT (jamais « résolu », HORS stats de durée) · toute activité (confirmation, démenti, « Toujours coupé ») remet le chrono à zéro · constantes serveur ajustables · Analytics : compter les expirations par niveau de confirmation (clause de révision : si beaucoup d'expirations ≥ 3 confirmations → allonger OU ping « dernière chance » à l'auteur seul).
 
-- [ ] 1. CF cron 30 min : ① expiration (updatedAt < 48 h → archivage avec `autoExpiredAt`, silencieux) ; ② ping (âge ≥ 4 h, fenêtre horaire, destinataires auteur+confirmeurs jamais pingés, marqueur par uid)
-- [ ] 2. Notif à boutons [Toujours coupé] [C'est revenu ✓] : réutiliser notification_actions — nouveau type d'action : « revenu » = vote de rétablissement en arrière-plan ; « toujours coupé » = touch `updatedAt` (tache vive + chrono)
-- [ ] 3. Logique pure testée (éligibilité ping, fenêtre horaire, éligibilité expiration) + tests app (parsing, actions)
-- [ ] 4. Analytics `still_out_ping_sent/answered{choice}` + `report_expired{confirmations}` ; recette TESTS-MANUELS ; déploiement staging → simulateur de vague → prod
+**✅ IMPLÉMENTÉ le 2026-08-09** (serveur + app ; 39 tests functions + 231 tests Flutter verts) :
+- [x] 1. CF `reportLifecycle` (cron 30 min) : expiration 48 h silencieuse (`archivedAt`+`autoExpiredAt`) + ping 4 h fenêtre 7-21 h, 1×/personne (`stillOutPingedUids`) — **déployée STAGING uniquement**
+- [x] 2. Boutons [Toujours coupé]→callable `markStillOut` (touch updatedAt, zéro compteur) / [C'est revenu ✓]→vote de rétablissement en isolate (kind=still_out_ping dans notification_actions)
+- [x] 3. Logique pure testée (inPingWindow/shouldExpire/pingEligible/shouldNotifyAuthor/impactLine) ; **v67 incluse** : notif auteur (1re+5e confirmation), ligne d'impact dans la notif de retour, promesse du retour dans le formulaire (FR/EN)
+- [x] 4. Recette TESTS-MANUELS §Cycle de vie ajoutée
+- [ ] RESTE : ⚠️ **NE PAS déployer `reportLifecycle` en PROD avant la release app v67** (les vieilles apps afficheraient les boutons de VOTE sur le ping — mauvaise sémantique) ; recette staging sur téléphone ; analytics d'app (`report_expired` est calculable côté serveur/logs) ; déploiement prod couplé à la release
 - À coupler avec la **v67 boucle du signaleur** (notif auteur à la confirmation + « aidé N voisins » + promesse du retour dans l'onboarding) pour une release « cycle complet du geste ».
 
 

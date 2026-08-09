@@ -374,3 +374,25 @@ Build v66+ (staging).
 5. **Robustesse** : `/s/nimportequoi` → page « Signalement introuvable »
    avec bouton de téléchargement (404).
 6. **EN** : app en anglais → message de partage en anglais.
+
+## Cycle de vie + boucle du signaleur (2026-08-09)
+
+Build v67+ (staging). Re-seeder avant la recette (les seeds > 48 h expirent).
+
+1. **Tu n'es pas seul** : compte A signale ; compte B (connecté) confirme →
+   A reçoit « Tu n'es pas seul 🤝 — Un voisin confirme ta coupure à … ».
+   (Rejoué à la 5e confirmation, jamais entre les deux.)
+2. **Promesse du retour** : le formulaire de signalement affiche la ligne
+   « En signalant, tu seras prévenu dès que le service revient… » (🔔 ambre).
+3. **Ping « Toujours coupé ? »** (simuler : vieillir un report de 4 h ou
+   abaisser PING_AFTER_MS sur staging) : auteur + confirmeurs reçoivent la
+   notif avec [Toujours coupé] [C'est revenu ✓] — UNE seule fois par
+   personne, jamais entre 21 h et 7 h (heure CM).
+4. **[Toujours coupé]** → la tache de la carte redevient vive (updatedAt
+   rafraîchi) sans ouvrir l'app ; aucun compteur ne bouge.
+5. **[C'est revenu ✓]** → vote de rétablissement compté ; au seuil,
+   auto-résolution + notifs de retour.
+6. **Ligne d'impact** : la notif de rétablissement des confirmeurs contient
+   « Ta confirmation a aidé à alerter N voisins » quand N > 0.
+7. **Expiration** : un report sans AUCUNE activité depuis 48 h disparaît
+   (archivé avec autoExpiredAt) SANS notification ; jamais compté « résolu ».
