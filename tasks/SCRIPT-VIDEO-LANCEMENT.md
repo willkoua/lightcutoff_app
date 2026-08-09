@@ -7,19 +7,21 @@
 
 ---
 
-## Séquence 1 — PRÉSENTATION + ACCROCHE (0:00 – 0:15)
+## Séquence 1 — PRÉSENTATION + ACCROCHE (0:00 – 0:18)
 
 **Visuel** : toi face caméra, plan serré, énergie directe et souriante.
 
-**Texte à l'écran** : « Willy Kouagnia — ingénieur logiciel » puis
-« Le courant est parti ? ⚡ »
+**Texte à l'écran** : « Willy — informatique 💻 » puis
+« Plus de courant ? Plus d'eau ? ⚡💧 »
 
-> « Bonjour ! Je m'appelle **Willy Kouagnia**, je suis **ingénieur
-> logiciel**. Dis-moi : quand le courant part chez toi, ton premier
-> réflexe c'est quoi ? Demander dans le groupe WhatsApp : *"c'est chez
-> moi seul ou c'est tout le quartier ?"* … Et personne ne sait vraiment. »
+> « Salut tout le monde, moi c'est **Willy** — je travaille en
+> informatique. Dis-moi une chose : si tu es camerounais, tu connais
+> forcément ce moment… le moment où tu n'as plus d'électricité, ou plus
+> d'eau, et tu veux savoir si autour de toi c'est pareil. Ton premier
+> réflexe, c'est quoi ? Demander dans tes groupes WhatsApp : *"c'est
+> chez moi seul ou c'est tout le quartier ?"* »
 
-## Séquence 2 — LA SOLUTION, en démo (0:15 – 0:48)
+## Séquence 2 — LA SOLUTION, en démo (0:18 – 0:48)
 
 **Visuel** : enregistrement d'écran de l'app (vertical, propre), toi en
 voix off. Montrer dans l'ordre : ① la carte avec une **zone orange** qui
@@ -39,7 +41,7 @@ c'est un VOISIN qui déclare le retour, pas l'app toute seule.
 > quartier est prévenu. Plus besoin de deviner : ensemble, on y voit
 > plus clair. »
 
-## Séquence 3 — L'ENTRAIDE (0:48 – 1:10)
+## Séquence 3 — L'ENTRAIDE (0:48 – 1:12)
 
 **Visuel** : retour face caméra, ton posé et chaleureux.
 
@@ -49,10 +51,10 @@ c'est un VOISIN qui déclare le retour, pas l'app toute seule.
 
 > « Sur NJUKA, signaler ce n'est pas se plaindre : c'est **informer ses
 > voisins**. C'est la communauté qui fait l'information, dans les deux
-> sens : ton signalement dit au quartier que le courant est parti, ta
-> confirmation alerte ceux qui ne savent pas encore — et c'est encore un
-> voisin qui annonce le retour, pour que tout le monde soit prévenu.
-> C'est de l'entraide, tout simplement.
+> sens. Ton signalement dit au quartier que le courant est parti ; plus
+> tes voisins confirment, plus l'information se propage. Et quand la
+> lumière revient, même concept : plus les gens signalent que c'est
+> revenu, plus l'information se propage.
 >
 > J'ai construit NJUKA pour la communauté : c'est gratuit, sans publicité,
 > sans politique — et ça va le rester. »
@@ -61,20 +63,21 @@ c'est un VOISIN qui déclare le retour, pas l'app toute seule.
 affirmation tranquille — on affirme ce que le projet EST, on ne se
 défend de rien.*
 
-## Séquence 4 — L'APPEL À L'ACTION double (1:10 – 1:35)
+## Séquence 4 — L'APPEL À L'ACTION double (1:12 – 1:38)
 
 **Visuel** : face caméra, sourire, rythme qui remonte. Terminer sur un
 écran final : logo NJUKA + « njuka.app » + badges Play Store / App Store.
 
 **Texte à l'écran** (2 cartons) :
 ① « 🇨🇲 Disponible au Cameroun — d'autres pays bientôt »
-② « 📲 njuka.app — et partage au groupe du quartier »
+② « 📲 njuka.app · réseaux sociaux : @lightcutoff »
 
 > « Pour l'instant, NJUKA couvre le **Cameroun** — et on veut l'amener
 > au plus vite dans d'autres pays. L'app est sur Play Store et App
 > Store : cherche NJUKA, ou va sur njuka **point app** — pas point com,
 > point A-P-P. Tout le monde peut signaler, partout au Cameroun — et
-> plus on est nombreux, plus la carte dit vrai. Alors télécharge-la,
+> plus on est nombreux, plus la carte dit vrai. On est aussi sur les
+> réseaux sociaux, sous le nom **lightcutoff**. Alors télécharge l'app,
 > envoie cette vidéo dans ton groupe de quartier — et si tu vis
 > ailleurs, **partage-la à ta famille au Cameroun**. C'est comme ça
 > qu'on y verra plus clair, ensemble. »
