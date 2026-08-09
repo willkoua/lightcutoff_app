@@ -27,16 +27,20 @@ d'intro — la première seconde est déjà la question.
 **Visuel** : enregistrement d'écran de l'app (vertical, propre), toi en
 voix off. Montrer dans l'ordre : ① la carte avec une **zone orange** qui
 couvre un quartier ; ② un signalement en 2 taps ; ③ la notification
-« Chez toi aussi ? » avec le vote en 1 tap ; ④ la notif « Le courant est
-revenu ⚡ ».
+« Chez toi aussi ? » avec le vote en 1 tap ; ④ le bouton « Courant
+revenu » puis la notif « Le courant est revenu ⚡ » — bien montrer que
+c'est un VOISIN qui déclare le retour, pas l'app toute seule.
 
 **Texte à l'écran** : « NJUKA — gratuit, sans compte »
 
 > « Voici NJUKA. Tu ouvres l'app : la carte te montre en direct où le
 > courant et l'eau sont coupés — la tache orange, c'est le quartier touché,
-> et elle grandit quand les voisins confirment. Toi aussi tu signales en
-> deux secondes, sans créer de compte. Et quand le courant revient, NJUKA
-> te prévient. Plus besoin de deviner : ensemble, on y voit plus clair. »
+> et elle grandit quand les voisins confirment. Ici, l'information ne tombe
+> pas d'en haut : **c'est nous, la communauté, qui disons quand le courant
+> part — et quand il revient**. Tu signales la coupure en deux secondes,
+> sans compte ; et quand un voisin déclare "c'est revenu", tout le
+> quartier est prévenu. Plus besoin de deviner : ensemble, on y voit
+> plus clair. »
 
 ## Séquence 3 — L'ENTRAIDE, puis qui je suis (0:45 – 1:12)
 
@@ -47,10 +51,11 @@ revenu ⚡ ».
 ② « Willy Kouagnia — ingénieur logiciel · Gratuit. Sans pub. »
 
 > « Sur NJUKA, signaler ce n'est pas se plaindre : c'est **informer ses
-> voisins**. Ton signalement dit au quartier si la coupure est générale ;
-> ta confirmation alerte ceux qui ne savent pas encore ; et quand le
-> courant revient, tout le monde est prévenu. C'est de l'entraide,
-> tout simplement.
+> voisins**. C'est la communauté qui fait l'information, dans les deux
+> sens : ton signalement dit au quartier que le courant est parti, ta
+> confirmation alerte ceux qui ne savent pas encore — et c'est encore un
+> voisin qui annonce le retour, pour que tout le monde soit prévenu.
+> C'est de l'entraide, tout simplement.
 >
 > Moi, je m'appelle **Willy Kouagnia**, je suis **ingénieur logiciel**.
 > J'ai construit NJUKA pour la communauté : c'est gratuit, sans publicité,
