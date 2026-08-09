@@ -1,5 +1,16 @@
 # NJUKA — État du programme (plan détaillé fait / non fait)
 
+## 🛠️ PLAN VALIDÉ — Cycle de vie des signalements : ping + expiration (décisions figées 2026-08-09)
+
+**Décisions utilisateur** : ping « Toujours coupé ? » à **4 h** · **UN SEUL ping** par personne et par coupure (pas de relance — le prompt d'ouverture < 1 km est la 2ᵉ chance organique) · fenêtre **7 h-21 h** heure du pays (sinon reporté au matin) · **expiration à 48 h d'inactivité** (choix utilisateur : à faible densité le silence est un signal faible ; resserrer vers 24 h quand la densité viendra) · expiration = état DISTINCT (jamais « résolu », HORS stats de durée) · toute activité (confirmation, démenti, « Toujours coupé ») remet le chrono à zéro · constantes serveur ajustables · Analytics : compter les expirations par niveau de confirmation (clause de révision : si beaucoup d'expirations ≥ 3 confirmations → allonger OU ping « dernière chance » à l'auteur seul).
+
+- [ ] 1. CF cron 30 min : ① expiration (updatedAt < 48 h → archivage avec `autoExpiredAt`, silencieux) ; ② ping (âge ≥ 4 h, fenêtre horaire, destinataires auteur+confirmeurs jamais pingés, marqueur par uid)
+- [ ] 2. Notif à boutons [Toujours coupé] [C'est revenu ✓] : réutiliser notification_actions — nouveau type d'action : « revenu » = vote de rétablissement en arrière-plan ; « toujours coupé » = touch `updatedAt` (tache vive + chrono)
+- [ ] 3. Logique pure testée (éligibilité ping, fenêtre horaire, éligibilité expiration) + tests app (parsing, actions)
+- [ ] 4. Analytics `still_out_ping_sent/answered{choice}` + `report_expired{confirmations}` ; recette TESTS-MANUELS ; déploiement staging → simulateur de vague → prod
+- À coupler avec la **v67 boucle du signaleur** (notif auteur à la confirmation + « aidé N voisins » + promesse du retour dans l'onboarding) pour une release « cycle complet du geste ».
+
+
 ## ⏸️ EN RÉSERVE — Précisions structurées sur une coupure (« commentaires » étage 1) — plan complet prêt, MIS DE CÔTÉ le 2026-08-08 (décision utilisateur : priorité au lancement). Reprendre ici le jour venu — seule décision restante : valider la liste des tags.
 
 **Concept** : sur le détail d'une coupure EN COURS, des choix fermés en 1 tap qui donnent le contexte sans texte libre (zéro modération, zéro exigence UGC, fonctionne pour les anonymes). Agrégés en compteurs publics : « 🔧 Transfo en panne ×3 ».
