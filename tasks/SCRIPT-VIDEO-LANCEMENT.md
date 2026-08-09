@@ -38,21 +38,32 @@ revenu ⚡ ».
 > deux secondes, sans créer de compte. Et quand le courant revient, NJUKA
 > te prévient. Plus besoin de deviner : ensemble, on y voit plus clair. »
 
-## Séquence 3 — TON HISTOIRE : le sceau de confiance (0:45 – 1:15)
+## Séquence 3 — QUI JE SUIS + POURQUOI : le sceau de confiance (0:45 – 1:22)
 
 **Visuel** : retour face caméra, ton plus posé. Si tu peux, un plan de toi
 à Montréal (fenêtre, hiver, peu importe) — le contraste raconte tout seul.
 
-**Texte à l'écran** : « Fait par un Camerounais, pour le Cameroun 🇨🇲 »
+**Texte à l'écran** (2 cartons successifs) :
+① « Willy Kouagnia — ingénieur logiciel »
+② « Gratuit. Sans pub. Pour la communauté. 🇨🇲 »
 
-> « Je m'appelle Willy. Je suis Camerounais, je vis à Montréal, et comme
-> toute la diaspora, je vis les coupures à distance : *"maman, il y a la
-> lumière ?"* Alors j'ai passé mes soirées et mes week-ends à construire
-> NJUKA. C'est gratuit, c'est anonyme, il n'y a pas de publicité — c'est
-> un outil pour nous, pour qu'on arrête de subir dans le noir sans
-> information. »
+> « Je me présente : je m'appelle **Willy Kouagnia**, je suis camerounais,
+> **ingénieur logiciel de formation**, et je vis à Montréal. Comme toute la
+> diaspora, je vis les coupures à distance : *"maman, il y a la lumière ?"*
+> Alors j'ai construit NJUKA sur mes soirées et mes week-ends.
+>
+> Et je veux être clair sur une chose : ce projet, je le fais **pour la
+> communauté**. C'est gratuit, sans publicité, et ça va le rester. Je ne
+> cherche pas à gagner de l'argent avec, et je ne fais pas de politique —
+> NJUKA ne pointe personne du doigt. C'est juste un outil de voisins,
+> pour qu'on s'informe entre nous au lieu de subir dans le noir. »
 
-## Séquence 4 — L'APPEL À L'ACTION double (1:15 – 1:35)
+*Note de ton : la partie « pas d'argent, pas de politique » se dit avec le
+sourire, en affirmation tranquille — pas comme une défense. On affirme ce
+que le projet EST (communautaire, gratuit, entre voisins) ; on ne plaide
+pas contre un soupçon.*
+
+## Séquence 4 — L'APPEL À L'ACTION double (1:22 – 1:42)
 
 **Visuel** : face caméra, sourire, rythme qui remonte. Terminer sur un
 écran final : logo NJUKA + « njuka.app » + badges Play Store / App Store.
@@ -82,8 +93,11 @@ revenu ⚡ ».
   utilise le mode `SCREENSHOT_MODE` avec les données seedées propres
   (Bastos 900 m = la belle zone) — je peux préparer le téléphone pour la
   captation, comme pour les captures stores.
-- **Durée cible : 90 secondes.** Chaque seconde au-delà perd des viewers.
-  Si tu dois couper : raccourcis la séquence 3, jamais la 2.
+- **Durée cible : ~100 secondes** (la séquence 3 enrichie vaut ses secondes :
+  c'est elle qui achète la confiance). Si tu dois couper : resserre le récit
+  diaspora de la séquence 3, mais garde TOUJOURS la présentation (nom + métier)
+  et la déclaration « gratuit, pour la communauté, pas de politique » — et ne
+  touche jamais à la séquence 2.
 - **Fin de l'écran final** : 3 secondes minimum de statique (le temps de
   faire une capture d'écran de l'URL).
 
