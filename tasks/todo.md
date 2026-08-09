@@ -47,7 +47,7 @@ Décisions validées : page publique **sobre** (service/quartier/statut/compteur
 - [x] 3. App : bouton Partager sur ReportCard (share_plus 12), message i18n FR/EN (zone courte quartier/ville, pluriels ICU), `AppConfig.shareBaseUrl`, analytics `report_shared{service,status}`
 - [x] 4. Déployé staging + prod, vérifié live : OG corrects sur un report seedé (staging), 404 propres, site njuka.app + pages légales intacts
 - [x] 5. Docs + commits (2 dépôts)
-- [ ] Phase 2 (backlog) : App Links / Universal Links (assetlinks.json + AASA + intent filters) pour ouvrir l'app directement
+- [x] Phase 2 : **App Links / Universal Links FAITS (2026-08-09)** — assetlinks.json + AASA servis par njuka.app (source dans le dépôt du site `src/well-known/` + règle angular.json), intent-filter autoVerify Android, entitlement associated-domains iOS, DeepLinkService (app_links) → pendingReportId. **RESTE (utilisateur)** : ① ajouter la SHA-256 de la clé de signature PLAY (Play Console → Intégrité de l'app) dans assetlinks.json — sans elle les builds installés depuis le Store ne vérifient pas ; ② activer « Associated Domains » sur l'App ID (portail Apple) + régénérer le profil « NJUKA AppStore » avant le prochain build iOS
 
 
 ## 🚀 2026-08-07 (soir) — RELEASE 1.2.1+65 : **PUBLIÉE côté Play (validée)**, **en review côté Apple**. RD Congo **retirée des descriptions stores** ✅. Pointeur `master` avancé sur `v1.2.1+65`. Restants : verdict Apple (puis publier si mode manuel), routine Crashlytics/Analytics/coûts, plan de communication du lancement Cameroun.
