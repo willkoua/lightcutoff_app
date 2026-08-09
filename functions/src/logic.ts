@@ -133,3 +133,83 @@ export function nextImpactRadius(
   const clamped = Math.min(Math.max(sane, IMPACT_MIN_M), IMPACT_MAX_M);
   return Math.round(Math.max(current ?? 0, clamped));
 }
+
+// ---------------------------------------------------------------------------
+// Cycle de vie des signalements — ping « Toujours coupé ? » + expiration
+// (décisions 2026-08-09 : ping unique à 4 h dans la fenêtre 7 h-21 h locale,
+// expiration silencieuse à 48 h d'inactivité, constantes ajustables).
+// ---------------------------------------------------------------------------
+
+export const PING_AFTER_MS = 4 * 3600 * 1000;
+export const EXPIRE_AFTER_MS = 48 * 3600 * 1000;
+export const PING_WINDOW_START_H = 7; // heure locale incluse
+export const PING_WINDOW_END_H = 21; // heure locale exclue
+/** Décalage horaire du pays (heures vs UTC) — CM/WAT = UTC+1. */
+export const COUNTRY_UTC_OFFSET_H: Record<string, number> = { CM: 1 };
+
+/** L'heure locale du pays est-elle dans la fenêtre de ping 7 h-21 h ? */
+export function inPingWindow(nowMs: number, countryCode?: string): boolean {
+  const offset = COUNTRY_UTC_OFFSET_H[countryCode ?? ""] ?? 1;
+  const localH = (Math.floor(nowMs / 3600000) + offset) % 24;
+  return localH >= PING_WINDOW_START_H && localH < PING_WINDOW_END_H;
+}
+
+/** Une coupure inactive doit-elle expirer ? (dernière activité > 48 h) */
+export function shouldExpire(lastActivityMs: number, nowMs: number): boolean {
+  return nowMs - lastActivityMs >= EXPIRE_AFTER_MS;
+}
+
+/** Une coupure est-elle éligible au ping ? (âgée ≥ 4 h, fenêtre horaire ok) */
+export function pingEligible(
+  reportedAtMs: number,
+  nowMs: number,
+  countryCode?: string
+): boolean {
+  return nowMs - reportedAtMs >= PING_AFTER_MS && inPingWindow(nowMs, countryCode);
+}
+
+/** Contenu de la notification de ping (par service). */
+export function stillOutPingContent(serviceType: string | undefined): {
+  title: string;
+  body: string;
+} {
+  const isWater = serviceType === "water";
+  return {
+    title: isWater ? "L'eau est-elle revenue ? 💧" : "Le courant est-il revenu ? ⚡",
+    body: "Dis-le à tes voisins en un geste : toujours coupé, ou c'est revenu ?",
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Boucle du signaleur (v67) — notif à l'auteur à la confirmation.
+// ---------------------------------------------------------------------------
+
+/** Faut-il notifier l'auteur pour cette N-ième confirmation ? (1ʳᵉ puis 5ᵉ) */
+export function shouldNotifyAuthor(confirmationCount: number): boolean {
+  return confirmationCount === 1 || confirmationCount === 5;
+}
+
+/** Contenu de la notif « tu n'es pas seul » à l'auteur. */
+export function authorConfirmedContent(
+  confirmationCount: number,
+  area?: NotifArea
+): { title: string; body: string } {
+  const parts = (area ? [area.neighborhood, area.city] : []).filter(
+    (s): s is string => !!s && s.length > 0
+  );
+  const zone = parts.length > 0 ? ` à ${parts.join(", ")}` : "";
+  const who =
+    confirmationCount === 1 ? "Un voisin confirme" : `${confirmationCount} voisins confirment`;
+  return {
+    title: "Tu n'es pas seul 🤝",
+    body: `${who} ta coupure${zone}. Ton signalement aide le quartier.`,
+  };
+}
+
+/** Ligne d'impact ajoutée à la notif de rétablissement des confirmeurs. */
+export function impactLine(notifiedCount: number): string {
+  if (notifiedCount <= 0) return "";
+  return notifiedCount === 1
+    ? " Ta confirmation a aidé à alerter 1 voisin."
+    : ` Ta confirmation a aidé à alerter ${notifiedCount} voisins.`;
+}

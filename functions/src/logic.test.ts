@@ -1,8 +1,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  authorConfirmedContent,
   buildBody,
+  impactLine,
+  inPingWindow,
   nextImpactRadius,
+  pingEligible,
+  shouldExpire,
+  shouldNotifyAuthor,
+  stillOutPingContent,
   plannedAlertBody,
   resolutionThreshold,
   shouldResolve,
@@ -100,4 +107,43 @@ test("nextImpactRadius: plafond et entrées invalides", () => {
   assert.equal(nextImpactRadius(undefined, 25000), 2000);
   assert.equal(nextImpactRadius(2000, Number.NaN), 2000);
   assert.equal(nextImpactRadius(undefined, -50), 150);
+});
+
+test("inPingWindow: fenêtre 7h-21h heure du Cameroun (UTC+1)", () => {
+  const utc = (h: number) => h * 3600000;
+  assert.equal(inPingWindow(utc(6), "CM"), true); // 07:00 locale
+  assert.equal(inPingWindow(utc(19), "CM"), true); // 20:00 locale
+  assert.equal(inPingWindow(utc(20), "CM"), false); // 21:00 locale (exclu)
+  assert.equal(inPingWindow(utc(2), "CM"), false); // 03:00 locale
+  assert.equal(inPingWindow(utc(6), undefined), true); // repli UTC+1
+});
+
+test("shouldExpire: 48 h d'inactivité", () => {
+  assert.equal(shouldExpire(0, 48 * 3600000), true);
+  assert.equal(shouldExpire(0, 47 * 3600000), false);
+});
+
+test("pingEligible: âge >= 4 h ET fenêtre horaire", () => {
+  const noonUtc = 11 * 3600000; // 12:00 locale CM
+  assert.equal(pingEligible(noonUtc - 4 * 3600000, noonUtc, "CM"), true);
+  assert.equal(pingEligible(noonUtc - 3 * 3600000, noonUtc, "CM"), false);
+  const nightUtc = 1 * 3600000; // 02:00 locale
+  assert.equal(pingEligible(0, nightUtc, "CM"), false);
+});
+
+test("shouldNotifyAuthor: 1re et 5e confirmations seulement", () => {
+  assert.equal(shouldNotifyAuthor(1), true);
+  assert.equal(shouldNotifyAuthor(2), false);
+  assert.equal(shouldNotifyAuthor(5), true);
+  assert.equal(shouldNotifyAuthor(6), false);
+});
+
+test("authorConfirmedContent + impactLine + stillOutPingContent", () => {
+  const c = authorConfirmedContent(5, { neighborhood: "Bastos", city: "Yaoundé" });
+  assert.match(c.body, /5 voisins confirment ta coupure à Bastos, Yaoundé/);
+  assert.match(authorConfirmedContent(1).body, /Un voisin confirme/);
+  assert.equal(impactLine(0), "");
+  assert.match(impactLine(12), /12 voisins/);
+  assert.match(stillOutPingContent("water").title, /eau/);
+  assert.match(stillOutPingContent(undefined).title, /courant/);
 });
