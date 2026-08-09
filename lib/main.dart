@@ -19,6 +19,7 @@ import 'firebase_options.dart';
 import 'firebase_options_prod.dart' as prod;
 import 'services/analytics_service.dart';
 import 'services/notification_actions.dart';
+import 'services/deep_link_service.dart';
 import 'services/notification_service.dart';
 
 /// Handler des messages FCM reçus quand l'app est en arrière-plan ou tuée.
@@ -151,6 +152,9 @@ Future<void> main() async {
 
   // Channel Android + listeners foreground/tap + check getInitialMessage.
   await NotificationService.instance.init();
+
+  // App Links (njuka.app/s/{id}) : lien de lancement + liens app ouverte.
+  await DeepLinkService.instance.init();
 
   runApp(const NjukaApp());
 }

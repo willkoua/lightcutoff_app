@@ -7,6 +7,13 @@
 	<key>aps-environment</key>
 	<string>development</string>
 	<!-- Sign in with Apple — exigence App Store 4.8 (connexions tierces). -->
+	<!-- Universal Links : njuka.app/s/{id} ouvre l'app (AASA sur le domaine).
+	     ⚠️ Nécessite la capability « Associated Domains » sur l'App ID (portail
+	     Apple) + profil « NJUKA AppStore » régénéré. -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:njuka.app</string>
+	</array>
 	<key>com.apple.developer.applesignin</key>
 	<array>
 		<string>Default</string>
