@@ -7,22 +7,19 @@
 
 ---
 
-## Séquence 1 — L'ACCROCHE : le problème, pas toi (0:00 – 0:12)
+## Séquence 1 — PRÉSENTATION + ACCROCHE (0:00 – 0:15)
 
-**Visuel** : toi face caméra, plan serré, énergie directe. Pas de logo, pas
-d'intro — la première seconde est déjà la question.
+**Visuel** : toi face caméra, plan serré, énergie directe et souriante.
 
-**Texte à l'écran** : « Le courant est parti ? ⚡ »
+**Texte à l'écran** : « Willy Kouagnia — ingénieur logiciel » puis
+« Le courant est parti ? ⚡ »
 
-> « Le courant vient de partir chez toi. Premier réflexe ? Tu demandes dans
-> le groupe WhatsApp : *"c'est chez moi seul ou c'est tout le quartier ?"*
-> Et personne ne sait vraiment. »
+> « Bonjour ! Je m'appelle **Willy Kouagnia**, je suis **ingénieur
+> logiciel**. Dis-moi : quand le courant part chez toi, ton premier
+> réflexe c'est quoi ? Demander dans le groupe WhatsApp : *"c'est chez
+> moi seul ou c'est tout le quartier ?"* … Et personne ne sait vraiment. »
 
-*Variante d'accroche (à tester en 2ᵉ version) :*
-> « Chaque Camerounais a déjà posé cette question : *"est-ce que la lumière
-> est partie chez vous aussi ?"* »
-
-## Séquence 2 — LA SOLUTION, en démo (0:12 – 0:45)
+## Séquence 2 — LA SOLUTION, en démo (0:15 – 0:48)
 
 **Visuel** : enregistrement d'écran de l'app (vertical, propre), toi en
 voix off. Montrer dans l'ordre : ① la carte avec une **zone orange** qui
@@ -42,13 +39,13 @@ c'est un VOISIN qui déclare le retour, pas l'app toute seule.
 > quartier est prévenu. Plus besoin de deviner : ensemble, on y voit
 > plus clair. »
 
-## Séquence 3 — L'ENTRAIDE, puis qui je suis (0:45 – 1:12)
+## Séquence 3 — L'ENTRAIDE (0:48 – 1:10)
 
 **Visuel** : retour face caméra, ton posé et chaleureux.
 
 **Texte à l'écran** (2 cartons successifs) :
 ① « Chaque signalement aide tout le quartier 🤝 »
-② « Willy Kouagnia — ingénieur logiciel · Gratuit. Sans pub. »
+② « Gratuit. Sans pub. Pour la communauté. 🇨🇲 »
 
 > « Sur NJUKA, signaler ce n'est pas se plaindre : c'est **informer ses
 > voisins**. C'est la communauté qui fait l'information, dans les deux
@@ -57,7 +54,6 @@ c'est un VOISIN qui déclare le retour, pas l'app toute seule.
 > voisin qui annonce le retour, pour que tout le monde soit prévenu.
 > C'est de l'entraide, tout simplement.
 >
-> Moi, je m'appelle **Willy Kouagnia**, je suis **ingénieur logiciel**.
 > J'ai construit NJUKA pour la communauté : c'est gratuit, sans publicité,
 > sans politique — et ça va le rester. »
 
@@ -65,7 +61,7 @@ c'est un VOISIN qui déclare le retour, pas l'app toute seule.
 affirmation tranquille — on affirme ce que le projet EST, on ne se
 défend de rien.*
 
-## Séquence 4 — L'APPEL À L'ACTION double (1:12 – 1:35)
+## Séquence 4 — L'APPEL À L'ACTION double (1:10 – 1:35)
 
 **Visuel** : face caméra, sourire, rythme qui remonte. Terminer sur un
 écran final : logo NJUKA + « njuka.app » + badges Play Store / App Store.
@@ -77,10 +73,11 @@ défend de rien.*
 > « Pour l'instant, NJUKA couvre le **Cameroun** — et on veut l'amener
 > au plus vite dans d'autres pays. L'app est sur Play Store et App
 > Store : cherche NJUKA, ou va sur njuka **point app** — pas point com,
-> point A-P-P. Et surtout : NJUKA marche si ton quartier est dessus.
-> Alors télécharge-la, envoie cette vidéo dans ton groupe de quartier —
-> et si tu vis ailleurs, **partage-la à ta famille au Cameroun**. C'est
-> comme ça qu'on y verra plus clair, ensemble. »
+> point A-P-P. Tout le monde peut signaler, partout au Cameroun — et
+> plus on est nombreux, plus la carte dit vrai. Alors télécharge-la,
+> envoie cette vidéo dans ton groupe de quartier — et si tu vis
+> ailleurs, **partage-la à ta famille au Cameroun**. C'est comme ça
+> qu'on y verra plus clair, ensemble. »
 
 ---
 
@@ -100,8 +97,9 @@ défend de rien.*
   (Bastos 900 m = la belle zone) — je peux préparer le téléphone pour la
   captation, comme pour les captures stores.
 - **Durée cible : ~95-100 secondes.** Si tu dois couper : jamais la séquence 2,
-  et garde TOUJOURS dans la 3 : l'idée « signaler = informer ses voisins /
-  s'entraider », ton nom + métier, et « gratuit, sans pub, sans politique ».
+  et garde TOUJOURS : ta présentation en ouverture (séq. 1), l'idée
+  « signaler = informer ses voisins / s'entraider » et « gratuit, sans pub,
+  sans politique » (séq. 3).
 - **Fin de l'écran final** : 3 secondes minimum de statique (le temps de
   faire une capture d'écran de l'URL).
 
