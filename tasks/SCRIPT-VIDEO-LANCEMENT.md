@@ -63,21 +63,20 @@ c'est un VOISIN qui déclare le retour, pas l'app toute seule.
 affirmation tranquille — on affirme ce que le projet EST, on ne se
 défend de rien.*
 
-## Séquence 4 — L'APPEL À L'ACTION double (1:12 – 1:38)
+## Séquence 4 — L'APPEL À L'ACTION double (1:12 – 1:35)
 
 **Visuel** : face caméra, sourire, rythme qui remonte. Terminer sur un
 écran final : logo NJUKA + « njuka.app » + badges Play Store / App Store.
 
 **Texte à l'écran** (2 cartons) :
 ① « 🇨🇲 Disponible au Cameroun — d'autres pays bientôt »
-② « 📲 njuka.app · réseaux sociaux : @lightcutoff »
+② « 📲 njuka.app — et partage au groupe du quartier »
 
 > « Pour l'instant, NJUKA couvre le **Cameroun** — et on veut l'amener
 > au plus vite dans d'autres pays. L'app est sur Play Store et App
 > Store : cherche NJUKA, ou va sur njuka **point app** — pas point com,
 > point A-P-P. Tout le monde peut signaler, partout au Cameroun — et
-> plus on est nombreux, plus la carte dit vrai. On est aussi sur les
-> réseaux sociaux, sous le nom **lightcutoff**. Alors télécharge l'app,
+> plus on est nombreux, plus la carte dit vrai. Alors télécharge l'app,
 > envoie cette vidéo dans ton groupe de quartier — et si tu vis
 > ailleurs, **partage-la à ta famille au Cameroun**. C'est comme ça
 > qu'on y verra plus clair, ensemble. »
