@@ -25,9 +25,15 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions";
 import { geohashQueryBounds, distanceBetween } from "geofire-common";
 import {
+  authorConfirmedContent,
   buildBody,
+  impactLine,
+  pingEligible,
   plannedAlertBody,
   nextImpactRadius,
+  shouldExpire,
+  shouldNotifyAuthor,
+  stillOutPingContent,
   resolutionThreshold,
   resolvedNotifContent,
   shouldResolve,
@@ -178,6 +184,27 @@ export const onConfirmationCreated = onDocumentCreated(
       const next = nextImpactRadius(report.impactRadiusM, distM);
       if (next > (report.impactRadiusM ?? 0)) {
         await reportRef.update({ impactRadiusM: next });
+      }
+    }
+
+    // Boucle du signaleur : « tu n'es pas seul » à la 1re et 5e confirmation.
+    // Le compteur inclut déjà ce vote (transaction client atomique).
+    const confCount = (report as { confirmationCount?: number }).confirmationCount ?? 0;
+    if (shouldNotifyAuthor(confCount) && report.userId) {
+      const authorDevices = await db
+        .collection("devices")
+        .where("userId", "==", report.userId)
+        .get();
+      const authorTokens = authorDevices.docs
+        .filter((d) => (d.data() as DeviceDoc).fcmEnabled !== false)
+        .map((d) => d.id);
+      if (authorTokens.length > 0) {
+        const c = authorConfirmedContent(confCount, report.location);
+        await sendToTokens(authorTokens, {
+          notification: { title: c.title, body: c.body },
+          data: { reportId, type: "author_confirmed" },
+        });
+        logger.info("Boucle signaleur : auteur notifié.", { reportId, confCount });
       }
     }
 
@@ -469,11 +496,14 @@ export const onReportResolved = onDocumentUpdated(
       after.serviceType,
       after.location
     );
+    // Boucle du signaleur : l'impact du geste, rendu visible.
+    const bodyWithImpact =
+      body + impactLine((after as ReportNotifState).notifiedUserIds?.length ?? 0);
     logger.info(
       `Résolution de ${reportId} : notification de ${tokens.length} device(s).`
     );
     await sendToTokens(tokens, {
-      notification: { title, body },
+      notification: { title, body: bodyWithImpact },
       data: { reportId, type: "outage_resolved" },
     });
   }
@@ -908,3 +938,92 @@ export const alertFollowedOutages = onSchedule(
     await runFollowedOutageAlerts();
   }
 );
+
+/**
+ * Cycle de vie des signalements (décisions 2026-08-09) — toutes les 30 min :
+ *  1. EXPIRATION : coupure en cours sans AUCUNE activité depuis 48 h
+ *     (`updatedAt`) → archivée avec `autoExpiredAt` (état distinct : jamais
+ *     « résolu », hors stats de durée, silencieux — aucune notification).
+ *  2. PING « Toujours coupé ? » : coupure âgée d'au moins 4 h, dans la
+ *     fenêtre 7 h-21 h locale → notification à boutons à l'auteur + aux
+ *     confirmeurs, UNE seule fois par personne et par coupure
+ *     (`stillOutPingedUids`). Toute activité repousse l'expiration.
+ */
+export const reportLifecycle = onSchedule("every 30 minutes", async () => {
+  const db = admin.firestore();
+  const nowMs = Date.now();
+  const snap = await db
+    .collection("reports")
+    .where("status", "==", "ongoing")
+    .get();
+
+  let expired = 0;
+  let pinged = 0;
+  for (const doc of snap.docs) {
+    const r = doc.data() as ReportDoc & {
+      confirmationCount?: number;
+      stillOutPingedUids?: string[];
+      reportedAt?: FirebaseFirestore.Timestamp;
+      updatedAt?: FirebaseFirestore.Timestamp;
+    };
+    if (r.archivedAt) continue;
+    const lastActivityMs =
+      r.updatedAt?.toMillis() ?? r.reportedAt?.toMillis() ?? nowMs;
+
+    // 1. Expiration silencieuse.
+    if (shouldExpire(lastActivityMs, nowMs)) {
+      await doc.ref.update({
+        archivedAt: admin.firestore.FieldValue.serverTimestamp(),
+        autoExpiredAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      expired++;
+      continue;
+    }
+
+    // 2. Ping (une fois par personne, fenêtre horaire locale).
+    const reportedAtMs = r.reportedAt?.toMillis();
+    const countryCode = (r.location as { countryCode?: string } | undefined)
+      ?.countryCode;
+    if (reportedAtMs == null || !pingEligible(reportedAtMs, nowMs, countryCode)) {
+      continue;
+    }
+    const alreadyPinged = new Set(r.stillOutPingedUids ?? []);
+    const targets = new Set<string>();
+    if (r.userId) targets.add(r.userId);
+    const confs = await doc.ref.collection("confirmations").get();
+    confs.docs.forEach((c) => targets.add(c.id));
+    const fresh = Array.from(targets).filter((u) => !alreadyPinged.has(u));
+    if (fresh.length === 0) continue;
+
+    const tokens: string[] = [];
+    for (let i = 0; i < fresh.length; i += 10) {
+      const chunk = fresh.slice(i, i + 10);
+      const dsnap = await db
+        .collection("devices")
+        .where("userId", "in", chunk)
+        .get();
+      dsnap.docs.forEach((d) => {
+        if ((d.data() as DeviceDoc).fcmEnabled !== false) tokens.push(d.id);
+      });
+    }
+    // Marquer TOUS les fresh comme pingés (même sans device : on ne
+    // re-tentera pas — un seul cycle de ping par personne).
+    await doc.ref.update({
+      stillOutPingedUids: admin.firestore.FieldValue.arrayUnion(...fresh),
+    });
+    if (tokens.length > 0) {
+      const c = stillOutPingContent(r.serviceType);
+      await sendToTokens(tokens, {
+        data: {
+          reportId: doc.id,
+          kind: "still_out_ping",
+          serviceType: r.serviceType ?? "electricity",
+          title: c.title,
+          body: c.body,
+        },
+      });
+      pinged += tokens.length;
+    }
+  }
+  logger.info(`reportLifecycle : ${expired} expirée(s), ${pinged} device(s) pingé(s).`);
+});
