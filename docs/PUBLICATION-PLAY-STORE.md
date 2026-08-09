@@ -1,7 +1,14 @@
 # Publication Play Store — NJUKA (mémo pas-à-pas)
 
+> ⚠️ **DOCUMENT HISTORIQUE (1ʳᵉ mise en ligne, juin 2026) — plusieurs valeurs sont
+> PÉRIMÉES** : la prod vit désormais sur **njuka-prod** (pas lightcutoff-dev), les
+> liens légaux sont sur **njuka.app**, la version courante est 1.2.x+, et les builds
+> prod passent par `tool/use_env.sh prod` + `--dart-define=APP_ENV=prod`.
+> Pour l'état courant : `README.md`, `CLAUDE.md`, `CONTEXT.md` (local).
+> Conservé comme trace du processus de première publication.
+
 > Guide opérationnel pour la **1ʳᵉ mise en ligne Android** (test interne) puis la
-> finalisation App Check. Valeurs réelles du projet pré-remplies.
+> finalisation App Check. Valeurs réelles du projet pré-remplies (à l'époque).
 
 ## Rappels valeurs projet
 | Donnée | Valeur |

@@ -5,6 +5,12 @@
 > débloquée, premiers vrais utilisateurs, **analytics de funnel** en place.
 > Contexte : **délestage quotidien, Cameroun, fournisseur Eneo.**
 > Créé le 2026-06-10.
+> **Mise à jour 2026-08-10** : le **cycle de vie des signalements** (implémenté) commence
+> à produire la matière première de cette vision — le ping « Toujours coupé ? » et le
+> bouton « C'est revenu ✓ » collectent des durées réelles. ⚠️ Règle d'hygiène de la
+> future donnée de durée : ne compter QUE les coupures résolues par la communauté
+> (`resolvedAt`) — JAMAIS les expirées (`autoExpiredAt`), qui mesurent le silence,
+> pas la durée. Décisions et seuils : `tasks/todo.md` §Cycle de vie.
 
 ---
 

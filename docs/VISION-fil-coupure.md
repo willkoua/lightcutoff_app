@@ -5,6 +5,11 @@
 > (test interne débloqué) et premiers vrais utilisateurs — une salle de discussion à 0 user
 > est un monologue.
 > Créé le 2026-06-10.
+> **Mise à jour 2026-08-10** : un **étage 1 sans texte libre** (« précisions structurées » :
+> tags fermés agrégés, zéro modération, compatible anonymes) a été entièrement planifié
+> puis **mis en réserve** — plan prêt à dérouler dans `tasks/todo.md` (reste à valider la
+> liste des tags). Le présent document reste la vision de l'étage 2 (texte libre, comptes
+> only, exigences UGC : signalement + blocage utilisateur).
 
 ---
 
