@@ -64,6 +64,12 @@ class AppConfig {
   /// Activer via `--dart-define=SCREENSHOT_MODE=true` (build staging).
   static const bool screenshotMode = bool.fromEnvironment('SCREENSHOT_MODE');
 
+  /// Masque UNIQUEMENT la bannière d'environnement (DEV/STAGING) en gardant les
+  /// outils dev (sélecteur de pays…) : build « tournage vidéo » — on configure
+  /// ET on filme avec le même APK, sans bannière à l'écran.
+  /// Activer via `--dart-define=HIDE_ENV_BANNER=true` (build staging).
+  static const bool hideEnvBanner = bool.fromEnvironment('HIDE_ENV_BANNER');
+
   /// Outils de dev (sélecteurs langue, pays/compagnie…) : visibles partout
   /// **sauf en prod** — tout ce qu'on voit en dev doit exister en staging.
   /// Masqués aussi en [screenshotMode].
@@ -106,9 +112,10 @@ class AppConfig {
   static const bool enableFacebookSignIn = true;
 
   /// Étiquette de la bannière d'environnement (`null` = pas de bannière, prod).
-  /// `null` aussi en [screenshotMode] (captures propres).
+  /// `null` aussi en [screenshotMode] (captures propres) et [hideEnvBanner]
+  /// (tournage vidéo : bannière cachée, outils dev conservés).
   static String? get envBannerLabel {
-    if (screenshotMode) return null;
+    if (screenshotMode || hideEnvBanner) return null;
     switch (environment) {
       case AppEnvironment.dev:
         return 'DEV';
