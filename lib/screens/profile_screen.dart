@@ -14,7 +14,6 @@ import 'followed_quartiers_screen.dart';
 import 'login_screen.dart';
 import 'settings_screen.dart';
 import 'stats_screen.dart';
-import 'upgrade_account_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -241,10 +240,9 @@ class _Avatar extends StatelessWidget {
 }
 
 /// Mur d'upgrade affiché à la place du profil pour une session anonyme.
-/// 2 CTA : « Créer un compte » (→ [UpgradeAccountScreen] via
-/// `linkWithCredential`, préserve l'historique anonyme) et « J'ai déjà un
-/// compte » (→ [LoginScreen], **après confirmation** : on perd l'historique
-/// car Firebase ne fusionne pas deux uid).
+/// CTA unique : « J'ai déjà un compte » (→ [LoginScreen], **après
+/// confirmation** si la session anonyme a de l'activité : on perd
+/// l'historique car Firebase ne fusionne pas deux uid).
 class _UpgradeWall extends StatelessWidget {
   const _UpgradeWall();
 
@@ -329,33 +327,17 @@ class _UpgradeWall extends StatelessWidget {
             label: l.profileUpgradeWallBenefitStats,
             description: l.profileUpgradeWallBenefitStatsSub,
           ),
-          _BenefitRow(
-            icon: Icons.badge_outlined,
-            label: l.profileUpgradeWallBenefitProfile,
-            description: l.profileUpgradeWallBenefitProfileSub,
-          ),
           const SizedBox(height: 24),
-          // Hiérarchie inversée (décision 2026-07-25) : « J'ai déjà un
-          // compte » en action PRINCIPALE — l'écran de connexion est le hub
-          // social 1-tap (Google/Facebook/Apple, création auto du profil).
-          // « Créer un compte » (formulaire email, préserve l'historique
-          // anonyme via linkWithCredential) passe en action secondaire.
+          // CTA unique : l'écran de connexion est le hub social 1-tap
+          // (Google/Facebook/Apple, création auto du profil). La création de
+          // compte par email reste accessible ailleurs
+          // (anonymous_first_report_sheet) et depuis l'écran de connexion.
           ElevatedButton(
             onPressed: () => _confirmLoginSwitch(context),
             style: ElevatedButton.styleFrom(
               minimumSize: const Size.fromHeight(50),
             ),
             child: Text(l.profileUpgradeWallAlreadyAccount),
-          ),
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed:
-                () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const UpgradeAccountScreen(),
-                  ),
-                ),
-            child: Text(l.profileUpgradeWallCTA),
           ),
         ],
       ),

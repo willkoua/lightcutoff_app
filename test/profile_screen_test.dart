@@ -93,23 +93,25 @@ void main() {
   }
 
   testWidgets(
-    "session anonyme → affiche le mur d'upgrade (heading + CTAs), pas le profil",
+    "session anonyme → affiche le mur d'upgrade (heading + CTA), pas le profil",
     (tester) async {
       final auth = buildAuth(anonymous: true);
       await tester.pumpWidget(_wrap(auth));
       await tester.pump();
 
-      // Heading + CTA primaire + CTA secondaire visibles. Les CTA sont en bas
-      // du ListView (les bénéfices détaillés les poussent hors du viewport de
-      // test) → scroll jusqu'à eux avant d'asserter.
+      // Heading + CTA unique visibles. Le CTA est en bas du ListView (les
+      // bénéfices détaillés le poussent hors du viewport de test) → scroll
+      // jusqu'à lui avant d'asserter. Pas de bouton « Créer un compte » ni de
+      // rangée « Ton profil communautaire » (retirés 2026-08-11).
       expect(find.text('Débloque tout le potentiel de NJUKA'), findsOneWidget);
       await tester.scrollUntilVisible(
-        find.text('Créer un compte'),
+        find.text('J\'ai déjà un compte'),
         200,
         scrollable: find.byType(Scrollable).first,
       );
-      expect(find.text('Créer un compte'), findsOneWidget);
       expect(find.text('J\'ai déjà un compte'), findsOneWidget);
+      expect(find.text('Créer un compte'), findsNothing);
+      expect(find.text('Ton profil communautaire'), findsNothing);
       // Aucune trace du nom de l'utilisateur ou du pseudo (profil masqué).
       expect(find.text('@willk'), findsNothing);
       expect(find.text('Will Koua'), findsNothing);

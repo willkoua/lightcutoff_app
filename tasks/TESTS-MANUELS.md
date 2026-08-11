@@ -78,7 +78,11 @@ Puis **http://127.0.0.1:4000** → Firestore → collection `official_outages` :
    - [ ] L'indicateur « tu as déjà voté » apparaît à la place du bouton.
 
 4. **Onglet Profil en anonyme** :
-   - [ ] Mur d'upgrade (heading « Tire le meilleur de NJUKA » + 4 bénéfices).
+   - [ ] Mur d'upgrade (heading « Débloque tout le potentiel de NJUKA » +
+         3 bénéfices — plus de rangée « Ton profil communautaire »).
+   - [ ] Un SEUL bouton : « J'ai déjà un compte » (le bouton « Créer un
+         compte » a été retiré du mur le 2026-08-11 ; la création email reste
+         accessible via la bottom-sheet post-1er-signalement et LoginScreen).
    - [ ] Bouton **Paramètres** accessible en AppBar.
    - [ ] Dans Paramètres : pas de section « Notifications », et la section
          « Compte » affiche **« Effacer cette session anonyme »** au lieu de
@@ -90,7 +94,9 @@ Puis **http://127.0.0.1:4000** → Firestore → collection `official_outages` :
    - [ ] Les signalements de l'ancienne session restent visibles (rattachés à
          l'ancien uid en base), mais on ne peut plus les modifier.
 
-6. **Upgrade vers compte réel** : Profil → « Créer un compte » → formulaire.
+6. **Upgrade vers compte réel** : bottom-sheet après le 1er signalement
+   anonyme → « Créer un compte » → formulaire (le mur du Profil n'a plus ce
+   bouton).
    - [ ] Bandeau d'intro ambre rassurant en haut.
    - [ ] Submit → écran de **vérification email** (`EmailVerificationScreen`).
    - [ ] Ouvre le mail (boîte / spams), clique le lien, reviens dans l'app,
