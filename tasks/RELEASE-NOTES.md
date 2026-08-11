@@ -5,6 +5,39 @@
 
 ---
 
+## 🚀 PRODUCTION — `1.3.0 (67)` — njuka-prod (2026-08-11)
+
+> Release « cycle complet du geste » : boucle du signaleur + lifecycle des
+> signalements + App Links. Côté Play : créer la version, associer le build
+> 67. Côté ASC : version **1.3.0**, associer le build 67.
+> ⚠️ Après publication : déployer `reportLifecycle` en prod (gate v67 levée).
+
+### 🇫🇷 fr-FR
+```
+Ton signalement vit maintenant sa vie ⚡💧
+
+• 4h après ta coupure, NJUKA te demande si le courant est revenu — réponds
+  en 1 tap depuis la notification
+• Quand des voisins confirment ta coupure, tu le sais : tu n'es pas seul
+• La notification de retour te dit combien de voisins tu as aidés
+• Les liens njuka.app partagés s'ouvrent directement dans l'app
+• Écran Compte simplifié
+```
+
+### 🇬🇧 en-US
+```
+Your report now lives its own life ⚡💧
+
+• 4h after your outage, NJUKA asks if power is back — answer with 1 tap
+  right from the notification
+• When neighbors confirm your outage, you'll know: you're not alone
+• The restoration notification tells you how many neighbors you helped
+• Shared njuka.app links now open right in the app
+• Simplified Account screen
+```
+
+---
+
 ## 🚀 PRODUCTION — `1.2.1 (65)` — njuka-prod (App Store, 2026-08-07)
 
 > Mise à jour publique : zones d'impact sur la carte + emails NJUKA.
