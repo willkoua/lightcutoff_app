@@ -25,7 +25,10 @@ export interface ShareReportView {
 const STORE_ANDROID =
   "https://play.google.com/store/apps/details?id=com.njuka.app" +
   "&referrer=utm_source%3Dshare%26utm_medium%3Dreferral%26utm_campaign%3Dreport-share";
-const STORE_IOS = "https://apps.apple.com/app/njuka/id6794127922";
+// `ct=share` : canal viral WhatsApp, distinct du `ct=website` du site (App Store
+// Connect n'agrège les campagnes qu'une fois le provider token `pt=` configuré —
+// même limitation que le site, le paramètre est prêt pour ce jour-là).
+const STORE_IOS = "https://apps.apple.com/app/njuka/id6794127922?ct=share&mt=8";
 const LOGO = "https://njuka.app/assets/static/images/njuka/njuka_icon.png";
 
 /** Firestore du projet STAGING (repli de lecture, initialisation paresseuse). */
