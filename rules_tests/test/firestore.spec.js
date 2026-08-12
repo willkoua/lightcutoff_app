@@ -262,6 +262,66 @@ describe("Firestore — reports", () => {
     );
   });
 
+  it("un admin peut archiver et restaurer un signalement (modération)", async () => {
+    await seed(async (db) => {
+      await setDoc(doc(db, "users/moderator"), { role: "admin" });
+      await setDoc(doc(db, "reports/r1"), { userId: "alice", archivedAt: null });
+      await setDoc(doc(db, "reports/r2"), {
+        userId: "alice",
+        archivedAt: new Date(),
+        autoExpiredAt: new Date(),
+      });
+    });
+    // archiver
+    await assertSucceeds(
+      updateDoc(doc(as("moderator"), "reports/r1"), {
+        archivedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }),
+    );
+    // restaurer un expiré (efface aussi autoExpiredAt)
+    await assertSucceeds(
+      updateDoc(doc(as("moderator"), "reports/r2"), {
+        archivedAt: null,
+        autoExpiredAt: null,
+        updatedAt: serverTimestamp(),
+      }),
+    );
+  });
+
+  it("l'admin ne peut PAS toucher d'autres champs, et un non-admin ne peut pas modérer", async () => {
+    await seed(async (db) => {
+      await setDoc(doc(db, "users/moderator"), { role: "admin" });
+      await setDoc(doc(db, "users/bob"), { role: "citizen" });
+      await setDoc(doc(db, "reports/r1"), {
+        userId: "alice",
+        archivedAt: null,
+        description: "coupure",
+      });
+    });
+    // admin : champ hors du périmètre de modération → refusé
+    await assertFails(
+      updateDoc(doc(as("moderator"), "reports/r1"), {
+        description: "réécrite",
+        updatedAt: serverTimestamp(),
+      }),
+    );
+    await assertFails(
+      updateDoc(doc(as("moderator"), "reports/r1"), {
+        archivedAt: serverTimestamp(),
+        status: "resolved",
+        updatedAt: serverTimestamp(),
+      }),
+    );
+    // non-admin : modération refusée
+    await assertFails(
+      updateDoc(doc(as("bob"), "reports/r1"), {
+        archivedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }),
+    );
+  });
+
   it("un tiers ne peut pas écrire les compteurs sur un report archivé", async () => {
     await seed((db) =>
       setDoc(doc(db, "reports/r1"), {

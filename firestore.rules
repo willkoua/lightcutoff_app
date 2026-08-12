@@ -109,6 +109,14 @@ service cloud.firestore {
       // Cloud Functions via l'Admin SDK (qui contourne ces règles).
       allow update: if isSignedIn() && (
                       resource.data.userId == request.auth.uid ||
+                      // Modération (site web admin, lot 2d) : un admin ne peut
+                      // toucher QUE archiver/restaurer — archivedAt,
+                      // autoExpiredAt (restauration d'un expiré) et updatedAt.
+                      (
+                        isAdmin()
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                             .hasOnly(['archivedAt', 'autoExpiredAt', 'updatedAt'])
+                      ) ||
                       (
                         resource.data.get('archivedAt', null) == null && (
                           (

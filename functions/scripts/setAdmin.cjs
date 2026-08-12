@@ -1,11 +1,15 @@
 // Script ponctuel : promeut un utilisateur en admin (users/{uid}.role='admin').
-// Usage : node functions/scripts/setAdmin.cjs <username> [email]
+// Usage : PROJECT_ID=njuka-prod node functions/scripts/setAdmin.cjs <username> [email]
+//         (PROJECT_ID absent → lightcutoff-dev)
 // Nécessite des identifiants (ADC : gcloud auth application-default login).
 const admin = require("firebase-admin");
 
+const projectId = process.env.PROJECT_ID || "lightcutoff-dev";
+console.log(`Projet cible : ${projectId}`);
+
 admin.initializeApp({
   credential: admin.credential.applicationDefault(),
-  projectId: "lightcutoff-dev",
+  projectId,
 });
 
 const db = admin.firestore();
