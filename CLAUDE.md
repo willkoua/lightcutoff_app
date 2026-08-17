@@ -2,6 +2,15 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## ⛔ Hosting trap — njuka-prod belongs to the WEBSITE repo
+
+The njuka-prod Firebase Hosting site serves **https://njuka.app** and is owned by the
+**Angular website repo (`../lightCutOff`)** — including `.well-known/` (App Links /
+Universal Links) and the legal pages. **NEVER run `firebase deploy --only hosting` against
+njuka-prod from THIS repo**: `public/` here would wipe the whole site (happened twice).
+Deploy the site from `../lightCutOff` (`firebase deploy --only hosting --project prod`).
+Hosting deploys from this repo are only ever for **lightcutoff-dev** (staging legal pages).
+
 ## Branching model (2026-07-28)
 
 Trunk-based, solo-friendly. Environments are BUILD configs (`APP_ENV` + `tool/use_env.sh`), never code-diverging branches.
@@ -102,7 +111,7 @@ NjukaApp (MultiProvider: AuthProvider + LocaleProvider + ConnectivityProvider + 
 
 ### Multi-service (pivot 2026-06-24)
 
-`ServiceType { electricity, water }` lives on each report (default `electricity` at read for backward compat). `Utility { id, service, country, label }` in `lib/config/utilities.dart` replaces the old `ElectricityProvider` — Eneo (CM, elec) + CAMWATER (CM, water). `RegionProvider` exposes `activeUtility(ServiceType)` and a persistent `serviceFilter` (`SharedPreferences`). The settings picker has **two tiles** (one per service) with **symmetric auto-coupling**: setting one slot aligns the other on the same country; picking "Auto" on either side resets both.
+`ServiceType { electricity, water }` lives on each report (default `electricity` at read for backward compat). `Utility { id, service, country, label }` in `lib/config/utilities.dart` replaces the old `ElectricityProvider` — SOCADEL (CM, elec, ex-Eneo — the `id`/`provider` value stays `eneo` for data stability) + CAMWATER (CM, water). `RegionProvider` exposes `activeUtility(ServiceType)` and a persistent `serviceFilter` (`SharedPreferences`). The settings picker has **two tiles** (one per service) with **symmetric auto-coupling**: setting one slot aligns the other on the same country; picking "Auto" on either side resets both.
 
 ### Key providers
 
