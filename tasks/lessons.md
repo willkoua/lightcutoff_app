@@ -2,6 +2,20 @@
 
 Format : `[date] | ce qui a mal tourné | règle pour l'éviter`
 
+- **2026-08-13 | Déploiement hosting njuka-prod depuis lightcutoff_app = SITE ANGULAR ÉCRASÉ
+  (2 fois : pages légales fin juillet, page d'accueil improvisée)** : le hosting njuka-prod
+  est partagé — il appartient au site (`../lightCutOff`, domaine njuka.app, avec
+  `.well-known/` App Links + pages légales). Chaque `firebase deploy --only hosting
+  --project njuka-prod` lancé depuis le dépôt de l'app remplace TOUT le site par
+  `public/`, et casse au passage assetlinks.json / apple-app-site-association
+  (= liens WhatsApp → app morts, silencieusement).
+  → **Règles** : ① hosting njuka-prod = déployé UNIQUEMENT depuis `../lightCutOff`
+  (`firebase deploy --only hosting --project prod`) ; depuis lightcutoff_app, seul
+  lightcutoff-dev est légitime ; ② après TOUT déploiement hosting prod, vérifier
+  `curl njuka.app/.well-known/assetlinks.json` (200) ; ③ avant de « corriger » un
+  contenu web, identifier QUEL dépôt possède la version en ligne (le même chemin
+  /privacy existait dans les deux dépôts — j'ai édité le mauvais pendant 2 jours).
+
 - **2026-07-28 | Upload iOS en ligne de commande : 3 pièges qui se déguisent en échec** :
   ① `pod install` meurt en `Encoding::CompatibilityError` (« Unicode Normalization not
   appropriate for ASCII-8BIT ») dans un shell **sans locale UTF-8** → `export
