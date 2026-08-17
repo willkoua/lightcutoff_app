@@ -89,7 +89,7 @@ class AnalyticsService {
   /// Prompt d'ouverture « Chez toi aussi ? » écarté sans répondre.
   Future<void> logPromptDismissed() => _log('outage_prompt_dismissed');
 
-  /// L'utilisateur a ouvert l'onglet des coupures planifiées (Eneo).
+  /// L'utilisateur a ouvert l'onglet des coupures planifiées (SOCADEL).
   Future<void> logPlannedOutagesViewed() => _log('planned_outages_viewed');
 
   /// L'utilisateur a ouvert l'écran de statistiques perso.

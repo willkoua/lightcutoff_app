@@ -7,6 +7,7 @@ import '../models/enums.dart';
 import '../repositories/location_repository.dart';
 import '../services/ip_country_service.dart';
 import '../services/location_service.dart';
+import '../services/utility_service.dart';
 
 /// Détermine le **fournisseur de service public actif** (pays + compagnie) pour
 /// aller chercher les coupures planifiées et taguer les signalements.
@@ -29,13 +30,28 @@ class RegionProvider extends ChangeNotifier {
   RegionProvider({
     LocationRepository? location,
     Future<String?> Function()? ipCountry,
+    Future<RemoteUtilities?> Function()? remoteUtilities,
   }) : _location = location ?? LocationService(),
-       _ipCountry = ipCountry ?? countryFromIp {
+       _ipCountry = ipCountry ?? countryFromIp,
+       _remoteUtilities = remoteUtilities ?? fetchRemoteUtilities {
+    _refreshUtilities();
     _loadOverride();
     _loadUserCountry();
     _loadWorldwide();
     _loadServiceFilter();
     _detectCountry();
+  }
+
+  /// Rafraîchit le catalogue des compagnies depuis Firestore (`utilities`) —
+  /// source de vérité depuis le 2026-08-13, l'embarqué n'étant qu'un filet.
+  /// Best-effort : en cas d'échec (hors-ligne, premier démarrage sans réseau,
+  /// environnement de test sans Firebase), le registre embarqué reste actif.
+  Future<void> _refreshUtilities() async {
+    final remote = await _remoteUtilities();
+    if (remote == null) return;
+    applyRemoteUtilities(remote.upserts, disabledIds: remote.disabledIds);
+    // Les pickers, `activeUtility` et les libellés pays dépendent du registre.
+    notifyListeners();
   }
 
   // Nouvelles clés (pivot étape 3 — 1 override par service).
@@ -54,6 +70,7 @@ class RegionProvider extends ChangeNotifier {
 
   final LocationRepository _location;
   final Future<String?> Function() _ipCountry;
+  final Future<RemoteUtilities?> Function() _remoteUtilities;
   bool _ipLookupDone = false; // repli IP tenté (une fois par session)
 
   /// Override dev par service. `null` = résolution standard (GPS / profil /
@@ -95,7 +112,7 @@ class RegionProvider extends ChangeNotifier {
     // Migration : ancienne clé unique → nouveau slot par service.
     final legacyId = prefs.getString(_legacyPrefKey);
     if (legacyId != null && legacyId.isNotEmpty) {
-      for (final u in kSupportedUtilities) {
+      for (final u in supportedUtilities) {
         if (u.id == legacyId) {
           if (u.service == ServiceType.electricity) {
             _overrideElec = u;
@@ -113,7 +130,7 @@ class RegionProvider extends ChangeNotifier {
     // Chargement des slots actuels.
     final elecId = prefs.getString(_prefKeyElec);
     if (elecId != null && elecId.isNotEmpty) {
-      for (final u in kSupportedUtilities) {
+      for (final u in supportedUtilities) {
         if (u.id == elecId && u.service == ServiceType.electricity) {
           _overrideElec = u;
           changed = true;
@@ -123,7 +140,7 @@ class RegionProvider extends ChangeNotifier {
     }
     final waterId = prefs.getString(_prefKeyWater);
     if (waterId != null && waterId.isNotEmpty) {
-      for (final u in kSupportedUtilities) {
+      for (final u in supportedUtilities) {
         if (u.id == waterId && u.service == ServiceType.water) {
           _overrideWater = u;
           changed = true;
@@ -289,7 +306,7 @@ class RegionProvider extends ChangeNotifier {
 
   /// Compatibilité : équivalent de `activeUtility(ServiceType.electricity)`.
   /// Utilisé par les écrans existants qui parlent encore d'« électricité » par
-  /// défaut (coupures planifiées Eneo, libellés de pays, etc.). À remplacer
+  /// défaut (coupures planifiées SOCADEL, libellés de pays, etc.). À remplacer
   /// progressivement par l'appel paramétré.
   Utility? get activeProvider => activeUtility(ServiceType.electricity);
 

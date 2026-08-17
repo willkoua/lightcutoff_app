@@ -236,5 +236,14 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if false;
     }
+
+    // Catalogue des compagnies d'électricité/eau (source de vérité depuis le
+    // 2026-08-13 — l'app embarque un filet Cameroun, le remote surcharge).
+    // Lecture connectée (anonyme inclus), écriture Admin SDK UNIQUEMENT :
+    // personne ne renomme un opérateur depuis un client.
+    match /utilities/{utilityId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
   }
 }

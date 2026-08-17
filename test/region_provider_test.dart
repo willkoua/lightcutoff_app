@@ -55,7 +55,7 @@ void main() {
       () async {
         final region = RegionProvider(location: location);
         region.setHomeCountry(null);
-        // Simule le sélecteur dev qui pose un fournisseur Eneo (CM).
+        // Simule le sélecteur dev qui pose un fournisseur SOCADEL (CM).
         final eneo = kSupportedUtilities.firstWhere((u) => u.id == 'eneo');
         await region.setOverride(ServiceType.electricity, eneo);
         expect(region.activeCountry, 'CM');
@@ -85,7 +85,10 @@ void main() {
         await region.setUserCountry('CM');
         expect(region.userCountry, 'CM');
         expect(region.activeCountry, 'CM');
-        expect(region.activeProvider, isNotNull); // Eneo dispo → programmées OK
+        expect(
+          region.activeProvider,
+          isNotNull,
+        ); // SOCADEL dispo → programmées OK
       },
     );
 
@@ -102,6 +105,41 @@ void main() {
       final rebuilt = RegionProvider(location: location);
       await Future<void>.delayed(const Duration(milliseconds: 10));
       expect(rebuilt.userCountry, 'CM');
+    });
+  });
+
+  group('RegionProvider — catalogue utilities distant', () {
+    tearDown(resetUtilities);
+
+    test('le remote ajoute un pays → activeUtility le résout', () async {
+      const cie = Utility(
+        id: 'cie',
+        service: ServiceType.electricity,
+        country: 'CI',
+        label: 'CIE',
+        countryLabel: "Côte d'Ivoire",
+      );
+      var notified = false;
+      final region = RegionProvider(
+        location: location,
+        remoteUtilities: () async => (upserts: [cie], disabledIds: <String>{}),
+      );
+      region.addListener(() => notified = true);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      expect(notified, isTrue);
+      await region.setUserCountry('CI');
+      expect(region.activeUtility(ServiceType.electricity)?.id, 'cie');
+      expect(region.activeUtility(ServiceType.water), isNull); // pas d'eau CI
+    });
+
+    test('remote indisponible (null) → registre embarqué conservé', () async {
+      final region = RegionProvider(
+        location: location,
+        remoteUtilities: () async => null,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      await region.setUserCountry('CM');
+      expect(region.activeUtility(ServiceType.electricity)?.id, 'eneo');
     });
   });
 
@@ -155,7 +193,7 @@ void main() {
 
   group('RegionProvider — multi-service (pivot étape 3)', () {
     test(
-      'activeUtility(elec) = Eneo, activeUtility(water) = CAMWATER au CM',
+      'activeUtility(elec) = SOCADEL, activeUtility(water) = CAMWATER au CM',
       () {
         final region = RegionProvider(location: location);
         region.setHomeCountry('Cameroun');
@@ -167,7 +205,7 @@ void main() {
     );
 
     test(
-      "override CAMWATER (water) auto-couple Eneo (elec) sur le même pays",
+      "override CAMWATER (water) auto-couple SOCADEL (elec) sur le même pays",
       () async {
         final region = RegionProvider(location: location);
         region.setHomeCountry('Cameroun');
@@ -177,7 +215,7 @@ void main() {
         await region.setOverride(ServiceType.water, camwater);
         expect(region.overrideUtility(ServiceType.water)?.id, 'camwater');
         // Auto-coupling : le slot elec est automatiquement aligné sur le
-        // jumeau du même pays (Eneo · Cameroun).
+        // jumeau du même pays (SOCADEL · Cameroun).
         expect(region.overrideUtility(ServiceType.electricity)?.id, 'eneo');
         expect(region.activeUtility(ServiceType.water)?.id, 'camwater');
         expect(region.activeUtility(ServiceType.electricity)?.id, 'eneo');

@@ -1,5 +1,9 @@
 /**
  * Adaptateur Eneo (Cameroun) — programme officiel des travaux & coupures.
+ * ⚠️ La compagnie a été renommée SOCADEL (2026-08) mais le portail
+ * (alert.eneo.cm, vérifié en live le 2026-08-11) et l'identifiant persisté
+ * `provider: "eneo"` restent inchangés — seul le libellé affiché dans l'app
+ * dit « SOCADEL » (`lib/config/utilities.dart`).
  *
  * Source vérifiée en live (2026-06-10) :
  *   POST https://alert.eneo.cm/ajaxOutage.php   body: region=<1..10>

@@ -1,6 +1,6 @@
 # NJUKA
 
-Application mobile de **signalement de coupures de service public — électricité et eau** (Android & iOS), construite avec Flutter et Firebase. Les utilisateurs signalent les coupures dans leur zone (géolocalisées), confirment celles existantes, déclarent le retour du service, suivent la résolution — et consultent les **coupures planifiées officielles** de leur fournisseur d'électricité (Eneo au Cameroun).
+Application mobile de **signalement de coupures de service public — électricité et eau** (Android & iOS), construite avec Flutter et Firebase. Les utilisateurs signalent les coupures dans leur zone (géolocalisées), confirment celles existantes, déclarent le retour du service, suivent la résolution — et consultent les **coupures planifiées officielles** de leur fournisseur d'électricité (SOCADEL, ex-Eneo, au Cameroun).
 
 **Auth-light** (pivot 2026-06-24) : la lecture, le signalement et le vote sont accessibles **sans inscription** via Firebase Anonymous Auth ; la création d'un compte (profil, statistiques, suivi de quartier, notifications) reste optionnelle et **préserve l'historique anonyme** via `linkWithCredential`.
 
@@ -36,7 +36,7 @@ Sans `APP_ENV` → `staging` (comportement historique) ; `USE_EMULATOR=true` →
 | Crowd | **confirmations** & **« courant revenu »** (1 vote/uid, transactionnel — y compris anonyme, **indicateur « tu as déjà voté »**), **auto-résolution** par seuil, archivage soft-delete + purge 30 j |
 | Statistiques | écran perso **« mes coupures »** + **« ma zone »** (compte, durées, répartition heure/jour), **splittables par service** — agrégats anonymes |
 | Mesure | **Firebase Analytics** (funnel : `anonymous_started` → `anonymous_first_report` → `upgrade_started` → `upgrade_completed` + signalement/confirmation/restauration + screen views), collecte coupée en dev |
-| Coupures officielles | **programme Eneo ingéré quotidiennement** (Cloud Function) → segment « Programmées » (recherche quartier + filtre région), **suivre un quartier** + alerte push la veille |
+| Coupures officielles | **programme SOCADEL (ex-Eneo) ingéré quotidiennement** (Cloud Function) → segment « Programmées » (recherche quartier + filtre région), **suivre un quartier** + alerte push la veille |
 | Multi-pays | fournisseurs résolus automatiquement (profil → locale → défaut), registre extensible ([`lib/config/utilities.dart`](lib/config/utilities.dart) — `Utility { id, service, country, … }` unifié élec/eau) |
 | Carte | `flutter_map` + tuiles Stadia Maps (repli OSM) ; **zones d'impact** (2026-08-07) : chaque coupure en cours = disque translucide couleur service, **rayon = ampleur** (`impactRadiusM`, agrégat anonyme serveur calculé sur les confirmations), **opacité = fraîcheur** ; pins par service = cibles de tap ; résolues masquées par le filtre de statut par défaut |
 | Cycle de vie | **ping « Toujours coupé ? »** unique à 4 h (fenêtre 7-21 h, boutons 1-tap) + **expiration silencieuse à 48 h d'inactivité** (état distinct, hors stats) ; **boucle du signaleur** : notif « Tu n'es pas seul » à l'auteur, ligne d'impact au rétablissement, promesse du retour dans le formulaire *(v67, staging)* |
@@ -317,7 +317,7 @@ Types de tests :
   ├── main.dart            # point d'entrée + init Firebase + garde prod + bascule émulateurs
   ├── app.dart             # MaterialApp, thème, MultiProvider, bannière d'env
   ├── firebase_options.dart
-  ├── config/              # AppConfig (APP_ENV, hôte, ports), AppConstants, utilities (Eneo/CAMWATER)
+  ├── config/              # AppConfig (APP_ENV, hôte, ports), AppConstants, utilities (SOCADEL/CAMWATER)
   ├── l10n/                # ARB FR/EN → généré dans l10n/generated/ (gitignoré)
   ├── models/              # modèles de données + enums (ServiceType, voir SCHEMA.md)
   ├── repositories/        # contrats abstraits (AuthRepository, ReportRepository, OfficialOutage…)
@@ -372,7 +372,7 @@ lightcutoff_app/
 │   ├── main.dart              # Point d'entrée + init Firebase + garde prod + émulateurs
 │   ├── app.dart               # MaterialApp, thème, MultiProvider, bannière d'env
 │   ├── firebase_options.dart  # Config Firebase (généré)
-│   ├── config/                # AppConfig (3 envs), AppConstants, utilities (Eneo + CAMWATER)
+│   ├── config/                # AppConfig (3 envs), AppConstants, utilities (SOCADEL + CAMWATER)
 │   ├── l10n/                  # ARB FR/EN (généré dans l10n/generated/, gitignoré)
 │   ├── models/                # AppUser, Report (+serviceType), Confirmation, OfficialOutage, enums
 │   ├── repositories/          # interfaces Auth/Report/Location/OfficialOutage
@@ -382,7 +382,7 @@ lightcutoff_app/
 │   ├── widgets/               # report_card, service_filter_bar, anonymous_first_report_sheet, official_outage…
 │   ├── theme/                 # AppColors (+water), AppTheme (charte graphique)
 │   └── utils/                 # validators, formatting, l10n_helpers, geohash, service_visuals
-├── functions/                 # Cloud Functions (Node 22, TS) — FCM, ingestion Eneo, RGPD
+├── functions/                 # Cloud Functions (Node 22, TS) — FCM, ingestion SOCADEL (ex-Eneo), RGPD
 │   └── src/sources/           # adaptateurs fournisseurs (eneo.ts) — multi-pays
 ├── android/                   # Projet Android (minSdk 23, Kotlin 2.1.0)
 │   └── app/src/debug/         # config réseau debug (cleartext émulateurs)

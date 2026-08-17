@@ -181,7 +181,7 @@ Modèle Dart : `lib/models/device.dart`
 
 ## Collection `official_outages/{rawHash}`
 
-Coupures **planifiées officielles** (programme Eneo), alimentée par la Cloud
+Coupures **planifiées officielles** (programme SOCADEL, ex-Eneo), alimentée par la Cloud
 Function `ingestEneoOutages` (cron quotidien, upsert idempotent par `rawHash` +
 purge des dates passées). **Écriture client interdite** ; lecture si connecté.
 
@@ -199,6 +199,31 @@ Clé de suivi : `followKey` = `REGION\|VILLE\|QUARTIER` (cf.
 Modèle Dart : `lib/models/official_outage.dart`
 
 ---
+
+## Collection `utilities/{id}` (catalogue des compagnies — 2026-08-13)
+
+> **Source de vérité** des compagnies d'électricité/eau. L'app embarque un
+> filet de sécurité (Cameroun, `lib/config/utilities.dart`) et fusionne ce
+> catalogue par-dessus au démarrage (`fetchRemoteUtilities` →
+> `applyRemoteUtilities`) : surcharge par `id`, ajout des nouveaux pays,
+> retrait des `enabled: false`. **Ajouter un pays = un document, sans release.**
+> Id du doc = identifiant stable de la compagnie (== `provider` des
+> `official_outages`) : `eneo`, `camwater`, `cie`, `sodeci`…
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| `service` | string enum | `electricity` \| `water` |
+| `country` | string | code ISO-3166-1 alpha-2 (`CM`, `CI`…) |
+| `label` | string | nom affiché de la compagnie (ex. `SOCADEL`) |
+| `countryLabel` | string | nom du pays affiché (ex. `Côte d'Ivoire`) |
+| `countryAliases` | string[] | noms libres matchés contre `homeLocation.country` |
+| `enabled` | bool | `false` = retirée du catalogue actif (embarqué inclus) |
+| `updatedAt` | timestamp | dernière modification (seed script) |
+
+Règles : lecture connectée (anonyme inclus), **écriture client interdite**
+(Admin SDK — `functions/scripts/seedUtilities.cjs`). Le schéma est figé
+(champs ajoutables, jamais renommés) : les vieilles versions d'app le lisent
+pour toujours.
 
 ## Types partagés
 
@@ -228,7 +253,7 @@ function isAnonymous() {
 - **reports/{id}/denials** : mêmes contraintes que les confirmations (lecture owner/admin, pas sur sa propre coupure), mais **aucune branche compteur** — signal négatif pur.
 - **reports/{id}/restorations** : create par soi-même uniquement, **y compris l'auteur du report** ; lecture propriétaire / admin / auteur du report (pas de position exacte dans ce doc).
 - **devices** : un utilisateur ne lit/écrit/supprime que ses propres appareils ET **non-anonyme**. La Cloud Function d'envoi utilise l'Admin SDK pour lire tous les devices (dont `position`) et purger les tokens périmés.
-- **official_outages** : lecture si connecté ; **écriture client interdite** (alimenté par la Cloud Function d'ingestion Eneo via Admin SDK).
+- **official_outages** : lecture si connecté ; **écriture client interdite** (alimenté par la Cloud Function d'ingestion SOCADEL (ex-Eneo) via Admin SDK).
 
 ---
 
@@ -241,4 +266,4 @@ function isAnonymous() {
 - **Identité publique = `@pseudo` uniquement.** Le prénom/nom vivent dans `users/{uid}` (lecture propriétaire/admin). Les signalements affichent `@pseudo` (champ `authorUsername` dénormalisé, immuable) ; les confirmations restent anonymes (« Vous »/« Un utilisateur »). Le pseudo est **généré à la création** et **personnalisable une seule fois** (`usernameChangesLeft`, verrou serveur) : les anciens signalements gardent l'ancien pseudo (dénormalisation immuable) → au plus **2 identités à vie** par compte, incohérence bornée et assumée. Pose les bases d'un futur fil social éphémère par coupure.
 - **Suppression de compte (RGPD / exigence stores)** via la Cloud Function callable `deleteAccount` (`Profil → Paramètres → Compte`). Stratégie **« anonymisation »** : les signalements de l'utilisateur sont conservés mais vidés de toute donnée perso (`userId=""`, `authorUsername=null`, `mediaUrl=null`) — la coupure reste un repère communautaire ; **profil**, **index pseudo**, **devices**, **médias Storage** (`report_media/{uid}/`) et **compte Auth** sont supprimés. Le compte Auth est supprimé en dernier (pas de données orphelines en cas d'échec). Procédure publique : `https://lightcutoff-dev.web.app/account-deletion`.
 - **Anonymous Auth « léger »** (pivot 2026-06-24) : `signInAnonymously` au 1ᵉʳ lancement → l'utilisateur peut signaler et voter sans inscription. Les fonctions sociales (profil, statistiques, suivi de quartier, notifs) sont gardées derrière un mur d'upgrade ; `linkWithCredential` préserve l'uid → l'historique anonyme reste attaché. Limite acceptée v1 : **réinstaller l'app = nouvel uid** (mitigée par App Check, à durcir avec un rate limit Cloud Function si besoin).
-- **Multi-service** (`ServiceType { electricity, water }`, pivot 2026-06-24) : un même schéma de report sert les deux services. Filtre persistant (`SharedPreferences` côté client) Tout / Électricité / Eau commun à la liste, la carte et les stats. Modèle de fournisseurs unifié `Utility { id, service, country, label, … }` ([`lib/config/utilities.dart`](lib/config/utilities.dart)) couvre Eneo (CM, élec) + CAMWATER (CM, eau) ; **adaptateur d'ingestion CAMWATER non implémenté** (l'ingestion Eneo continue de poser `serviceType = electricity`).
+- **Multi-service** (`ServiceType { electricity, water }`, pivot 2026-06-24) : un même schéma de report sert les deux services. Filtre persistant (`SharedPreferences` côté client) Tout / Électricité / Eau commun à la liste, la carte et les stats. Modèle de fournisseurs unifié `Utility { id, service, country, label, … }` ([`lib/config/utilities.dart`](lib/config/utilities.dart)) couvre SOCADEL (ex-Eneo — CM, élec) + CAMWATER (CM, eau) ; **adaptateur d'ingestion CAMWATER non implémenté** (l'ingestion SOCADEL (`ingestEneoOutages`) continue de poser `serviceType = electricity`).

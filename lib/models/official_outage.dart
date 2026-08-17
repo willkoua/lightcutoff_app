@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'enums.dart';
 
-/// Coupure **officielle planifiée** importée d'un fournisseur (Eneo aujourd'hui),
+/// Coupure **officielle planifiée** importée d'un fournisseur (SOCADEL, ex-Eneo, aujourd'hui),
 /// lue depuis la collection Firestore `official_outages` (alimentée côté serveur).
 /// Couche distincte des signalements communautaires (`Report`).
 class OfficialOutage {
@@ -19,7 +19,7 @@ class OfficialOutage {
   final DateTime? startsAt;
   final DateTime? endsAt;
 
-  /// Service public concerné. Pour v1, seul Eneo (électricité) est ingéré.
+  /// Service public concerné. Pour v1, seule SOCADEL (électricité, ex-Eneo) est ingérée.
   /// L'ouverture eau viendra avec un adaptateur dédié (CAMWATER) — qui posera
   /// `serviceType = water` côté Cloud Function.
   final ServiceType serviceType;

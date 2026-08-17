@@ -124,7 +124,7 @@ void main() {
     });
 
     test(
-      'filtre service : eau = vide (CAMWATER pas encore ingéré), élec = Eneo',
+      'filtre service : eau = vide (CAMWATER pas encore ingéré), élec = SOCADEL',
       () async {
         final p = OfficialOutageProvider(
           country: 'CM',

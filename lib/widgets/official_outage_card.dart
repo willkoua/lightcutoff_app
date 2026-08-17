@@ -45,7 +45,7 @@ class OfficialOutageCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Badge « Travaux planifiés · Eneo ».
+            // Badge « Travaux planifiés · SOCADEL ».
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(

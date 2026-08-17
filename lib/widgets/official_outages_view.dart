@@ -6,7 +6,7 @@ import '../providers/official_outage_provider.dart';
 import '../theme/app_colors.dart';
 import 'official_outage_card.dart';
 
-/// Vue **lecture seule** des coupures planifiées (Eneo) : recherche par quartier
+/// Vue **lecture seule** des coupures planifiées (SOCADEL) : recherche par quartier
 /// + filtre région + liste. Sans Scaffold/AppBar → intégrée dans la Liste
 /// (segment « Programmées »). Attend un [OfficialOutageProvider] au-dessus.
 class OfficialOutagesView extends StatelessWidget {

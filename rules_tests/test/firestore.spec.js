@@ -779,3 +779,35 @@ describe("Firestore — official_outages", () => {
     await assertFails(deleteDoc(doc(as("alice"), "official_outages/o2")));
   });
 });
+
+describe("Firestore — utilities (catalogue des compagnies)", () => {
+  it("lecture autorisée pour un utilisateur connecté", async () => {
+    await seed((db) =>
+      setDoc(doc(db, "utilities/cie"), {
+        service: "electricity",
+        country: "CI",
+        label: "CIE",
+        countryLabel: "Côte d'Ivoire",
+      }),
+    );
+    await assertSucceeds(getDoc(doc(as("alice"), "utilities/cie")));
+  });
+
+  it("écriture client interdite (personne ne renomme un opérateur)", async () => {
+    await assertFails(
+      setDoc(doc(as("alice"), "utilities/eneo"), { label: "Hacked" }),
+    );
+    await seed((db) =>
+      setDoc(doc(db, "utilities/eneo"), {
+        service: "electricity",
+        country: "CM",
+        label: "SOCADEL",
+        countryLabel: "Cameroun",
+      }),
+    );
+    await assertFails(
+      updateDoc(doc(as("alice"), "utilities/eneo"), { label: "X" }),
+    );
+    await assertFails(deleteDoc(doc(as("alice"), "utilities/eneo")));
+  });
+});

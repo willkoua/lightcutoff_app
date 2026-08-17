@@ -467,7 +467,7 @@ class _ProviderPickerTile extends StatelessWidget {
     final l = AppLocalizations.of(context);
     final region = context.read<RegionProvider>();
     final candidates = [
-      for (final u in kSupportedUtilities)
+      for (final u in supportedUtilities)
         if (u.service == service) u,
     ];
     final choice = await showDialog<_ProviderChoice>(

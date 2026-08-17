@@ -27,7 +27,7 @@ class Utility {
   /// Code pays ISO-3166-1 alpha-2 (ex. `CM`).
   final String country;
 
-  /// Nom de la compagnie (ex. `Eneo`, `CAMWATER`).
+  /// Nom de la compagnie (ex. `SOCADEL`, `CAMWATER`).
   final String label;
 
   /// Nom du pays affiché (ex. `Cameroun`).
@@ -37,18 +37,28 @@ class Utility {
   /// (qui contient un nom libre issu du reverse-géocodage, pas un code ISO).
   final List<String> countryAliases;
 
-  /// Libellé d'affichage, ex. « Eneo · Cameroun ».
+  /// Libellé d'affichage, ex. « SOCADEL · Cameroun ».
   String get displayLabel => '$label · $countryLabel';
 }
 
-/// Fournisseurs supportés (tous services confondus). **Source unique** côté
-/// app.
+/// Fournisseurs EMBARQUÉS — filet de sécurité hors-ligne / premier démarrage.
+/// Depuis le 2026-08-13, la **source de vérité est la collection Firestore
+/// `utilities`** (lecture publique, écriture Admin SDK) : au démarrage,
+/// [applyRemoteUtilities] fusionne le remote PAR-DESSUS cette liste
+/// (surcharge par `id`, ajout des nouveaux, retrait des `enabled: false`).
+/// Ajouter un pays/compagnie = **un document Firestore**, sans release.
+/// Cette liste embarquée ne doit contenir que le socle (Cameroun) et n'est
+/// JAMAIS prioritaire sur le remote quand il est disponible.
 const List<Utility> kSupportedUtilities = [
   Utility(
+    // ⚠️ `id` reste 'eneo' malgré le renommage commercial Eneo → SOCADEL :
+    // il est persisté (SharedPreferences overrides) et aligné sur le champ
+    // `provider` des docs `official_outages` — le changer orphelinerait les
+    // deux. Seul le libellé affiché change.
     id: 'eneo',
     service: ServiceType.electricity,
     country: 'CM',
-    label: 'Eneo',
+    label: 'SOCADEL',
     countryLabel: 'Cameroun',
     countryAliases: ['cameroun', 'cameroon'],
   ),
@@ -65,12 +75,58 @@ const List<Utility> kSupportedUtilities = [
   // multi-pays reste en place — ré-ajouter une entrée [Utility] suffit.
 ];
 
+/// Registre ACTIF : embarqué au démarrage, remplacé par la fusion
+/// embarqué + remote dès que la collection `utilities` a répondu.
+List<Utility> _active = kSupportedUtilities;
+
+/// Liste active des fournisseurs (embarqué ⊕ remote). C'est CETTE liste que
+/// toutes les résolutions lisent — jamais [kSupportedUtilities] directement.
+List<Utility> get supportedUtilities => _active;
+
+/// Fusionne le catalogue remote par-dessus l'embarqué :
+/// - un doc remote au même `id` **remplace** l'entrée embarquée ;
+/// - un `id` inconnu est **ajouté** (nouveaux pays sans release) ;
+/// - un `id` présent dans [disabledIds] est **retiré** (y compris embarqué).
+/// Pure et sans I/O → testable. Renvoie la liste fusionnée (ordre : embarqué
+/// d'abord, ajouts remote ensuite).
+List<Utility> mergeUtilities(
+  List<Utility> bundled,
+  List<Utility> upserts, {
+  Set<String> disabledIds = const {},
+}) {
+  final byId = <String, Utility>{for (final u in bundled) u.id: u};
+  final order = [for (final u in bundled) u.id];
+  for (final u in upserts) {
+    if (!byId.containsKey(u.id)) order.add(u.id);
+    byId[u.id] = u;
+  }
+  return [
+    for (final id in order)
+      if (!disabledIds.contains(id)) byId[id]!,
+  ];
+}
+
+/// Applique le catalogue remote (appelé par RegionProvider au démarrage).
+void applyRemoteUtilities(
+  List<Utility> upserts, {
+  Set<String> disabledIds = const {},
+}) {
+  _active = mergeUtilities(
+    kSupportedUtilities,
+    upserts,
+    disabledIds: disabledIds,
+  );
+}
+
+/// Réinitialise le registre à l'embarqué (isolation des tests).
+void resetUtilities() => _active = kSupportedUtilities;
+
 /// Tous les fournisseurs d'un pays (toutes services confondus).
 List<Utility> utilitiesForCountry(String? countryIso) {
   if (countryIso == null) return const [];
   final c = countryIso.toUpperCase();
   return [
-    for (final u in kSupportedUtilities)
+    for (final u in supportedUtilities)
       if (u.country == c) u,
   ];
 }
@@ -80,7 +136,7 @@ List<Utility> utilitiesForCountry(String? countryIso) {
 Utility? utilityForCountryAndService(String? countryIso, ServiceType service) {
   if (countryIso == null) return null;
   final c = countryIso.toUpperCase();
-  for (final u in kSupportedUtilities) {
+  for (final u in supportedUtilities) {
     if (u.country == c && u.service == service) return u;
   }
   return null;
@@ -99,7 +155,7 @@ class SupportedCountry {
 List<SupportedCountry> supportedCountries() {
   final seen = <String>{};
   final out = <SupportedCountry>[];
-  for (final u in kSupportedUtilities) {
+  for (final u in supportedUtilities) {
     if (seen.add(u.country)) {
       out.add(SupportedCountry(u.country, u.countryLabel));
     }
@@ -112,7 +168,7 @@ List<SupportedCountry> supportedCountries() {
 String? countryLabelForIso(String? iso) {
   if (iso == null) return null;
   final c = iso.toUpperCase();
-  for (final u in kSupportedUtilities) {
+  for (final u in supportedUtilities) {
     if (u.country == c) return u.countryLabel;
   }
   return null;
@@ -123,7 +179,7 @@ String? countryLabelForIso(String? iso) {
 String? isoFromCountryName(String? name) {
   if (name == null || name.trim().isEmpty) return null;
   final n = name.trim().toLowerCase();
-  for (final u in kSupportedUtilities) {
+  for (final u in supportedUtilities) {
     if (u.countryLabel.toLowerCase() == n) return u.country;
     if (u.countryAliases.contains(n)) return u.country;
   }

@@ -11,6 +11,17 @@ App Links re-vérifiés (assetlinks + AASA = 200), garde-fou gravé en tête de 
 leçon. ③ **Site — footer** : logo X (ex-oiseau Twitter, lien x.com), Instagram retiré,
 Font Awesome 5→6.5.2 (commit `639b1c8` sur `feat/upgrade-angular20`, déployé, NON poussé).
 
+**2026-08-13 (suite) — CATALOGUE DES COMPAGNIES EN BASE (`utilities`)** : la liste des
+compagnies élec/eau sort du code — collection Firestore `utilities/{id}` (lecture connectée,
+écriture Admin SDK), fusionnée par-dessus le filet embarqué au démarrage
+(`RegionProvider._refreshUtilities` → `applyRemoteUtilities`, surcharge par id + ajout +
+`enabled:false` pour retirer). **Ajouter un pays / renommer un opérateur = 1 doc, sans
+release.** Seedé sur staging ET prod : eneo (label SOCADEL), camwater, **cie + sodeci
+(Côte d'Ivoire)** — la CI est donc couverte côté labels dès maintenant (pas de coupures
+programmées CI : aucune source publique, confirmé). Règles déployées ×2, 51 tests de
+règles, 240 tests Flutter. ⚠️ Le mécanisme app part avec la **v1.3.0** (les versions
+antérieures restent sur le filet embarqué). Script : `functions/scripts/seedUtilities.cjs`.
+
 ## 🛠️ PLAN VALIDÉ — Cycle de vie des signalements : ping + expiration (décisions figées 2026-08-09)
 
 **Décisions utilisateur** : ping « Toujours coupé ? » à **4 h** · **UN SEUL ping** par personne et par coupure (pas de relance — le prompt d'ouverture < 1 km est la 2ᵉ chance organique) · fenêtre **7 h-21 h** heure du pays (sinon reporté au matin) · **expiration à 48 h d'inactivité** (choix utilisateur : à faible densité le silence est un signal faible ; resserrer vers 24 h quand la densité viendra) · expiration = état DISTINCT (jamais « résolu », HORS stats de durée) · toute activité (confirmation, démenti, « Toujours coupé ») remet le chrono à zéro · constantes serveur ajustables · Analytics : compter les expirations par niveau de confirmation (clause de révision : si beaucoup d'expirations ≥ 3 confirmations → allonger OU ping « dernière chance » à l'auteur seul).

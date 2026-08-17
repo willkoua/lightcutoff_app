@@ -45,7 +45,7 @@ class OfficialOutageService implements OfficialOutageRepository {
   }
 
   /// Date du jour au format YYYY-MM-DD (heure locale de l'appareil — les
-  /// utilisateurs sont au Cameroun, fuseau de la donnée Eneo).
+  /// utilisateurs sont au Cameroun, fuseau de la donnée SOCADEL).
   static String _todayYmd() {
     final now = DateTime.now();
     final mm = now.month.toString().padLeft(2, '0');
