@@ -35,4 +35,15 @@ abstract class LocationRepository {
   /// [LocationException]`(AppError.locationNotFound)` si la description ne
   /// correspond à aucun lieu.
   Future<LocationResult> locationFromDescription(String query);
+
+  /// Suggestions de lieux pour une saisie partielle (autocomplete du
+  /// formulaire « Décrire ma position », 2026-08-13 — Stadia Maps/OSM).
+  /// [focus] (position GPS si disponible) fait remonter les lieux proches en
+  /// tête SANS exclure le reste du monde (cas diaspora). Liste vide si le
+  /// service est indisponible — l'appelant retombe alors sur
+  /// [locationFromDescription] (géocodeur natif).
+  Future<List<LocationResult>> placeSuggestions(
+    String query, {
+    GeoPosition? focus,
+  });
 }

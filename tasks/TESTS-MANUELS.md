@@ -300,6 +300,12 @@ Puis **http://127.0.0.1:4000** → Firestore → collection `official_outages` :
         réelle** ET le bouton **« Décrire ma position »** est visible (il est
         redevenu permanent — décision 2026-08-13 : la description prime sur le
         GPS, avec accord explicite si divergence).
+9b. [ ] **Autocomplete Stadia** : taper « Bast » → dès 3 caractères, des
+        suggestions apparaissent (quartiers/lieux, biaisées vers ta position),
+        avec la mention « Recherche : Stadia Maps · © OpenStreetMap ». Choisir
+        une suggestion la retient directement. « Valider ma saisie » (ou
+        Entrée) = repli géocodeur natif, comme avant. Hors-ligne : pas de
+        suggestions, le repli fonctionne toujours.
 10. [ ] Décrire un lieu **proche** (< 2 km, ex. ton quartier) → retenu
         directement, AUCUN popup (précision, pas de friction).
 11. [ ] Décrire un lieu **lointain** (ex. « Douala » depuis Montréal) → popup

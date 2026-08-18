@@ -1,11 +1,15 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 
+import '../config/app_config.dart';
 import '../models/app_error.dart';
 import '../models/geo.dart';
 import '../repositories/location_repository.dart';
+import '../utils/stadia_geocoding.dart';
 
 /// Implémentation geolocator/geocoding de [LocationRepository].
 class LocationService implements LocationRepository {
@@ -104,6 +108,37 @@ class LocationService implements LocationRepository {
       position: GeoPosition(lat: m.latitude, lng: m.longitude),
       area: area,
     );
+  }
+
+  /// Autocomplete Stadia Maps (même clé que les tuiles). Best-effort : toute
+  /// erreur (pas de clé en dev, réseau, quota) → liste vide, et le formulaire
+  /// retombe sur [locationFromDescription] (géocodeur natif). Le biais
+  /// [focus] fait remonter les lieux proches SANS exclure le reste du monde
+  /// (cas diaspora qui décrit un lieu dans un autre pays).
+  @override
+  Future<List<LocationResult>> placeSuggestions(
+    String query, {
+    GeoPosition? focus,
+  }) async {
+    final trimmed = query.trim();
+    if (trimmed.length < 3 || AppConfig.stadiaApiKey.isEmpty) return const [];
+    try {
+      final uri =
+          Uri.https('api.stadiamaps.com', '/geocoding/v1/autocomplete', {
+            'text': trimmed,
+            'api_key': AppConfig.stadiaApiKey,
+            'size': '6',
+            if (focus != null) 'focus.point.lat': focus.lat.toString(),
+            if (focus != null) 'focus.point.lon': focus.lng.toString(),
+          });
+      final res = await http.get(uri).timeout(const Duration(seconds: 5));
+      if (res.statusCode != 200) return const [];
+      final body = jsonDecode(res.body);
+      if (body is! Map<String, dynamic>) return const [];
+      return parseStadiaAutocomplete(body);
+    } catch (_) {
+      return const [];
+    }
   }
 
   Future<GeoArea> _reverseGeocode(double lat, double lng) async {

@@ -279,13 +279,27 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
   Future<void> _pickDescribedPosition() async {
     final l = AppLocalizations.of(context);
     final provider = context.read<ReportProvider>();
-    final query = await _showDescribePosition();
-    if (!mounted || query == null || query.trim().isEmpty) return;
-    final loc = await provider.locateDescription(query.trim());
-    if (!mounted) return;
+    // Autocomplete Stadia (biais = position GPS si connue). L'utilisateur
+    // choisit une suggestion, ou valide sa saisie brute (repli géocodeur
+    // natif quand Stadia n'a rien renvoyé — hors-ligne, dev sans clé).
+    final picked = await showDialog<({LocationResult? result, String query})>(
+      context: context,
+      builder:
+          (_) => _DescribePositionDialog(
+            search: (q) => provider.suggestPlaces(q, focus: _current?.position),
+          ),
+    );
+    if (!mounted || picked == null) return;
+    final query = picked.query.trim();
+    var loc = picked.result;
     if (loc == null) {
-      _snack(l.reportFormAddressNotFound);
-      return;
+      if (query.isEmpty) return;
+      loc = await provider.locateDescription(query);
+      if (!mounted) return;
+      if (loc == null) {
+        _snack(l.reportFormAddressNotFound);
+        return;
+      }
     }
 
     final gps = _current;
@@ -296,8 +310,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
         LatLng(loc.position.lat, loc.position.lng),
       );
       if (meters > AppConstants.describedMismatchMeters) {
-        final describedLabel =
-            loc.area.label.isEmpty ? query.trim() : loc.area.label;
+        final describedLabel = loc.area.label.isEmpty ? query : loc.area.label;
         final gpsLabel =
             gps.area.label.isEmpty
                 ? l.reportFormPositionUnavailable
@@ -331,9 +344,12 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
       }
     }
 
+    // `loc` est garanti non-null ici (repli géocodé sinon retour anticipé),
+    // mais la promotion de flux ne traverse pas la closure de setState.
+    final resolved = loc;
     setState(() {
-      _describedQuery = query.trim();
-      _described = loc;
+      _describedQuery = query.isEmpty ? resolved.area.label : query;
+      _described = resolved;
     });
   }
 
@@ -341,17 +357,14 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
     final provider = context.read<ReportProvider>();
     // Position décrite explicitement dans le formulaire → elle prime sur le
     // GPS (re-géocodée à l'envoi, mêmes garanties anti-doublon).
-    if (_describedQuery != null) {
-      final l = AppLocalizations.of(context);
-      final outcome = await provider.prepareReportFromDescription(
-        _describedQuery!,
+    if (_described != null) {
+      // Lieu déjà résolu (suggestion Stadia choisie ou repli géocodé) :
+      // pas de re-géocodage — mêmes garanties anti-doublon.
+      final outcome = await provider.prepareReportFromResult(
+        _described!,
         serviceType: _serviceType ?? ServiceType.electricity,
       );
       if (!mounted) return;
-      if (outcome.error == AppError.locationNotFound) {
-        _snack(l.reportFormAddressNotFound);
-        return;
-      }
       await _continueWithOutcome(provider, outcome);
       return;
     }
@@ -923,6 +936,139 @@ class _MediaField extends StatelessWidget {
               onPressed: onRemove,
             ),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Dialogue « Décrire ma position » avec **autocomplete Stadia Maps** (biais
+/// de proximité via la position GPS quand elle est connue). Renvoie soit une
+/// suggestion choisie (`result != null`), soit la saisie brute à géocoder en
+/// repli (`result == null`, `query` non vide), soit `null` (annulé).
+class _DescribePositionDialog extends StatefulWidget {
+  const _DescribePositionDialog({required this.search});
+
+  final Future<List<LocationResult>> Function(String query) search;
+
+  @override
+  State<_DescribePositionDialog> createState() =>
+      _DescribePositionDialogState();
+}
+
+class _DescribePositionDialogState extends State<_DescribePositionDialog> {
+  final _controller = TextEditingController();
+  Timer? _debounce;
+  List<LocationResult> _suggestions = const [];
+  bool _searching = false;
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onChanged(String text) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 350), () async {
+      final query = text.trim();
+      if (query.length < 3) {
+        if (mounted) setState(() => _suggestions = const []);
+        return;
+      }
+      setState(() => _searching = true);
+      final results = await widget.search(query);
+      if (!mounted || _controller.text.trim() != query) return;
+      setState(() {
+        _searching = false;
+        _suggestions = results;
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(l.reportFormDescribePositionTitle),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: _controller,
+              autofocus: true,
+              textInputAction: TextInputAction.search,
+              decoration: InputDecoration(
+                hintText: l.reportFormDescribePositionHint,
+                prefixIcon: const Icon(Icons.place_outlined),
+                suffixIcon:
+                    _searching
+                        ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                        : null,
+              ),
+              onChanged: _onChanged,
+              onSubmitted:
+                  (v) => Navigator.of(
+                    context,
+                  ).pop((result: null, query: v.trim())),
+            ),
+            if (_suggestions.isNotEmpty)
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: _suggestions.length,
+                  itemBuilder: (ctx, i) {
+                    final s = _suggestions[i];
+                    return ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.place, size: 18),
+                      title: Text(
+                        s.area.label,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      onTap:
+                          () => Navigator.of(
+                            context,
+                          ).pop((result: s, query: _controller.text.trim())),
+                    );
+                  },
+                ),
+              ),
+            const SizedBox(height: 8),
+            // Attribution du moteur de recherche (données OpenStreetMap).
+            Text(
+              l.reportFormSearchAttribution,
+              style: const TextStyle(color: AppColors.gray, fontSize: 11),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l.actionCancel),
+        ),
+        // Repli : valider la saisie telle quelle (géocodeur natif) — utile
+        // hors-ligne ou si aucune suggestion ne correspond.
+        TextButton(
+          onPressed:
+              () => Navigator.of(
+                context,
+              ).pop((result: null, query: _controller.text.trim())),
+          child: Text(l.reportFormDescribeUseTyped),
         ),
       ],
     );

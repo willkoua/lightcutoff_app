@@ -238,6 +238,8 @@
   "reportFormDescribedMismatchBody": "The place you described ({described}) is about {km} km away from your GPS position ({gps}). The report will be created at the described place: {described}. Confirm?",
   "@reportFormDescribedMismatchBody": { "placeholders": { "described": {"type": "String"}, "gps": {"type": "String"}, "km": {"type": "String"} } },
   "reportFormDescribedMismatchConfirm": "Use this place",
+  "reportFormDescribeUseTyped": "Use my text as typed",
+  "reportFormSearchAttribution": "Search: Stadia Maps · © OpenStreetMap contributors",
   "reportFormDescriptionLabel": "Description (optional)",
   "reportFormDescriptionHint": "e.g. the whole neighborhood has been affected since this morning.",
   "reportFormSubmitting": "Submitting...",

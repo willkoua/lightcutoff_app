@@ -729,14 +729,43 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   /// Géocode une position décrite pour AFFICHAGE/validation immédiate dans le
-  /// formulaire — `null` si le lieu est introuvable. La création passe ensuite
-  /// par [prepareReportFromDescription] (mêmes garanties anti-doublon).
+  /// formulaire — `null` si le lieu est introuvable. Sert de REPLI quand
+  /// l'autocomplete Stadia ne renvoie rien (hors-ligne, pas de clé).
   Future<LocationResult?> locateDescription(String query) async {
     try {
       return await _location.locationFromDescription(query);
     } catch (_) {
       return null;
     }
+  }
+
+  /// Suggestions de lieux (autocomplete Stadia/OSM) pour le champ « Décrire
+  /// ma position ». [focus] = position GPS si disponible (biais de proximité,
+  /// sans exclure le reste du monde). Liste vide si indisponible.
+  Future<List<LocationResult>> suggestPlaces(
+    String query, {
+    GeoPosition? focus,
+  }) => _location.placeSuggestions(query, focus: focus);
+
+  /// Prépare un signalement depuis un lieu DÉJÀ résolu (suggestion choisie ou
+  /// repli géocodé) : mêmes garanties anti-doublon que [prepareReport], sans
+  /// re-géocodage. La provenance reste `described`.
+  Future<PrepareOutcome> prepareReportFromResult(
+    LocationResult loc, {
+    ServiceType? serviceType,
+  }) async {
+    if (_uid == null) {
+      return const PrepareOutcome(error: AppError.notLoggedIn);
+    }
+    final draft = ReportDraft(
+      position: loc.position,
+      area: loc.area,
+      source: PositionSource.described,
+    );
+    return PrepareOutcome(
+      draft: draft,
+      nearby: findNearbyOngoing(loc.position, serviceType: serviceType),
+    );
   }
 
   /// Ouvre les réglages système de l'app.
