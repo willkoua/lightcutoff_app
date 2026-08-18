@@ -113,7 +113,7 @@ Décisions validées : page publique **sobre** (service/quartier/statut/compteur
 - [x] 5. App : `_sendVerificationBranded`/`_trySendBranded` dans AuthService — register, upgradeAnonymous, renvoi et reset passent par les CFs avec **repli natif Firebase** (une panne Brevo ne bloque jamais) ; langue lue depuis `locale_override` (SharedPreferences, même clé que LocaleProvider) sinon locale système
 - [x] 6. Tests : 25 tests functions (dont resolveLang/resolveFirstName), analyze clean, **220 tests Flutter verts** ; smoke test réel : reset déclenché sur staging → email brandé template 3 parti via Brevo vers willkoua@gmail.com (vérifié dans les logs transactionnels Brevo)
 - [x] 7. Docs : todo (ici), CLAUDE.md, TESTS-MANUELS.md
-- [ ] RESTE (utilisateur) : vérifier le rendu de l'email reçu sur mobile + cliquer le lien ; recette complète §Emails de TESTS-MANUELS.md au prochain build staging
+- [x] ~~Vérifier le rendu de l'email reçu sur mobile~~ ✅ VALIDÉ 2026-08-18 (envoi test Brevo template FR sur la boîte du fondateur : réception, expéditeur noreply@njuka.app, rendu mobile et lien OK)
 
 **Hors scope (backlog)** : email de bienvenue post-inscription, campagnes marketing Brevo, templates Firebase console FR (fait à la main par l'utilisateur).
 
