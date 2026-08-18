@@ -25,6 +25,14 @@ class AppConstants {
   /// l'utilisateur que si une coupure en cours est à moins de cette distance.
   static const double promptRadiusMeters = 1000;
 
+  /// Écart (m) entre la position GPS et une position DÉCRITE au-delà duquel
+  /// le formulaire demande une **confirmation explicite** avant d'utiliser la
+  /// description (2026-08-13 : la description prime sur le GPS, avec accord
+  /// de l'utilisateur quand les deux divergent). En-deçà, on considère que
+  /// l'utilisateur précise sa position (dérive GPS, mauvais quartier) —
+  /// pas de friction.
+  static const double describedMismatchMeters = 2000;
+
   // --- Médias des signalements ---
 
   /// Côté le plus long (px) au-delà duquel une image fixe est redimensionnée.

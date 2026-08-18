@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 
 import '../config/app_config.dart';
@@ -271,7 +272,10 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
 
   /// Ouvre le dialogue « Décrire ma position » et géocode tout de suite la
   /// saisie (feedback immédiat) : la position décrite remplace le GPS jusqu'à
-  /// son effacement (✕).
+  /// son effacement (✕). Si le lieu décrit s'écarte de la position GPS de plus
+  /// de [AppConstants.describedMismatchMeters], un dialogue demande l'accord
+  /// EXPLICITE de l'utilisateur avant de retenir la description (2026-08-13 :
+  /// la description prime, mais jamais à l'insu de l'utilisateur).
   Future<void> _pickDescribedPosition() async {
     final l = AppLocalizations.of(context);
     final provider = context.read<ReportProvider>();
@@ -283,6 +287,50 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
       _snack(l.reportFormAddressNotFound);
       return;
     }
+
+    final gps = _current;
+    if (gps != null) {
+      final meters = const Distance().as(
+        LengthUnit.Meter,
+        LatLng(gps.position.lat, gps.position.lng),
+        LatLng(loc.position.lat, loc.position.lng),
+      );
+      if (meters > AppConstants.describedMismatchMeters) {
+        final describedLabel =
+            loc.area.label.isEmpty ? query.trim() : loc.area.label;
+        final gpsLabel =
+            gps.area.label.isEmpty
+                ? l.reportFormPositionUnavailable
+                : gps.area.label;
+        final km = (meters / 1000).toStringAsFixed(meters >= 10000 ? 0 : 1);
+        final ok = await showDialog<bool>(
+          context: context,
+          builder:
+              (ctx) => AlertDialog(
+                title: Text(l.reportFormDescribedMismatchTitle),
+                content: Text(
+                  l.reportFormDescribedMismatchBody(
+                    describedLabel,
+                    gpsLabel,
+                    km,
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(false),
+                    child: Text(l.actionCancel),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => Navigator.of(ctx).pop(true),
+                    child: Text(l.reportFormDescribedMismatchConfirm),
+                  ),
+                ],
+              ),
+        );
+        if (!mounted || ok != true) return;
+      }
+    }
+
     setState(() {
       _describedQuery = query.trim();
       _described = loc;
@@ -690,7 +738,11 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
                             _describedQuery = null;
                           }),
                     )
-                  else if (!_locating && _current == null)
+                  // Décision 2026-08-13 : « Décrire ma position » redevient
+                  // disponible MÊME quand le GPS fonctionne. La description
+                  // PRIME sur le GPS — avec un dialogue de consentement quand
+                  // les deux divergent (cf. _pickDescribedPosition).
+                  else
                     TextButton(
                       onPressed: _pickDescribedPosition,
                       child: Text(

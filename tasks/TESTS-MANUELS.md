@@ -295,20 +295,21 @@ Puis **http://127.0.0.1:4000** → Firestore → collection `official_outages` :
 8. [ ] Repasser le pays en « Automatique » → plus de bandeau ; le signalement
        suivant est rattaché au pays détecté.
 
-### Formulaire : position affichée + « Décrire » en repli seulement (2026-07-28)
+### Formulaire : position décrite PRIORITAIRE avec consentement (2026-08-13)
 9.  [ ] Ouvrir le formulaire (GPS autorisé) → la ligne 📍 affiche **ta position
-        réelle** (quartier, ville) après un court « Recherche de ta position… » ;
-        **AUCUN bouton « Décrire ma position »** (décision : GPS dispo = on
-        signale où l'on est, pas de signalement à distance).
-10. [ ] GPS refusé/coupé → la ligne dit « Position indisponible — décris ta
-        position pour signaler » et le bouton **« Décrire ma position »**
-        apparaît. Saisir « Douala » → la ligne passe en 🖊 avec le lieu
-        décrit ; un ✕ efface.
-11. [ ] Envoyer avec une position décrite → signalement créé au lieu décrit
-        (pin sur la carte), anti-doublon compris ; en base,
-        `positionSource = described` (vs `gps` pour un signalement normal).
-12. [ ] Saisie introuvable (« azerty ») → snack « Lieu introuvable », l'état
-        précédent est conservé.
+        réelle** ET le bouton **« Décrire ma position »** est visible (il est
+        redevenu permanent — décision 2026-08-13 : la description prime sur le
+        GPS, avec accord explicite si divergence).
+10. [ ] Décrire un lieu **proche** (< 2 km, ex. ton quartier) → retenu
+        directement, AUCUN popup (précision, pas de friction).
+11. [ ] Décrire un lieu **lointain** (ex. « Douala » depuis Montréal) → popup
+        « Position différente du GPS » avec les deux lieux et la distance ;
+        **Annuler** → la description est abandonnée (GPS conservé) ;
+        recommencer et **« Utiliser ce lieu »** → la ligne passe en 🖊, le
+        signalement part au lieu décrit (`positionSource = described`).
+12. [ ] GPS refusé/coupé → comportement inchangé : « Position indisponible… »,
+        bouton visible, description retenue **sans popup** (rien à comparer).
+        Saisie introuvable (« azerty ») → snack « Lieu introuvable ».
 
 ## UGC : upload média désactivé + signalement de contenu abusif (2026-07-30)
 

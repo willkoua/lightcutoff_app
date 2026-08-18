@@ -22,6 +22,14 @@ programmées CI : aucune source publique, confirmé). Règles déployées ×2, 5
 règles, 240 tests Flutter. ⚠️ Le mécanisme app part avec la **v1.3.0** (les versions
 antérieures restent sur le filet embarqué). Script : `functions/scripts/seedUtilities.cjs`.
 
+**2026-08-13 (soir) — Position décrite PRIORITAIRE avec consentement** (évolution de la
+décision du 30/07 « décrire = repli seulement ») : le bouton « Décrire ma position » est de
+nouveau TOUJOURS visible ; si le lieu décrit s'écarte du GPS de > 2 km
+(`AppConstants.describedMismatchMeters`), popup de consentement (lieux + distance,
+Annuler / « Utiliser ce lieu ») ; ≤ 2 km = retenu sans friction (correction de dérive GPS).
+La description garde `positionSource = described` (mesurable). 240 tests, recette §9-12
+mise à jour.
+
 ## 🛠️ PLAN VALIDÉ — Cycle de vie des signalements : ping + expiration (décisions figées 2026-08-09)
 
 **Décisions utilisateur** : ping « Toujours coupé ? » à **4 h** · **UN SEUL ping** par personne et par coupure (pas de relance — le prompt d'ouverture < 1 km est la 2ᵉ chance organique) · fenêtre **7 h-21 h** heure du pays (sinon reporté au matin) · **expiration à 48 h d'inactivité** (choix utilisateur : à faible densité le silence est un signal faible ; resserrer vers 24 h quand la densité viendra) · expiration = état DISTINCT (jamais « résolu », HORS stats de durée) · toute activité (confirmation, démenti, « Toujours coupé ») remet le chrono à zéro · constantes serveur ajustables · Analytics : compter les expirations par niveau de confirmation (clause de révision : si beaucoup d'expirations ≥ 3 confirmations → allonger OU ping « dernière chance » à l'auteur seul).
