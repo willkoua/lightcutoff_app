@@ -6,7 +6,7 @@
        prioritaire + consentement · autocomplete Stadia · catalogue compagnies distant
        (débloque SOCADEL/CI sans release future). Bump 1.3.1+68 → smoke staging
        (TESTS-MANUELS §9-12) → AAB + IPA → stores → avancer `master`.
-2. [ ] **Cron `reportLifecycle` en prod** (cf. plan cycle de vie ci-dessous — DÉBLOQUÉ).
+2. [x] ~~Cron `reportLifecycle` en prod~~ ✅ DÉPLOYÉ 18/08 (+ `markStillOut`) — 1er run vérifié : 0 expirée, 1 device pingé (premier ping prod réel), FCM 1/1.
 3. [x] ~~Purger les 6 reports de démo Bay Area~~ ✅ FAIT 18/08 (par l'utilisateur —
        le compte `review@njuka.app` avait été emporté dans la purge → **recréé**,
        uid `8H5BzdaA…`, mêmes identifiants que la fiche ASC).
@@ -64,7 +64,7 @@ mise à jour.
 - [x] 2. Boutons [Toujours coupé]→callable `markStillOut` (touch updatedAt, zéro compteur) / [C'est revenu ✓]→vote de rétablissement en isolate (kind=still_out_ping dans notification_actions)
 - [x] 3. Logique pure testée (inPingWindow/shouldExpire/pingEligible/shouldNotifyAuthor/impactLine) ; **v67 incluse** : notif auteur (1re+5e confirmation), ligne d'impact dans la notif de retour, promesse du retour dans le formulaire (FR/EN)
 - [x] 4. Recette TESTS-MANUELS §Cycle de vie ajoutée
-- [ ] **DÉPLOYER `reportLifecycle` en PROD — DÉBLOQUÉ** (condition remplie : v1.3.0+67 livrée sur les deux stores) : `firebase deploy --only functions:reportLifecycle,functions:markStillOut --project njuka-prod`, puis vérifier le 1er run du cron (30 min) et un ping réel. `report_expired` calculable côté logs serveur.
+- [x] ~~Déployer `reportLifecycle` en prod~~ ✅ FAIT 18/08 — cron 30 min actif, 1er run vérifié en logs.
 - À coupler avec la **v67 boucle du signaleur** (notif auteur à la confirmation + « aidé N voisins » + promesse du retour dans l'onboarding) pour une release « cycle complet du geste ».
 
 
