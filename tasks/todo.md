@@ -18,7 +18,7 @@
 5. [ ] **WhatsApp Phase 0** : WABA + numéro de test Meta + webhook echo staging
        (délais externes gratuits — cf. docs/strategie/NJUKA_Integration_WhatsApp.md).
        Décision liée : SIM +237.
-6. [ ] Recette visuelle §Carte sur appareil (zones d'impact) — reste utilisateur.
+6. [x] ~~Recette visuelle §Carte (zones d'impact)~~ ✅ VALIDÉE 18/08 sur appareil (cercles/taches confirmés visuellement).
 7. [ ] Routine données : Crashlytics / Analytics (funnel anonyme, report_flagged,
        positionSource, report_shared) / coûts Firebase — LE juge de paix du backlog.
 
@@ -116,7 +116,7 @@ Décisions validées : page publique **sobre** (service/quartier/statut/compteur
 - [x] 4. Clustering retiré (pins simples ; à réévaluer avec la densité réelle)
 - [x] 5. Vérifié en réel sur staging : simulateWave → `impactRadiusM: 200` écrit par la CF (report de test nettoyé) ; recette TESTS-MANUELS §Carte ajoutée
 - [x] 6. Docs : CLAUDE.md + SCHEMA.md
-- [ ] RESTE (utilisateur) : recette visuelle §Carte sur appareil au prochain build
+- [x] ~~Recette visuelle §Carte sur appareil~~ ✅ VALIDÉE 18/08 — le plan Carte est intégralement clos.
 
 ## ✅ TERMINÉ — Emails personnalisés NJUKA (Brevo) — livré 07-08/08, rendu mobile validé le 18/08
 
