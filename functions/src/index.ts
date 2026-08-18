@@ -44,6 +44,7 @@ import { EneoAdapter } from "./sources/eneo";
 export { sendVerificationEmail, sendPasswordReset } from "./emails";
 export { renderReportShare } from "./share";
 export { markStillOut } from "./lifecycle";
+export { whatsappWebhook } from "./whatsapp";
 
 admin.initializeApp();
 
