@@ -7,8 +7,13 @@
        (débloque SOCADEL/CI sans release future). Bump 1.3.1+68 → smoke staging
        (TESTS-MANUELS §9-12) → AAB + IPA → stores → avancer `master`.
 2. [ ] **Cron `reportLifecycle` en prod** (cf. plan cycle de vie ci-dessous — DÉBLOQUÉ).
-3. [ ] **Purger les 6 reports de démo Bay Area** en GARDANT `review@njuka.app`
-       (requis pour la review de chaque mise à jour).
+3. [x] ~~Purger les 6 reports de démo Bay Area~~ ✅ FAIT 18/08 (par l'utilisateur —
+       le compte `review@njuka.app` avait été emporté dans la purge → **recréé**,
+       uid `8H5BzdaA…`, mêmes identifiants que la fiche ASC).
+       ⚠️ **Avant CHAQUE soumission Apple : re-seeder les reports Bay Area**
+       (`scripts` : cf. seedAppleReview) — un reviewer à Cupertino voit une liste
+       vide sinon (cloisonnement pays) ; re-purger après l'approbation, en
+       gardant TOUJOURS le compte.
 4. [ ] **Pousser le commit site** `639b1c8` (footer X) — dépôt `../lightCutOff`.
 5. [ ] **WhatsApp Phase 0** : WABA + numéro de test Meta + webhook echo staging
        (délais externes gratuits — cf. docs/strategie/NJUKA_Integration_WhatsApp.md).
