@@ -19,8 +19,10 @@
        (délais externes gratuits — cf. docs/strategie/NJUKA_Integration_WhatsApp.md).
        Décision liée : SIM +237.
 6. [x] ~~Recette visuelle §Carte (zones d'impact)~~ ✅ VALIDÉE 18/08 sur appareil (cercles/taches confirmés visuellement).
-7. [ ] Routine données : Crashlytics / Analytics (funnel anonyme, report_flagged,
-       positionSource, report_shared) / coûts Firebase — LE juge de paix du backlog.
+7. [~] Routine données — **REPORTÉE (décision 2026-08-18)** : « on s'en occupe si
+       l'app marche et qu'on a du data ». À rouvrir dès les premiers volumes.
+       ⚠️ Conséquence assumée : l'export BigQuery n'étant pas activé, les données
+       d'avant son activation seront définitivement hors d'atteinte des requêtes.
 
 
 **2026-08-13 — Hygiène prod + site** : ① **55 comptes anonymes purgés** de njuka-prod
