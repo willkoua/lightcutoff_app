@@ -102,9 +102,9 @@ Décisions validées : page publique **sobre** (service/quartier/statut/compteur
 **Contexte acquis** : domaine njuka.app authentifié partout (Firebase ✅ + Brevo DKIM brevo1/2 ✅, DMARC strict) ; Brevo compte « bogal consulting » ; Node 22 dans functions (fetch natif, zéro dépendance) ; CFs v2 existantes (`onCall` déjà utilisé pour deleteAccount).
 
 **Prérequis UTILISATEUR (bloquants)** :
-- [ ] Créer une clé API Brevo (Brevo → SMTP & API → Clés API) et la poser en secret SANS me la montrer :
+- [x] ~~Créer une clé API Brevo~~ ✅ FAIT (clé « njuka » du 07/08, en secret `BREVO_API_KEY`, utilisée en prod — vérifié 17/08) :
       `firebase functions:secrets:set BREVO_API_KEY -P staging` puis `-P prod` (coller la clé au prompt)
-- [ ] Ajouter l'expéditeur `noreply@njuka.app` dans Brevo (Expéditeurs → Ajouter — domaine déjà authentifié)
+- [x] ~~Ajouter l'expéditeur `noreply@njuka.app` dans Brevo~~ ✅ FAIT (expéditeur actif, cf. emails.ts)
 
 **Étapes (moi)** — ✅ RÉALISÉ le 2026-08-07 :
 - [x] 1. Logo hébergé : `public/img/njuka-logo.png` (192px depuis assets/icon), déployé sur les 2 hostings
