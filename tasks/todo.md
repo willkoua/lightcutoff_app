@@ -221,3 +221,23 @@ Décisions validées : page publique **sobre** (service/quartier/statut/compteur
 > 📚 **Historique des phases passées** (état 07/07, pivot anonyme, service eau,
 > audits de juin, environnements) : déplacé dans `tasks/todo-archive-2026-06-07.md`
 > le 2026-08-18 — rien n'a été supprimé.
+
+## 🟡 WhatsApp Phase 0 — 95% fait, bloqué côté Meta (2026-08-19)
+
+Bot entrant (echo) : webhook déployé staging + **handshake Meta vérifié**, app
+`1595906008777650` (NJUKA_WA_Bot, sous Bogal) abonnée à la WABA
+`1829862311760776`, numéro test `1232256043311857` (+1 555-668-1499) enregistré
+et CONNECTED, token permanent (utilisateur système `njuka_bot`) en secret
+`WHATSAPP_ACCESS_TOKEN` (+ `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN`)
+sur lightcutoff-dev. Code sur branche `feat/whatsapp-bot` (44 tests functions).
+
+⛔ **Seul blocage** : le formulaire d'ajout de destinataire de test est
+**désactivé** dans la console (bug d'affichage Meta, tous navigateurs, 0 action
+requise / 0 alerte). Pas d'API pour ajouter un destinataire test → envoi
+bloqué en **131030**. **Ticket support Meta envoyé le 2026-08-19** (demande :
+ajouter +1 514 431 9459 à la liste, ou réparer le formulaire).
+→ À la résolution : test echo (répondre « ping » → « NJUKA (test) — echo : ping »),
+puis Phase 1 (menu/signalement/état de zone).
+
+Décision numéro +237 (SIM locale) = toujours en attente pour la mise en public
+(Phase 1 fin / Phase 2) — cf. docs/strategie/NJUKA_Integration_WhatsApp.md.
