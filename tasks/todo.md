@@ -15,9 +15,7 @@
        vide sinon (cloisonnement pays) ; re-purger après l'approbation, en
        gardant TOUJOURS le compte.
 4. [ ] **Pousser le commit site** `639b1c8` (footer X) — dépôt `../lightCutOff`.
-5. [ ] **WhatsApp Phase 0** : WABA + numéro de test Meta + webhook echo staging
-       (délais externes gratuits — cf. docs/strategie/NJUKA_Integration_WhatsApp.md).
-       Décision liée : SIM +237.
+5. [x] ~~**WhatsApp Phase 0**~~ ✅ **RÉUSSIE 19/08** — echo bout-en-bout validé (logs : reçu de 15144319459 → echo envoyé). Il manquait l'abonnement de l'app au champ webhook `messages` (posé par API avec l'App Secret). Décision liée SIM +237 = pour la mise en public (Phase 1 fin / Phase 2).
 6. [x] ~~Recette visuelle §Carte (zones d'impact)~~ ✅ VALIDÉE 18/08 sur appareil (cercles/taches confirmés visuellement).
 7. [~] Routine données — **REPORTÉE (décision 2026-08-18)** : « on s'en occupe si
        l'app marche et qu'on a du data ». À rouvrir dès les premiers volumes.
