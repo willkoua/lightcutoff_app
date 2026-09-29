@@ -109,3 +109,36 @@ test("normalizeEneo : lot complet → 3 entrées uniques (vide exclu, doublon fu
   const quartiers = out.map((o) => o.quartier).sort();
   assert.deepEqual(quartiers, ["CITE SIC", "NDOGBONG", "QUARTIER GENTIL"]);
 });
+
+test("normalizeEneo accepte le format HH:MM:SS (régression 2026-09-29)", () => {
+  // Eneo a basculé prog_heure_debut/fin de "HH:MM" à "HH:MM:SS" (~09/2026),
+  // ce qui produisait des dates invalides → 0 coupure ingérée en prod.
+  const out = normalizeEneo([
+    {
+      observations: "Travaux",
+      prog_date: "2026-10-01",
+      prog_heure_debut: "07:00:00",
+      prog_heure_fin: "18:00:00",
+      region: "CENTRE",
+      ville: "YAOUNDE",
+      quartier: "FOURGEROLE",
+    },
+  ]);
+  assert.equal(out.length, 1);
+  assert.equal(out[0].startTime, "07:00"); // affichage propre HH:MM
+  assert.equal(out[0].endTime, "18:00");
+  assert.ok(!isNaN(out[0].startsAt.getTime()));
+  assert.equal(out[0].startsAt.toISOString(), "2026-10-01T06:00:00.000Z"); // 07:00 +01:00
+});
+
+test("normalizeEneo accepte encore l'ancien format HH:MM", () => {
+  const out = normalizeEneo([
+    {
+      observations: "x", prog_date: "2026-10-01",
+      prog_heure_debut: "6:00", prog_heure_fin: "18:00",
+      region: "R", ville: "V", quartier: "Q",
+    },
+  ]);
+  assert.equal(out.length, 1);
+  assert.equal(out[0].startTime, "06:00");
+});

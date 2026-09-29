@@ -236,3 +236,16 @@ Format : `[date] | ce qui a mal tourné | règle pour l'éviter`
   (splash légitime) de « transition de session » (doit être invisible).
 - [2026-08-07] | Ajout d'un chip « Résolues » sur la carte alors que le tiroir de filtres de l'AppBar avait déjà le filtre de statut (défaut = En cours, donc résolues déjà masquées) | Avant d'ajouter un contrôle UI, vérifier ce que `filteredReports`/le provider filtre DÉJÀ par défaut et ce que le filter_sheet expose — la carte et la liste partagent le même provider de filtres.
 - [2026-08-08] | En mode SCREENSHOT_MODE la carte était vide : le choix manuel du pays était gaté sur `showDevTools` (faux en mode capture) → détection auto → mauvais pays → 0 données seedées | Gater l'HONORATION d'un réglage sur `isProd`, et seulement son UI sur `showDevTools` — un mode capture doit masquer les contrôles, pas changer le comportement.
+
+- **2026-09-29 | Eneo a changé le format horaire (`HH:MM` → `HH:MM:SS`) → ingestion des
+  coupures programmées silencieusement CASSÉE en prod** : `normalizeEneo` construisait la
+  date avec `${debut}:00` (ajout de secondes en dur). Avec le nouveau format, ça donnait
+  `07:00:00:00` = Invalid Date → **toutes** les entrées rejetées → `official_outages`
+  tombé à ~3 docs alors que le flux live publiait ~297 coupures valides. Symptôme : onglet
+  « Programmées » quasi vide, aucune erreur (échec silencieux). Détecté en croisant les logs
+  (`297 brut → 0 normalisé`) + test du endpoint en LIVE (champ `prog_heure_debut: "07:00:00"`).
+  → **Règle** : ne JAMAIS présumer le format d'un champ d'API externe scrapée — parser
+  robustement (regex tolérante `HH:MM(:SS)?`, cf. `eneoTime()`). Un pipeline d'ingestion
+  qui rejette 100 % d'un flux non vide doit LEVER une alerte (ou au moins un log WARN), pas
+  échouer en silence. Surveiller le ratio brut→normalisé. Fix : `eneoTime()` + tests de
+  régression, déployé staging (297→297) PUIS prod (297→297, 300 docs restaurés).

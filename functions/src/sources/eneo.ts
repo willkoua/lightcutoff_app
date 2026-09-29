@@ -51,6 +51,18 @@ function hashId(...parts: string[]): string {
  *   horaire invalide) ;
  * - déduplique le lot par `rawHash` (Eneo renvoie des doublons exacts).
  */
+/**
+ * Normalise un horaire Eneo en `HH:MM:SS`. Eneo a livré tantôt `HH:MM`
+ * (jusqu'à ~09/2026) tantôt `HH:MM:SS` (depuis) : construire la date en
+ * ajoutant `:00` en dur cassait le format récent (`07:00:00:00` = Invalid
+ * Date → 0 coupure ingérée). `null` si le format est inexploitable.
+ */
+export function eneoTime(raw: string): string | null {
+  const m = raw.trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (!m) return null;
+  return `${m[1].padStart(2, "0")}:${m[2]}:${m[3] ?? "00"}`;
+}
+
 export function normalizeEneo(items: RawEneoItem[]): CanonicalOutage[] {
   const byHash = new Map<string, CanonicalOutage>();
   for (const it of items) {
@@ -64,8 +76,12 @@ export function normalizeEneo(items: RawEneoItem[]): CanonicalOutage[] {
 
     if (!quartier || !progDate || !debut || !fin) continue;
 
-    const startsAt = new Date(`${progDate}T${debut}:00${ENEO_TZ_OFFSET}`);
-    const endsAt = new Date(`${progDate}T${fin}:00${ENEO_TZ_OFFSET}`);
+    const debutT = eneoTime(debut);
+    const finT = eneoTime(fin);
+    if (!debutT || !finT) continue;
+
+    const startsAt = new Date(`${progDate}T${debutT}${ENEO_TZ_OFFSET}`);
+    const endsAt = new Date(`${progDate}T${finT}${ENEO_TZ_OFFSET}`);
     if (isNaN(startsAt.getTime()) || isNaN(endsAt.getTime())) continue;
 
     const rawHash = hashId(
@@ -74,8 +90,8 @@ export function normalizeEneo(items: RawEneoItem[]): CanonicalOutage[] {
       ville,
       quartier,
       progDate,
-      debut,
-      fin
+      debutT,
+      finT
     );
     if (byHash.has(rawHash)) continue; // dédup intra-lot
 
@@ -87,8 +103,8 @@ export function normalizeEneo(items: RawEneoItem[]): CanonicalOutage[] {
       quartier,
       reason,
       progDate,
-      startTime: debut,
-      endTime: fin,
+      startTime: debutT.slice(0, 5),
+      endTime: finT.slice(0, 5),
       startsAt,
       endsAt,
       rawHash,
