@@ -2,15 +2,14 @@
 
 ## 🎯 PROCHAINES ACTIONS (mise au propre 2026-08-18)
 
-1. [~] **Release → v1.3.2+69** (en cours de soumission) : contient les 3 features 1.3.x
-       (position décrite+consentement · autocomplete Stadia · catalogue distant) **+ la
-       nouvelle icône**. ⚠️ La **1.3.1 était déjà APPROUVÉE mais NON publiée** sur l'App
-       Store (train fermé) → on saute sa publication, la 1.3.2 la remplace/contient.
-       Builds faits : **iOS 1.3.2 (69) uploadé sur ASC** ✅, AAB
-       `njuka-1.3.2+69-prod.aab` prêt. Icône store 1024 : `assets/icon/njuka_icon.png`.
-       RESTE (utilisateur) : ASC créer version 1.3.2 → build 69 → soumettre (NE PAS
-       publier la 1.3.1) ; Play upload AAB + remplacer l'icône 1024 dans la fiche ;
-       puis avancer `master` sur v1.3.2+69 quand LIVE + purger le seed Bay Area.
+1. [x] ~~**Release → v1.3.2+69**~~ ✅ **DÉPLOYÉE (live Play + App Store)** — confirmé
+       utilisateur 2026-10-05. Contient les 3 features 1.3.x (position décrite+consentement ·
+       autocomplete Stadia · catalogue distant) **+ la nouvelle icône**. Pointeur `master`
+       avancé sur `v1.3.2+69` (`e9c59f8`). Backend : fix ingestion Eneo (`c3af98e`) déjà en
+       prod par-dessus. RESTE : ① remplacer descriptions + icône 1024 + feature graphic EN
+       (`store_assets/feature_graphic_en.png`) dans les fiches ; ② **purger le seed Bay Area**
+       (après approbation Apple, GARDER le compte `review@njuka.app`) ; ③ surveillance
+       ingestion Eneo (ratio brut→normalisé, cf. lessons).
 2. [x] ~~Cron `reportLifecycle` en prod~~ ✅ DÉPLOYÉ 18/08 (+ `markStillOut`) — 1er run vérifié : 0 expirée, 1 device pingé (premier ping prod réel), FCM 1/1.
 3. [x] ~~Purger les 6 reports de démo Bay Area~~ ✅ FAIT 18/08 (par l'utilisateur —
        le compte `review@njuka.app` avait été emporté dans la purge → **recréé**,
