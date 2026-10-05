@@ -409,3 +409,19 @@ Build v67+ (staging). Re-seeder avant la recette (les seeds > 48 h expirent).
    « Ta confirmation a aidé à alerter N voisins » quand N > 0.
 7. **Expiration** : un report sans AUCUNE activité depuis 48 h disparaît
    (archivé avec autoExpiredAt) SANS notification ; jamais compté « résolu ».
+
+## Onglet « Programmées » conditionné au pays (2026-10-05)
+
+Dépend de `Utility.scheduledOutages` (true seulement pour SOCADEL/eneo à ce
+jour) → helper `countryHasScheduledOutages`. Staging : changer le pays via le
+picker dev.
+
+1. **Cameroun** : le sélecteur « Signalements / Programmées » est VISIBLE,
+   l'onglet Programmées fonctionne (données SOCADEL).
+2. **Côte d'Ivoire** (ou tout pays sans source) : le sélecteur segmenté
+   DISPARAÎT — seule la liste des signalements s'affiche, plein écran.
+3. **Retour sur Cameroun** : le sélecteur réapparaît (pas besoin de
+   redémarrer l'app).
+4. **Activation à distance** : passer `scheduledOutages: true` sur un doc
+   `utilities` d'un autre pays → après le fetch au démarrage, l'onglet
+   apparaît pour ce pays (sans release).

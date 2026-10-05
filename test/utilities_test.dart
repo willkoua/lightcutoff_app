@@ -67,4 +67,33 @@ void main() {
       expect(countryLabelForIso('CI'), isNull);
     });
   });
+
+  group('countryHasScheduledOutages (affichage onglet Programmées)', () {
+    test('Cameroun en a (SOCADEL/eneo)', () {
+      expect(countryHasScheduledOutages('CM'), isTrue);
+      expect(countryHasScheduledOutages('cm'), isTrue); // casse ignorée
+    });
+
+    test("un pays sans source n'en a pas (Côte d'Ivoire)", () {
+      applyRemoteUtilities(const [_cie]); // CIE présent mais scheduledOutages=false
+      expect(countryHasScheduledOutages('CI'), isFalse);
+    });
+
+    test('pays inconnu → false', () {
+      expect(countryHasScheduledOutages('KE'), isFalse);
+    });
+
+    test('activable par le remote sans release', () {
+      const kplc = Utility(
+        id: 'kplc',
+        service: ServiceType.electricity,
+        country: 'KE',
+        label: 'Kenya Power',
+        countryLabel: 'Kenya',
+        scheduledOutages: true,
+      );
+      applyRemoteUtilities(const [kplc]);
+      expect(countryHasScheduledOutages('KE'), isTrue);
+    });
+  });
 }

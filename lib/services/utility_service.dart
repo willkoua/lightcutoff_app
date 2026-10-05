@@ -48,6 +48,9 @@ Future<RemoteUtilities?> fetchRemoteUtilities() async {
             for (final a in (m['countryAliases'] as List? ?? const []))
               if (a is String) a.toLowerCase(),
           ],
+          // Optionnel, défaut false : activer l'onglet « Programmées » pour un
+          // nouveau pays (quand sa source d'ingestion existe) sans release.
+          scheduledOutages: m['scheduledOutages'] == true,
         ),
       );
     }

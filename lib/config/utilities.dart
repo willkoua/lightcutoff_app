@@ -16,6 +16,7 @@ class Utility {
     required this.label,
     required this.countryLabel,
     this.countryAliases = const [],
+    this.scheduledOutages = false,
   });
 
   /// Identifiant stable, == champ `provider` des docs `official_outages`.
@@ -37,8 +38,25 @@ class Utility {
   /// (qui contient un nom libre issu du reverse-géocodage, pas un code ISO).
   final List<String> countryAliases;
 
+  /// `true` si une source de **coupures programmées** est ingérée pour cette
+  /// compagnie (adaptateur `functions/src/sources/`). Pilote l'affichage de
+  /// l'onglet « Programmées » : si aucun fournisseur du pays actif ne l'a,
+  /// l'onglet est masqué (cf. [countryHasScheduledOutages]). Surchargée par le
+  /// catalogue remote (`utilities`), donc activable sans release.
+  final bool scheduledOutages;
+
   /// Libellé d'affichage, ex. « SOCADEL · Cameroun ».
   String get displayLabel => '$label · $countryLabel';
+}
+
+/// `true` si **au moins une** compagnie du pays [iso] expose des coupures
+/// programmées (lit le registre actif embarqué ⊕ remote). Sert à décider si
+/// l'onglet « Programmées » doit être affiché pour le pays courant.
+bool countryHasScheduledOutages(String iso) {
+  final up = iso.toUpperCase();
+  return supportedUtilities.any(
+    (u) => u.country == up && u.scheduledOutages,
+  );
 }
 
 /// Fournisseurs EMBARQUÉS — filet de sécurité hors-ligne / premier démarrage.
@@ -61,6 +79,9 @@ const List<Utility> kSupportedUtilities = [
     label: 'SOCADEL',
     countryLabel: 'Cameroun',
     countryAliases: ['cameroun', 'cameroon'],
+    // Seule source de coupures programmées ingérée à ce jour (cron
+    // `ingestEneoOutages`). CAMWATER et les opérateurs CI n'en ont pas.
+    scheduledOutages: true,
   ),
   Utility(
     id: 'camwater',

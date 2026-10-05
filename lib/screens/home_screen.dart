@@ -78,11 +78,14 @@ class _HomeScreenState extends State<HomeScreen> {
     final region = context.watch<RegionProvider>();
     final l = AppLocalizations.of(context);
 
-    // Le segment « Programmées » est TOUJOURS visible. S'il n'y a pas de
-    // fournisseur pour le pays actif, l'onglet affiche un message explicite
-    // (au lieu de disparaître en silence) qui invite à vérifier/changer le pays.
+    // L'onglet « Programmées » n'est affiché que si le pays actif dispose d'une
+    // source de coupures programmées (cf. countryHasScheduledOutages). Sinon le
+    // sélecteur segmenté est masqué (un toggle à un seul choix est inutile) et
+    // on force l'affichage des signalements — même si _segment était resté sur
+    // « planned » depuis un pays qui, lui, en avait.
     final provider = region.activeProvider;
-    final segment = _segment;
+    final hasPlanned = countryHasScheduledOutages(region.activeCountry);
+    final segment = hasPlanned ? _segment : HomeSegment.reports;
 
     return Scaffold(
       appBar: NjukaAppBar(
@@ -119,9 +122,11 @@ class _HomeScreenState extends State<HomeScreen> {
           // citoyens (en dessous) qu'aux coupures programmées de l'opérateur.
           const ServiceFilterBar(),
           // Segmented control « Signalements / Programmées » sous le filtre
-          // service. Toujours visible ; l'onglet Programmées explique lui-même
-          // l'absence de données si le pays n'a pas de fournisseur.
-          _SegmentedControl(segment: segment, onChanged: _select),
+          // service. Masqué quand le pays actif n'a pas de coupures programmées
+          // (il ne resterait qu'un seul choix) : on n'affiche alors que la liste
+          // des signalements.
+          if (hasPlanned)
+            _SegmentedControl(segment: segment, onChanged: _select),
           Expanded(child: _content(context, reports, provider, segment)),
         ],
       ),
