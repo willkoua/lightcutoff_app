@@ -148,5 +148,57 @@ void main() {
         expect(p.filtered.length, 2);
       },
     );
+
+    test('villes cascade sous la région sélectionnée', () async {
+      final p = OfficialOutageProvider(
+        country: 'KE',
+        repository: _FakeRepo([
+          _mk(region: 'NAIROBI REGION', ville: 'Nairobi', quartier: 'MARURUI'),
+          _mk(region: 'NAIROBI REGION', ville: 'Nairobi', quartier: 'RUNDA'),
+          _mk(region: 'WESTERN REGION', ville: 'Kakamega', quartier: 'MUMIAS'),
+        ]),
+      );
+      await p.load();
+
+      // Toutes régions → toutes les villes distinctes.
+      expect(p.villes, ['Kakamega', 'Nairobi']);
+
+      // Région choisie → seules ses villes sont proposées.
+      p.setRegion('WESTERN REGION');
+      expect(p.villes, ['Kakamega']);
+    });
+
+    test('filtre ville restreint la liste', () async {
+      final p = OfficialOutageProvider(
+        country: 'KE',
+        repository: _FakeRepo([
+          _mk(region: 'NAIROBI REGION', ville: 'Nairobi', quartier: 'MARURUI'),
+          _mk(region: 'WESTERN REGION', ville: 'Kakamega', quartier: 'MUMIAS'),
+        ]),
+      );
+      await p.load();
+
+      p.setVille('Kakamega');
+      expect(p.filtered.map((o) => o.quartier), ['MUMIAS']);
+    });
+
+    test('changer de région réinitialise une ville devenue invalide', () async {
+      final p = OfficialOutageProvider(
+        country: 'KE',
+        repository: _FakeRepo([
+          _mk(region: 'NAIROBI REGION', ville: 'Nairobi', quartier: 'MARURUI'),
+          _mk(region: 'WESTERN REGION', ville: 'Kakamega', quartier: 'MUMIAS'),
+        ]),
+      );
+      await p.load();
+
+      p.setVille('Nairobi');
+      expect(p.ville, 'Nairobi');
+
+      // Nairobi n'existe pas dans WESTERN REGION → la ville est effacée.
+      p.setRegion('WESTERN REGION');
+      expect(p.ville, isNull);
+      expect(p.filtered.map((o) => o.quartier), ['MUMIAS']);
+    });
   });
 }

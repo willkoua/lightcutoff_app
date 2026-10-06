@@ -6,9 +6,10 @@ import '../providers/official_outage_provider.dart';
 import '../theme/app_colors.dart';
 import 'official_outage_card.dart';
 
-/// Vue **lecture seule** des coupures planifiées (SOCADEL) : recherche par quartier
-/// + filtre région + liste. Sans Scaffold/AppBar → intégrée dans la Liste
-/// (segment « Programmées »). Attend un [OfficialOutageProvider] au-dessus.
+/// Vue **lecture seule** des coupures planifiées : filtre **région** + filtre
+/// **ville** (cascade sous la région) + recherche texte par quartier + liste.
+/// Sans Scaffold/AppBar → intégrée dans la Liste (segment « Programmées »).
+/// Attend un [OfficialOutageProvider] au-dessus.
 class OfficialOutagesView extends StatelessWidget {
   const OfficialOutagesView({super.key});
 
@@ -17,34 +18,38 @@ class OfficialOutagesView extends StatelessWidget {
     final l = AppLocalizations.of(context);
     final p = context.watch<OfficialOutageProvider>();
 
+    final villes = p.villes;
+    final hasRegions = p.regions.isNotEmpty;
+
     return Column(
       children: [
-        if (p.regions.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: DropdownButtonFormField<String?>(
-              initialValue: p.region,
-              isExpanded: true,
-              decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.public),
-                isDense: true,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              items: [
-                DropdownMenuItem<String?>(
-                  value: null,
-                  child: Text(l.officialOutagesAllRegions),
-                ),
-                for (final r in p.regions)
-                  DropdownMenuItem<String?>(value: r, child: Text(r)),
-              ],
-              onChanged: p.setRegion,
-            ),
+        if (hasRegions)
+          _FilterDropdown(
+            icon: Icons.public,
+            value: p.region,
+            allLabel: l.officialOutagesAllRegions,
+            options: p.regions,
+            onChanged: p.setRegion,
+            topPad: 12,
+          ),
+        // Filtre ville en cascade sous la région (n'apparaît que s'il y a
+        // plusieurs villes dans le périmètre courant).
+        if (villes.length > 1)
+          _FilterDropdown(
+            icon: Icons.location_city,
+            value: p.ville,
+            allLabel: l.officialOutagesAllVilles,
+            options: villes,
+            onChanged: p.setVille,
+            topPad: hasRegions ? 0 : 12,
           ),
         Padding(
-          padding: EdgeInsets.fromLTRB(16, p.regions.isEmpty ? 12 : 0, 16, 8),
+          padding: EdgeInsets.fromLTRB(
+            16,
+            (hasRegions || villes.length > 1) ? 0 : 12,
+            16,
+            8,
+          ),
           child: TextField(
             onChanged: p.setQuery,
             decoration: InputDecoration(
@@ -93,6 +98,47 @@ class OfficialOutagesView extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: 88),
         itemCount: items.length,
         itemBuilder: (_, i) => OfficialOutageCard(outage: items[i]),
+      ),
+    );
+  }
+}
+
+/// Dropdown de filtre (région ou ville) avec une option « tout » en tête.
+class _FilterDropdown extends StatelessWidget {
+  const _FilterDropdown({
+    required this.icon,
+    required this.value,
+    required this.allLabel,
+    required this.options,
+    required this.onChanged,
+    required this.topPad,
+  });
+
+  final IconData icon;
+  final String? value;
+  final String allLabel;
+  final List<String> options;
+  final ValueChanged<String?> onChanged;
+  final double topPad;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16, topPad, 16, 8),
+      child: DropdownButtonFormField<String?>(
+        initialValue: value,
+        isExpanded: true,
+        decoration: InputDecoration(
+          prefixIcon: Icon(icon),
+          isDense: true,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+        items: [
+          DropdownMenuItem<String?>(value: null, child: Text(allLabel)),
+          for (final o in options)
+            DropdownMenuItem<String?>(value: o, child: Text(o)),
+        ],
+        onChanged: onChanged,
       ),
     );
   }

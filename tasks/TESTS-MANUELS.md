@@ -425,3 +425,15 @@ picker dev.
 4. **Activation à distance** : passer `scheduledOutages: true` sur un doc
    `utilities` d'un autre pays → après le fetch au démarrage, l'onglet
    apparaît pour ce pays (sans release).
+
+## Recherche coupures programmées : région + ville (2026-10-06)
+
+Onglet « Programmées ». Filtres client sur la donnée chargée.
+
+1. **Filtre région** (dropdown 🌍) : sélectionner une région → la liste et le
+   filtre ville se restreignent à cette région.
+2. **Filtre ville** (dropdown 🏙️, apparaît si > 1 ville) : cascade sous la
+   région ; sélectionner une ville → liste restreinte à cette ville.
+3. **Cascade** : choisir une ville, puis changer de région où cette ville
+   n'existe pas → la ville se réinitialise (pas de liste vide muette).
+4. **Recherche texte** (quartier) : toujours disponible, se combine aux filtres.
