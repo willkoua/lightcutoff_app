@@ -16,7 +16,8 @@
   "dependencies": {
     "firebase-admin": "^13.10.0",
     "firebase-functions": "^7.2.5",
-    "geofire-common": "^6.0.0"
+    "geofire-common": "^6.0.0",
+    "pdfjs-dist": "^6.4.299"
   },
   "devDependencies": {
     "tsx": "^4.19.2",

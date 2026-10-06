@@ -40,6 +40,8 @@ import {
   effectiveMinVotes,
 } from "./logic";
 import { EneoAdapter } from "./sources/eneo";
+import { KplcAdapter } from "./sources/kplc";
+import { OutageSourceAdapter } from "./sources/types";
 
 export { sendVerificationEmail, sendPasswordReset } from "./emails";
 export { renderReportShare } from "./share";
@@ -740,29 +742,43 @@ export const deleteAccount = onCall(async (request) => {
 
 const OFFICIAL_OUTAGES_COLLECTION = "official_outages";
 
-/** Date du jour au format YYYY-MM-DD dans le fuseau Africa/Douala. */
-function todayInDouala(): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Africa/Douala",
-  }).format(new Date());
+/** Date du jour au format YYYY-MM-DD dans un fuseau donné (ex. Africa/Douala). */
+function todayInTz(timeZone: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone }).format(new Date());
 }
 
 /**
- * Récupère le programme Eneo, normalise, upsert dans `official_outages/`
- * (idempotent via `rawHash`), puis purge les entrées dont la date est passée.
- * Partagé par le cron et le déclencheur HTTP de test.
+ * Ingestion GÉNÉRIQUE d'une source de coupures officielles (Eneo, KPLC, …) :
+ * fetch → normalise → upsert dans `official_outages/` (idempotent via `rawHash`)
+ * → purge les entrées passées **de cette source uniquement**.
+ *
+ * - `timeZone` : fuseau du fournisseur, sert au calcul de « aujourd'hui » pour
+ *   la purge (Africa/Douala pour Eneo, Africa/Nairobi pour KPLC).
+ * - La purge requête `progDate < today` (champ unique, sans index composite)
+ *   puis filtre `provider` en mémoire → ne touche jamais les autres sources.
+ * - **Alerte anti-échec-silencieux** : si la source renvoie des données brutes
+ *   mais que rien n'est normalisé, c'est le symptôme d'un parser cassé par un
+ *   changement de format (cf. bug Eneo HH:MM→HH:MM:SS) → log ERROR.
  */
-export async function runEneoIngestion(): Promise<{
-  upserted: number;
-  pruned: number;
-}> {
+export async function runIngestion(
+  adapter: OutageSourceAdapter,
+  timeZone: string
+): Promise<{ upserted: number; pruned: number }> {
   const db = admin.firestore();
-  const adapter = new EneoAdapter();
+  const tag = `ingest[${adapter.provider}]`;
   const raw = await adapter.fetch();
   const outages = adapter.normalize(raw);
-  logger.info(
-    `ingestEneoOutages: ${raw.length} brut(s) → ${outages.length} normalisé(s)`
-  );
+  logger.info(`${tag}: ${raw.length} brut(s) → ${outages.length} normalisé(s)`);
+
+  // Garde-fou : un flux brut non vide qui ne produit AUCUNE coupure = parser
+  // probablement cassé (changement de format côté fournisseur). Ne jamais
+  // échouer en silence — c'est ce qui avait masqué le bug Eneo ~1 semaine.
+  if (raw.length > 0 && outages.length === 0) {
+    logger.error(
+      `${tag}: ${raw.length} éléments bruts mais 0 normalisé — ` +
+        `parser probablement cassé (changement de format source ?).`
+    );
+  }
 
   // Upsert par lots de [BATCH_SIZE] (merge → conserve fetchedAt cohérent).
   let upserted = 0;
@@ -770,9 +786,7 @@ export async function runEneoIngestion(): Promise<{
     const slice = outages.slice(i, i + BATCH_SIZE);
     const batch = db.batch();
     for (const o of slice) {
-      const ref = db
-        .collection(OFFICIAL_OUTAGES_COLLECTION)
-        .doc(o.rawHash);
+      const ref = db.collection(OFFICIAL_OUTAGES_COLLECTION).doc(o.rawHash);
       batch.set(
         ref,
         {
@@ -797,25 +811,34 @@ export async function runEneoIngestion(): Promise<{
     upserted += slice.length;
   }
 
-  // Purge des entrées passées (progDate < aujourd'hui, fuseau Douala).
-  const today = todayInDouala();
+  // Purge des entrées passées de CETTE source (progDate < aujourd'hui dans le
+  // fuseau du fournisseur). Requête mono-champ (pas d'index composite) puis
+  // filtre provider en mémoire.
+  const today = todayInTz(timeZone);
   const stale = await db
     .collection(OFFICIAL_OUTAGES_COLLECTION)
     .where("progDate", "<", today)
     .get();
+  const mine = stale.docs.filter((d) => d.get("provider") === adapter.provider);
   let pruned = 0;
-  for (let i = 0; i < stale.docs.length; i += BATCH_SIZE) {
-    const slice = stale.docs.slice(i, i + BATCH_SIZE);
+  for (let i = 0; i < mine.length; i += BATCH_SIZE) {
+    const slice = mine.slice(i, i + BATCH_SIZE);
     const batch = db.batch();
     slice.forEach((d) => batch.delete(d.ref));
     await batch.commit();
     pruned += slice.length;
   }
 
-  logger.info(
-    `ingestEneoOutages: ${upserted} upsert(s), ${pruned} purgé(s) (cutoff ${today}).`
-  );
+  logger.info(`${tag}: ${upserted} upsert(s), ${pruned} purgé(s) (< ${today}).`);
   return { upserted, pruned };
+}
+
+/** Ingestion Eneo (Cameroun). Partagé par le cron et le script de test. */
+export async function runEneoIngestion(): Promise<{
+  upserted: number;
+  pruned: number;
+}> {
+  return runIngestion(new EneoAdapter(), "Africa/Douala");
 }
 
 /** Cron quotidien : importe le programme officiel Eneo. */
@@ -827,6 +850,33 @@ export const ingestEneoOutages = onSchedule(
   },
   async () => {
     await runEneoIngestion();
+  }
+);
+
+/** Ingestion KPLC (Kenya). Partagé par le cron et le script de test. */
+export async function runKplcIngestion(): Promise<{
+  upserted: number;
+  pruned: number;
+}> {
+  return runIngestion(new KplcAdapter(), "Africa/Nairobi");
+}
+
+/**
+ * Cron quotidien : importe le programme officiel KPLC (Kenya).
+ * Source = PDF scrapés (plus fragile qu'Eneo) ; l'alerte anti-échec-silencieux
+ * de `runIngestion` couvre un changement de format côté KPLC.
+ */
+export const ingestKplcOutages = onSchedule(
+  {
+    schedule: "every 24 hours",
+    timeZone: "Africa/Nairobi",
+    retryCount: 0,
+    // pdfjs + téléchargement de plusieurs PDF : marge mémoire/temps vs défaut.
+    memory: "512MiB",
+    timeoutSeconds: 300,
+  },
+  async () => {
+    await runKplcIngestion();
   }
 );
 

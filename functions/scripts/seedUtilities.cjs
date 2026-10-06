@@ -23,12 +23,17 @@ const db = admin.firestore();
 
 /** id = clé du doc, alignée sur `provider` des official_outages. */
 const UTILITIES = {
+  // ⚠️ `scheduledOutages` DOIT figurer ici : le catalogue remote surcharge le
+  // filet embarqué par `id` (lib/config/utilities.dart). Un doc sans le champ
+  // écraserait le `true` embarqué d'eneo → onglet « Programmées » masqué au
+  // Cameroun. true seulement là où une source d'ingestion existe.
   eneo: {
     service: "electricity",
     country: "CM",
     label: "SOCADEL", // renommage commercial Eneo → SOCADEL (id conservé)
     countryLabel: "Cameroun",
     countryAliases: ["cameroun", "cameroon"],
+    scheduledOutages: true, // cron ingestEneoOutages
     enabled: true,
   },
   camwater: {
@@ -37,6 +42,7 @@ const UTILITIES = {
     label: "CAMWATER",
     countryLabel: "Cameroun",
     countryAliases: ["cameroun", "cameroon"],
+    scheduledOutages: false,
     enabled: true,
   },
   cie: {
@@ -45,6 +51,7 @@ const UTILITIES = {
     label: "CIE",
     countryLabel: "Côte d'Ivoire",
     countryAliases: ["côte d'ivoire", "cote d'ivoire", "ivory coast"],
+    scheduledOutages: false,
     enabled: true,
   },
   sodeci: {
@@ -53,6 +60,19 @@ const UTILITIES = {
     label: "SODECI",
     countryLabel: "Côte d'Ivoire",
     countryAliases: ["côte d'ivoire", "cote d'ivoire", "ivory coast"],
+    scheduledOutages: false,
+    enabled: true,
+  },
+  // Kenya Power (élec). scheduledOutages:true → onglet « Programmées » actif,
+  // alimenté par le cron ingestKplcOutages (PDF KPLC scrapés). Pas de source
+  // d'eau publique au Kenya à ce jour.
+  kplc: {
+    service: "electricity",
+    country: "KE",
+    label: "Kenya Power",
+    countryLabel: "Kenya",
+    countryAliases: ["kenya"],
+    scheduledOutages: true,
     enabled: true,
   },
 };
