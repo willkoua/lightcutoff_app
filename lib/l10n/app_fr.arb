@@ -634,7 +634,10 @@
   "officialOutagesAllVilles": "Toutes les villes",
   "officialOutagesEmpty": "Aucune coupure planifiée",
   "officialOutagesError": "Connexion impossible. Vérifie ta connexion (ou désactive ton VPN) et réessaie.",
-  "officialOutagesPlannedBadge": "Travaux planifiés · SOCADEL",
+  "officialOutagesPlannedBadge": "Travaux planifiés · {operator}",
+  "@officialOutagesPlannedBadge": {
+    "placeholders": { "operator": { "type": "String" } }
+  },
   "homeSegmentReports": "Signalements",
   "homeSegmentPlanned": "Programmées",
   "officialOutageFollow": "Suivre ce quartier",

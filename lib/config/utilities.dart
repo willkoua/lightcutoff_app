@@ -59,6 +59,16 @@ bool countryHasScheduledOutages(String iso) {
   );
 }
 
+/// Libellé de la compagnie depuis l'`id`/`provider` d'une coupure officielle
+/// (ex. `"eneo"` → `"SOCADEL"`, `"kplc"` → `"Kenya Power"`). `null` si l'id est
+/// inconnu du registre actif.
+String? utilityLabelForProvider(String providerId) {
+  for (final u in supportedUtilities) {
+    if (u.id == providerId) return u.label;
+  }
+  return null;
+}
+
 /// Fournisseurs EMBARQUÉS — filet de sécurité hors-ligne / premier démarrage.
 /// Depuis le 2026-08-13, la **source de vérité est la collection Firestore
 /// `utilities`** (lecture publique, écriture Admin SDK) : au démarrage,

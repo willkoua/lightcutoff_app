@@ -96,4 +96,29 @@ void main() {
       expect(countryHasScheduledOutages('KE'), isTrue);
     });
   });
+
+  group('utilityLabelForProvider (badge opérateur)', () {
+    test('eneo → SOCADEL (embarqué)', () {
+      expect(utilityLabelForProvider('eneo'), 'SOCADEL');
+    });
+
+    test('kplc → Kenya Power après application du remote', () {
+      expect(utilityLabelForProvider('kplc'), isNull);
+      applyRemoteUtilities(const [
+        Utility(
+          id: 'kplc',
+          service: ServiceType.electricity,
+          country: 'KE',
+          label: 'Kenya Power',
+          countryLabel: 'Kenya',
+          scheduledOutages: true,
+        ),
+      ]);
+      expect(utilityLabelForProvider('kplc'), 'Kenya Power');
+    });
+
+    test('provider inconnu → null', () {
+      expect(utilityLabelForProvider('zzz'), isNull);
+    });
+  });
 }

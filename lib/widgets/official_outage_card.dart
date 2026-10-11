@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 import 'package:provider/provider.dart';
 
+import '../config/utilities.dart';
 import '../models/official_outage.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_colors.dart';
@@ -36,6 +37,12 @@ class OfficialOutageCard extends StatelessWidget {
       outage.ville,
       outage.region,
     ].where((s) => s.isNotEmpty).join(' · ');
+    // Libellé de l'opérateur dérivé du provider de la coupure (SOCADEL, Kenya
+    // Power, …) — jamais codé en dur. Repli sur l'id en capitales si le registre
+    // (remote) n'est pas encore chargé.
+    final operator =
+        utilityLabelForProvider(outage.provider) ??
+        outage.provider.toUpperCase();
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -45,7 +52,7 @@ class OfficialOutageCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Badge « Travaux planifiés · SOCADEL ».
+            // Badge « Travaux planifiés · <opérateur> » (SOCADEL, Kenya Power…).
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
@@ -62,7 +69,7 @@ class OfficialOutageCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    l.officialOutagesPlannedBadge,
+                    l.officialOutagesPlannedBadge(operator),
                     style: const TextStyle(
                       color: AppColors.planned,
                       fontSize: 12,
