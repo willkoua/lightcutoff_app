@@ -516,6 +516,7 @@
   "officialOutagesClearFilters": "Clear",
   "officialOutagesAllRegions": "All regions",
   "officialOutagesAllVilles": "All cities",
+  "officialOutagesAllDates": "All dates",
   "officialOutagesEmpty": "No planned outages",
   "officialOutagesError": "Can't connect. Check your connection (or turn off your VPN) and try again.",
   "officialOutagesPlannedBadge": "Planned works · {operator}",

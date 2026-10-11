@@ -36,6 +36,7 @@ class OfficialOutageProvider extends ChangeNotifier {
   String _query = '';
   String? _region; // null = toutes les régions
   String? _ville; // null = toutes les villes (cascade sous la région)
+  String? _date; // null = toutes les dates (progDate YYYY-MM-DD)
   ServiceType?
   _serviceFilter; // null = tous services (alimenté par RegionProvider)
 
@@ -44,6 +45,7 @@ class OfficialOutageProvider extends ChangeNotifier {
   String get query => _query;
   String? get region => _region;
   String? get ville => _ville;
+  String? get date => _date;
   ServiceType? get serviceFilter => _serviceFilter;
 
   /// Régions distinctes présentes dans la donnée (pour le filtre), triées.
@@ -73,6 +75,21 @@ class OfficialOutageProvider extends ChangeNotifier {
       ..sort();
   }
 
+  /// Dates distinctes (progDate `YYYY-MM-DD`) présentes dans la donnée, triées
+  /// chronologiquement. Cascade sous service + région + ville, pour ne proposer
+  /// que des dates cohérentes avec les autres filtres.
+  List<String> get dates {
+    return _all
+        .where((o) => _serviceFilter == null || o.serviceType == _serviceFilter)
+        .where((o) => _region == null || o.region == _region)
+        .where((o) => _ville == null || o.ville == _ville)
+        .map((o) => o.progDate)
+        .where((d) => d.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort(); // YYYY-MM-DD → tri lexicographique = chronologique
+  }
+
   /// Liste filtrée par service + région + recherche (quartier ou ville).
   List<OfficialOutage> get filtered {
     final q = _query.trim().toLowerCase();
@@ -82,6 +99,7 @@ class OfficialOutageProvider extends ChangeNotifier {
       }
       if (_region != null && o.region != _region) return false;
       if (_ville != null && o.ville != _ville) return false;
+      if (_date != null && o.progDate != _date) return false;
       if (q.isNotEmpty &&
           !o.quartier.toLowerCase().contains(q) &&
           !o.ville.toLowerCase().contains(q) &&
@@ -116,15 +134,23 @@ class OfficialOutageProvider extends ChangeNotifier {
   void setRegion(String? region) {
     if (region == _region) return;
     _region = region;
-    // La ville sélectionnée peut ne plus exister sous la nouvelle région →
+    // La ville/date sélectionnée peut ne plus exister sous la nouvelle région →
     // on la réinitialise pour éviter un filtre fantôme (liste vide muette).
     if (_ville != null && !villes.contains(_ville)) _ville = null;
+    if (_date != null && !dates.contains(_date)) _date = null;
     notifyListeners();
   }
 
   void setVille(String? ville) {
     if (ville == _ville) return;
     _ville = ville;
+    if (_date != null && !dates.contains(_date)) _date = null;
+    notifyListeners();
+  }
+
+  void setDate(String? date) {
+    if (date == _date) return;
+    _date = date;
     notifyListeners();
   }
 
@@ -135,9 +161,10 @@ class OfficialOutageProvider extends ChangeNotifier {
   void setServiceFilter(ServiceType? value) {
     if (value == _serviceFilter) return;
     _serviceFilter = value;
-    // Région/ville peuvent ne plus exister dans le nouveau périmètre service.
+    // Région/ville/date peuvent ne plus exister dans le nouveau périmètre.
     if (_region != null && !regions.contains(_region)) _region = null;
     if (_ville != null && !villes.contains(_ville)) _ville = null;
+    if (_date != null && !dates.contains(_date)) _date = null;
     notifyListeners();
   }
 }

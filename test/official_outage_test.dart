@@ -20,13 +20,15 @@ OfficialOutage _mk({
   String ville = 'DOUALA',
   String quartier = 'CITE SIC',
   String reason = '',
+  String progDate = '',
   ServiceType service = ServiceType.electricity,
 }) => OfficialOutage(
-  id: '$region-$quartier',
+  id: '$region-$quartier-$progDate',
   region: region,
   ville: ville,
   quartier: quartier,
   reason: reason,
+  progDate: progDate,
   serviceType: service,
 );
 
@@ -200,6 +202,43 @@ void main() {
 
       p.setVille('Kakamega');
       expect(p.filtered.map((o) => o.quartier), ['MUMIAS']);
+    });
+
+    test('dates distinctes triées + filtre par date', () async {
+      final p = OfficialOutageProvider(
+        country: 'KE',
+        repository: _FakeRepo([
+          _mk(quartier: 'A', progDate: '2026-10-12'),
+          _mk(quartier: 'B', progDate: '2026-10-11'),
+          _mk(quartier: 'C', progDate: '2026-10-11'),
+        ]),
+      );
+      await p.load();
+
+      // Dates distinctes, ordre chronologique.
+      expect(p.dates, ['2026-10-11', '2026-10-12']);
+
+      p.setDate('2026-10-11');
+      expect(p.filtered.map((o) => o.quartier), ['B', 'C']);
+    });
+
+    test('changer de région réinitialise une date devenue invalide', () async {
+      final p = OfficialOutageProvider(
+        country: 'KE',
+        repository: _FakeRepo([
+          _mk(region: 'NAIROBI REGION', progDate: '2026-10-11', quartier: 'A'),
+          _mk(region: 'COAST REGION', progDate: '2026-10-20', quartier: 'B'),
+        ]),
+      );
+      await p.load();
+
+      p.setDate('2026-10-11');
+      expect(p.date, '2026-10-11');
+
+      // 2026-10-11 n'existe pas dans COAST REGION → la date est effacée.
+      p.setRegion('COAST REGION');
+      expect(p.date, isNull);
+      expect(p.filtered.map((o) => o.quartier), ['B']);
     });
 
     test('changer de région réinitialise une ville devenue invalide', () async {

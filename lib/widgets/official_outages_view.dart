@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 import 'package:provider/provider.dart';
 
@@ -47,11 +48,23 @@ class _OfficialOutagesViewState extends State<OfficialOutagesView> {
     }
 
     final villes = p.villes;
+    final dates = p.dates;
     final hasRegions = p.regions.isNotEmpty;
+    final locale = Localizations.localeOf(context).toLanguageTag();
     final active =
         (p.region != null ? 1 : 0) +
         (p.ville != null ? 1 : 0) +
+        (p.date != null ? 1 : 0) +
         (p.query.trim().isNotEmpty ? 1 : 0);
+
+    // Date brute YYYY-MM-DD → libellé lisible (« dim. 11 oct. »), repli brut.
+    String dateLabel(String d) {
+      try {
+        return DateFormat.MMMEd(locale).format(DateTime.parse(d));
+      } catch (_) {
+        return d;
+      }
+    }
 
     return Column(
       children: [
@@ -100,6 +113,7 @@ class _OfficialOutagesViewState extends State<OfficialOutagesView> {
                     onPressed: () {
                       p.setRegion(null);
                       p.setVille(null);
+                      p.setDate(null);
                       p.setQuery('');
                     },
                     style: TextButton.styleFrom(
@@ -142,6 +156,18 @@ class _OfficialOutagesViewState extends State<OfficialOutagesView> {
               options: villes,
               onChanged: p.setVille,
               topPad: 0,
+            ),
+          // Filtre date (dates réellement programmées, en cascade sous les
+          // autres filtres). N'apparaît que s'il y a plusieurs dates.
+          if (dates.length > 1)
+            _FilterDropdown(
+              icon: Icons.event,
+              value: p.date,
+              allLabel: l.officialOutagesAllDates,
+              options: dates,
+              onChanged: p.setDate,
+              topPad: 0,
+              display: dateLabel,
             ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -210,6 +236,7 @@ class _FilterDropdown extends StatelessWidget {
     required this.options,
     required this.onChanged,
     required this.topPad,
+    this.display,
   });
 
   final IconData icon;
@@ -218,6 +245,10 @@ class _FilterDropdown extends StatelessWidget {
   final List<String> options;
   final ValueChanged<String?> onChanged;
   final double topPad;
+
+  /// Formate l'affichage d'une option (ex. date `2026-10-11` → « dim. 11 oct. »).
+  /// `null` = affichage brut de la valeur.
+  final String Function(String)? display;
 
   @override
   Widget build(BuildContext context) {
@@ -234,7 +265,10 @@ class _FilterDropdown extends StatelessWidget {
         items: [
           DropdownMenuItem<String?>(value: null, child: Text(allLabel)),
           for (final o in options)
-            DropdownMenuItem<String?>(value: o, child: Text(o)),
+            DropdownMenuItem<String?>(
+              value: o,
+              child: Text(display != null ? display!(o) : o),
+            ),
         ],
         onChanged: onChanged,
       ),

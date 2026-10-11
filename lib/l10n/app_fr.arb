@@ -634,6 +634,7 @@
   "officialOutagesClearFilters": "Effacer",
   "officialOutagesAllRegions": "Toutes les régions",
   "officialOutagesAllVilles": "Toutes les villes",
+  "officialOutagesAllDates": "Toutes les dates",
   "officialOutagesEmpty": "Aucune coupure planifiée",
   "officialOutagesError": "Connexion impossible. Vérifie ta connexion (ou désactive ton VPN) et réessaie.",
   "officialOutagesPlannedBadge": "Travaux planifiés · {operator}",
