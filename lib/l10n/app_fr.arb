@@ -630,6 +630,8 @@
   "deleteAccountConfirm": "Supprimer définitivement",
   "officialOutagesTitle": "Coupures planifiées",
   "officialOutagesSearchHint": "Rechercher un quartier ou un lieu",
+  "officialOutagesFilter": "Filtrer",
+  "officialOutagesClearFilters": "Effacer",
   "officialOutagesAllRegions": "Toutes les régions",
   "officialOutagesAllVilles": "Toutes les villes",
   "officialOutagesEmpty": "Aucune coupure planifiée",

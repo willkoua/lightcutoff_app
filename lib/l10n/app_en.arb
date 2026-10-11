@@ -512,6 +512,8 @@
   "deleteAccountConfirm": "Delete permanently",
   "officialOutagesTitle": "Planned outages",
   "officialOutagesSearchHint": "Search a neighborhood or place",
+  "officialOutagesFilter": "Filter",
+  "officialOutagesClearFilters": "Clear",
   "officialOutagesAllRegions": "All regions",
   "officialOutagesAllVilles": "All cities",
   "officialOutagesEmpty": "No planned outages",
