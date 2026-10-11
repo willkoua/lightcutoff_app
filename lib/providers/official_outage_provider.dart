@@ -84,7 +84,11 @@ class OfficialOutageProvider extends ChangeNotifier {
       if (_ville != null && o.ville != _ville) return false;
       if (q.isNotEmpty &&
           !o.quartier.toLowerCase().contains(q) &&
-          !o.ville.toLowerCase().contains(q)) {
+          !o.ville.toLowerCase().contains(q) &&
+          // Recherche aussi dans la description (liste de rues/lieux, ex. KPLC
+          // « Ruai Shopping Centre, Stage 26 … ») — filtre en mémoire, pas de
+          // changement de BD nécessaire à cette échelle.
+          !o.reason.toLowerCase().contains(q)) {
         return false;
       }
       return true;

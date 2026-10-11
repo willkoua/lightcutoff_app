@@ -629,7 +629,7 @@
   "deleteAccountPasswordLabel": "Mot de passe",
   "deleteAccountConfirm": "Supprimer définitivement",
   "officialOutagesTitle": "Coupures planifiées",
-  "officialOutagesSearchHint": "Rechercher un quartier",
+  "officialOutagesSearchHint": "Rechercher un quartier ou un lieu",
   "officialOutagesAllRegions": "Toutes les régions",
   "officialOutagesAllVilles": "Toutes les villes",
   "officialOutagesEmpty": "Aucune coupure planifiée",

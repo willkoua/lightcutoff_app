@@ -19,12 +19,14 @@ OfficialOutage _mk({
   String region = 'LITTORAL',
   String ville = 'DOUALA',
   String quartier = 'CITE SIC',
+  String reason = '',
   ServiceType service = ServiceType.electricity,
 }) => OfficialOutage(
   id: '$region-$quartier',
   region: region,
   ville: ville,
   quartier: quartier,
+  reason: reason,
   serviceType: service,
 );
 
@@ -121,6 +123,24 @@ void main() {
       p.setRegion(null);
       p.setQuery('cite');
       expect(p.filtered.map((o) => o.quartier), ['CITE SIC']);
+    });
+
+    test('recherche aussi dans la description (liste de rues/lieux)', () async {
+      final p = OfficialOutageProvider(
+        country: 'KE',
+        repository: _FakeRepo([
+          _mk(quartier: 'JOSKA', reason: 'Ruai Shopping Centre, Stage 26'),
+          _mk(quartier: 'KASARANI', reason: 'Mwiki Rd, Hunters'),
+        ]),
+      );
+      await p.load();
+
+      // Un mot présent uniquement dans la description doit matcher la coupure.
+      p.setQuery('stage 26');
+      expect(p.filtered.map((o) => o.quartier), ['JOSKA']);
+
+      p.setQuery('hunters');
+      expect(p.filtered.map((o) => o.quartier), ['KASARANI']);
     });
 
     test(
