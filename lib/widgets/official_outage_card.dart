@@ -135,8 +135,12 @@ class OfficialOutageCard extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 2),
+            // Actions alignées à droite (suivre — compte only — puis calendrier
+            // et partage, disponibles pour tous les pays : CM/SOCADEL, KE/KPLC…).
             Row(
               children: [
+                const Spacer(),
+                _FollowButton(outageKey: outage.followKey),
                 IconButton(
                   icon: const Icon(Icons.event_available_outlined, size: 20),
                   color: AppColors.planned,
@@ -151,8 +155,6 @@ class OfficialOutageCard extends StatelessWidget {
                   visualDensity: VisualDensity.compact,
                   onPressed: () => shareOfficialOutage(context, outage),
                 ),
-                const Spacer(),
-                _FollowButton(outageKey: outage.followKey),
               ],
             ),
           ],
