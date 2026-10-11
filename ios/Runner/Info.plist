@@ -66,6 +66,10 @@
 	<string>NJUKA utilise votre position pour localiser les coupures que vous signalez et vous alerter de celles proches de chez vous. L'app ne suit pas votre position en arrière-plan.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>NJUKA accède à vos photos pour joindre une image à un signalement de coupure.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>NJUKA ajoute une coupure programmée à votre calendrier pour vous la rappeler.</string>
+	<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
+	<string>NJUKA ajoute une coupure programmée à votre calendrier pour vous la rappeler.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

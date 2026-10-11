@@ -7,6 +7,7 @@ import '../config/utilities.dart';
 import '../models/official_outage.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_colors.dart';
+import '../utils/share_official_outage.dart';
 import 'confirm_dialog.dart';
 
 /// Carte d'une coupure **officielle planifiée**. Style bleu « planifié », visuellement
@@ -134,9 +135,25 @@ class OfficialOutageCard extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 2),
-            Align(
-              alignment: Alignment.centerRight,
-              child: _FollowButton(outageKey: outage.followKey),
+            Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.event_available_outlined, size: 20),
+                  color: AppColors.planned,
+                  tooltip: l.officialOutageAddToCalendar,
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => addOutageToCalendar(context, outage),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.share_outlined, size: 20),
+                  color: AppColors.planned,
+                  tooltip: l.reportShareAction,
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => shareOfficialOutage(context, outage),
+                ),
+                const Spacer(),
+                _FollowButton(outageKey: outage.followKey),
+              ],
             ),
           ],
         ),
