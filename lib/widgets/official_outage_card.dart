@@ -10,8 +10,13 @@ import '../providers/auth_provider.dart';
 import '../screens/outage_location_map_screen.dart';
 import '../services/location_service.dart';
 import '../theme/app_colors.dart';
+import '../utils/outage_geocode.dart';
 import '../utils/share_official_outage.dart';
 import 'confirm_dialog.dart';
+
+/// Cache de géocodage partagé entre les cartes pour la durée de la session
+/// (évite de re-géocoder les mêmes quartiers/rues à chaque ouverture de carte).
+final Map<String, LatLng?> _outageGeocodeCache = {};
 
 /// Carte d'une coupure **officielle planifiée**. Style bleu « planifié », visuellement
 /// distinct des `ReportCard` (ambre) des signalements communautaires.
@@ -181,28 +186,38 @@ class OfficialOutageCard extends StatelessWidget {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     final country = countryLabelForIso(outage.country) ?? '';
-    final query = [
-      outage.quartier,
-      outage.ville,
-      country,
-    ].where((s) => s.isNotEmpty).join(', ');
 
     messenger.showSnackBar(
       SnackBar(
         content: Text(l.officialOutageLocating),
-        duration: const Duration(seconds: 2),
+        duration: const Duration(seconds: 6),
       ),
     );
     try {
-      final res = await LocationService().locationFromDescription(query);
+      final zone = await geocodeOutageZone(
+        quartier: outage.quartier,
+        ville: outage.ville,
+        countryLabel: country,
+        reason: outage.reason,
+        repo: LocationService(),
+        cache: _outageGeocodeCache,
+      );
       messenger.hideCurrentSnackBar();
+      if (zone == null) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l.officialOutageLocationNotFound)),
+        );
+        return;
+      }
       navigator.push(
         MaterialPageRoute(
           builder:
               (_) => OutageLocationMapScreen(
-                point: LatLng(res.position.lat, res.position.lng),
+                point: zone.center,
                 title: outage.quartier,
                 serviceType: outage.serviceType,
+                approxRadiusM: zone.radiusM,
+                streetPoints: zone.points,
               ),
         ),
       );

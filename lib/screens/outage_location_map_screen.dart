@@ -18,6 +18,7 @@ class OutageLocationMapScreen extends StatefulWidget {
     required this.title,
     required this.serviceType,
     this.approxRadiusM = 1200,
+    this.streetPoints = const [],
   });
 
   /// Centre géocodé du quartier.
@@ -31,6 +32,10 @@ class OutageLocationMapScreen extends StatefulWidget {
 
   /// Rayon approximatif du cercle (mètres) — purement indicatif.
   final double approxRadiusM;
+
+  /// Rues/repères géocodés de la description (outliers déjà filtrés). Affichés
+  /// en petits points pour matérialiser la zone réelle quand ils existent.
+  final List<LatLng> streetPoints;
 
   @override
   State<OutageLocationMapScreen> createState() =>
@@ -76,6 +81,7 @@ class _OutageLocationMapScreenState extends State<OutageLocationMapScreen> {
                 ),
               CircleLayer(
                 circles: [
+                  // Cercle englobant (zone approximative).
                   CircleMarker(
                     point: widget.point,
                     radius: widget.approxRadiusM,
@@ -84,6 +90,17 @@ class _OutageLocationMapScreenState extends State<OutageLocationMapScreen> {
                     borderColor: color.withValues(alpha: 0.6),
                     borderStrokeWidth: 1.5,
                   ),
+                  // Points de rues (taille en pixels, fixe au zoom) — matérialise
+                  // les rues réellement citées dans la description.
+                  for (final p in widget.streetPoints)
+                    CircleMarker(
+                      point: p,
+                      radius: 5,
+                      useRadiusInMeter: false,
+                      color: color.withValues(alpha: 0.9),
+                      borderColor: Colors.white,
+                      borderStrokeWidth: 1.5,
+                    ),
                 ],
               ),
               MarkerLayer(
