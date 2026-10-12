@@ -183,24 +183,6 @@ class _OutageLocationMapScreenState extends State<OutageLocationMapScreen> {
               ),
               MarkerLayer(
                 markers: [
-                  // Marqueur central du quartier.
-                  Marker(
-                    point: widget.point,
-                    width: 44,
-                    height: 44,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: color,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                      child: Icon(
-                        serviceTypeIcon(widget.serviceType),
-                        color: Colors.white,
-                        size: 22,
-                      ),
-                    ),
-                  ),
                   // Lieu recherché.
                   if (_searchPos != null)
                     Marker(
