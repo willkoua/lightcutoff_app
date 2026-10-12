@@ -7,6 +7,8 @@ import 'package:share_plus/share_plus.dart';
 import '../config/utilities.dart';
 import '../models/enums.dart';
 import '../models/official_outage.dart';
+import '../widgets/service_visuals.dart';
+import 'outage_share_image.dart';
 
 /// Partage et ajout au calendrier d'une **coupure officielle planifiée**.
 /// Contrairement aux signalements, pas de page publique dédiée → le message
@@ -64,12 +66,36 @@ Future<void> shareOfficialOutage(
 ) async {
   final l = AppLocalizations.of(context);
   final locale = Localizations.localeOf(context).toLanguageTag();
+  final dateLabel = _formatDate(locale, outage.progDate);
   final message = buildOfficialOutageShareMessage(
     l: l,
     outage: outage,
-    dateLabel: _formatDate(locale, outage.progDate),
+    dateLabel: dateLabel,
   );
-  await SharePlus.instance.share(ShareParams(text: message));
+
+  // Vignette visuelle (best-effort) jointe au partage ; repli texte seul.
+  final window = [
+    outage.startTime,
+    outage.endTime,
+  ].where((s) => s.isNotEmpty).join(' – ');
+  final imagePath = await buildOutageShareImageFile(
+    outage: outage,
+    title: l.officialOutageShareTitle,
+    operator: outageOperatorLabel(outage),
+    placeLabel: [
+      outage.ville,
+      outage.region,
+    ].where((s) => s.isNotEmpty).join(' · '),
+    whenLabel: window.isEmpty ? dateLabel : '$dateLabel · $window',
+    tagline: l.officialOutageShareTagline,
+    serviceColor: serviceTypeColor(outage.serviceType),
+  );
+
+  final params =
+      imagePath != null
+          ? ShareParams(text: message, files: [XFile(imagePath)])
+          : ShareParams(text: message);
+  await SharePlus.instance.share(params);
 }
 
 /// Début/fin de l'événement. Préfère les instants absolus (`startsAt/endsAt`) ;

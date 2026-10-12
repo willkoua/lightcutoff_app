@@ -77,6 +77,8 @@ dependencies:
   # Ajout d'une coupure programmée au calendrier natif (ouvre l'app Agenda
   # pré-remplie — pas de permission runtime côté Android).
   add_2_calendar: ^3.0.1
+  # Répertoire temporaire pour écrire l'image de partage générée.
+  path_provider: ^2.1.4
 
 dev_dependencies:
   flutter_test:
