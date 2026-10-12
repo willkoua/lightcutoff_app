@@ -18,9 +18,14 @@ const double kOutageOutlierMaxM = 4000;
 /// Nombre max de rues géocodées (borne la latence et les appels géocodeur).
 const int kOutageMaxStreets = 12;
 
-/// Rayon du cercle englobant, borné pour rester lisible.
+/// Rayon du cercle englobant (repli si aucune rue résolue), borné.
 const double kOutageZoneMinRadiusM = 400;
 const double kOutageZoneMaxRadiusM = 3000;
+
+/// Rayon du petit cercle (buffer) tracé autour de CHAQUE rue géocodée : matérialise
+/// l'incertitude du géocodage d'une rue (~qqs centaines de m) sans couvrir tout
+/// le quartier. Les buffers se fondent là où les rues sont proches.
+const double kOutageStreetBufferM = 300;
 
 /// Zone d'impact calculée : centre (quartier), points de rues retenus, rayon.
 class OutageZone {
@@ -76,49 +81,6 @@ List<String> parseOutageStreets(String reason) {
     if (out.length >= kOutageMaxStreets) break;
   }
   return out;
-}
-
-/// Enveloppe convexe (polygone) des [points] — l'ordre est horaire/antihoraire
-/// fermé, prêt à dessiner. `[]` si moins de 3 points (pas de polygone possible).
-/// Algorithme de la chaîne monotone d'Andrew. `lng` = x, `lat` = y (suffisant à
-/// l'échelle d'un quartier). **Pure.**
-List<LatLng> convexHull(List<LatLng> input) {
-  // Dédoublonne et trie par (lng, lat).
-  final pts =
-      {for (final p in input) '${p.longitude},${p.latitude}': p}.values.toList()
-        ..sort(
-          (a, b) =>
-              a.longitude != b.longitude
-                  ? a.longitude.compareTo(b.longitude)
-                  : a.latitude.compareTo(b.latitude),
-        );
-  if (pts.length < 3) return const [];
-
-  double cross(LatLng o, LatLng a, LatLng b) =>
-      (a.longitude - o.longitude) * (b.latitude - o.latitude) -
-      (a.latitude - o.latitude) * (b.longitude - o.longitude);
-
-  final lower = <LatLng>[];
-  for (final p in pts) {
-    while (lower.length >= 2 &&
-        cross(lower[lower.length - 2], lower.last, p) <= 0) {
-      lower.removeLast();
-    }
-    lower.add(p);
-  }
-  final upper = <LatLng>[];
-  for (final p in pts.reversed) {
-    while (upper.length >= 2 &&
-        cross(upper[upper.length - 2], upper.last, p) <= 0) {
-      upper.removeLast();
-    }
-    upper.add(p);
-  }
-  lower.removeLast();
-  upper.removeLast();
-  final hull = [...lower, ...upper];
-  // Dégénéré (points colinéaires) → pas de surface exploitable.
-  return hull.length >= 3 ? hull : const [];
 }
 
 /// Rayon englobant les [points] depuis [center], borné. **Pure.**

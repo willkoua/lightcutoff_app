@@ -50,8 +50,7 @@ class _OutageLocationMapScreenState extends State<OutageLocationMapScreen> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final color = serviceTypeColor(widget.serviceType);
-    // Polygone (enveloppe) reliant les rues quand on en a ≥ 3 ; sinon cercle.
-    final hull = convexHull(widget.streetPoints);
+    final hasStreets = widget.streetPoints.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(title: Text(widget.title)),
@@ -82,16 +81,21 @@ class _OutageLocationMapScreenState extends State<OutageLocationMapScreen> {
                   userAgentPackageName: 'com.njuka.app',
                   maxZoom: 19,
                 ),
-              // Zone : polygone reliant les rues (≥ 3), sinon cercle englobant.
-              if (hull.length >= 3)
-                PolygonLayer(
-                  polygons: [
-                    Polygon(
-                      points: hull,
-                      color: color.withValues(alpha: 0.18),
-                      borderColor: color.withValues(alpha: 0.7),
-                      borderStrokeWidth: 2,
-                    ),
+              // Zone : un petit buffer autour de CHAQUE rue (ils fusionnent là
+              // où les rues sont proches). Repli sur un grand cercle si aucune
+              // rue n'a pu être géocodée.
+              if (hasStreets)
+                CircleLayer(
+                  circles: [
+                    for (final p in widget.streetPoints)
+                      CircleMarker(
+                        point: p,
+                        radius: kOutageStreetBufferM,
+                        useRadiusInMeter: true,
+                        color: color.withValues(alpha: 0.16),
+                        borderColor: color.withValues(alpha: 0.35),
+                        borderStrokeWidth: 1,
+                      ),
                   ],
                 )
               else
@@ -107,16 +111,16 @@ class _OutageLocationMapScreenState extends State<OutageLocationMapScreen> {
                     ),
                   ],
                 ),
-              // Points de rues (taille en pixels, fixe au zoom) — matérialise
-              // les rues réellement citées dans la description.
+              // Points de rues (taille en pixels, fixe au zoom) au centre de
+              // chaque buffer.
               CircleLayer(
                 circles: [
                   for (final p in widget.streetPoints)
                     CircleMarker(
                       point: p,
-                      radius: 5,
+                      radius: 4,
                       useRadiusInMeter: false,
-                      color: color.withValues(alpha: 0.9),
+                      color: color.withValues(alpha: 0.95),
                       borderColor: Colors.white,
                       borderStrokeWidth: 1.5,
                     ),
