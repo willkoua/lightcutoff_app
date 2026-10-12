@@ -11,7 +11,7 @@ import '../widgets/service_visuals.dart';
 /// centre géocodé du quartier (on n'a pas les frontières exactes de la zone).
 /// Écran en lecture seule, ouvert depuis le bouton « Voir sur la carte » d'une
 /// `OfficialOutageCard`.
-class OutageLocationMapScreen extends StatelessWidget {
+class OutageLocationMapScreen extends StatefulWidget {
   const OutageLocationMapScreen({
     super.key,
     required this.point,
@@ -33,16 +33,31 @@ class OutageLocationMapScreen extends StatelessWidget {
   final double approxRadiusM;
 
   @override
+  State<OutageLocationMapScreen> createState() =>
+      _OutageLocationMapScreenState();
+}
+
+class _OutageLocationMapScreenState extends State<OutageLocationMapScreen> {
+  final _controller = MapController();
+
+  @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final color = serviceTypeColor(serviceType);
+    final color = serviceTypeColor(widget.serviceType);
 
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(title: Text(widget.title)),
       body: Stack(
         children: [
           FlutterMap(
-            options: MapOptions(initialCenter: point, initialZoom: 14),
+            mapController: _controller,
+            options: MapOptions(
+              initialCenter: widget.point,
+              initialZoom: 14,
+              // Garantit le centrage/zoom une fois la carte prête (initialZoom
+              // seul ne suffisait pas sur certains appareils).
+              onMapReady: () => _controller.move(widget.point, 14),
+            ),
             children: [
               if (AppConfig.useStadiaTiles)
                 TileLayer(
@@ -62,8 +77,8 @@ class OutageLocationMapScreen extends StatelessWidget {
               CircleLayer(
                 circles: [
                   CircleMarker(
-                    point: point,
-                    radius: approxRadiusM,
+                    point: widget.point,
+                    radius: widget.approxRadiusM,
                     useRadiusInMeter: true,
                     color: color.withValues(alpha: 0.18),
                     borderColor: color.withValues(alpha: 0.6),
@@ -74,7 +89,7 @@ class OutageLocationMapScreen extends StatelessWidget {
               MarkerLayer(
                 markers: [
                   Marker(
-                    point: point,
+                    point: widget.point,
                     width: 44,
                     height: 44,
                     child: Container(
@@ -84,7 +99,7 @@ class OutageLocationMapScreen extends StatelessWidget {
                         border: Border.all(color: Colors.white, width: 2),
                       ),
                       child: Icon(
-                        serviceTypeIcon(serviceType),
+                        serviceTypeIcon(widget.serviceType),
                         color: Colors.white,
                         size: 22,
                       ),
