@@ -205,6 +205,23 @@ export function parseTimeRange(raw: string): { start: string; end: string } | nu
 }
 
 /**
+ * Nettoie la liste de rues : le dernier bloc d'une colonne absorbe parfois le
+ * **boilerplate légal** du PDF qui le suit (« For further information… Notice is
+ * hereby given under Rule 27… »). On garde jusqu'à « adjacent customers. » (fin
+ * canonique d'une zone KPLC) et, en filet, on coupe au 1er marqueur de
+ * boilerplate. **Pure.**
+ */
+export function cleanKplcReason(reason: string): string {
+  const end = reason.match(/^(.*?adjacent customers\.?)/is);
+  let r = end ? end[1] : reason;
+  r = r.replace(
+    /\s*(For further information|Interruption notices? may be viewed|Power Maintenance Notice|Notice is hereby given|That the electricity supply will be interrupted|It is necessary to interrupt).*/is,
+    ""
+  );
+  return r.trim();
+}
+
+/**
  * Parse le texte reconstruit en blocs structurés (région / comté / zone /
  * date / horaires / liste de lieux). Un bloc commence à chaque `AREA:` ; la
  * ligne `DATE: … TIME: …` suivante (ou en fin de ligne AREA) le complète ;
@@ -220,7 +237,7 @@ export function parseKplcBlocks(text: string): KplcBlock[] {
 
   const flush = () => {
     if (cur) {
-      cur.reason = buf.join(" ").replace(/\s+/g, " ").trim();
+      cur.reason = cleanKplcReason(buf.join(" ").replace(/\s+/g, " ").trim());
       blocks.push(cur);
     }
     cur = null;

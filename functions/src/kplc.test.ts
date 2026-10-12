@@ -12,6 +12,7 @@ import {
   parseTimeRange,
   discoverPdfUrls,
   reconstructText,
+  cleanKplcReason,
   KplcPage,
   RawKplcPdf,
 } from "./sources/kplc";
@@ -236,4 +237,22 @@ test("reconstructText : ordre colonne-par-colonne respecté", () => {
   ];
   const text = reconstructText([{ width: 420, items }]);
   assert.equal(text, "LEFT-TOP\nLEFT-BOT\nRIGHT-TOP\nRIGHT-BOT");
+});
+
+test("cleanKplcReason tronque le boilerplate légal après 'adjacent customers'", () => {
+  const dirty =
+    "Igembe T/Fact, Kimongoro Mrkt, Ikuu & adjacent customers. For further " +
+    "information, contact the nearest Kenya Power office Notice is hereby given " +
+    "under Rule 27 of the Electric Power Rules";
+  assert.equal(
+    cleanKplcReason(dirty),
+    "Igembe T/Fact, Kimongoro Mrkt, Ikuu & adjacent customers."
+  );
+});
+
+test("cleanKplcReason laisse intacte une liste propre", () => {
+  assert.equal(
+    cleanKplcReason("Westlands, Lavington & adjacent customers"),
+    "Westlands, Lavington & adjacent customers"
+  );
 });
