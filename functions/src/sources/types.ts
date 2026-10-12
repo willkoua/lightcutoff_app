@@ -10,6 +10,7 @@
 /** Coupure officielle planifiée, indépendante du fournisseur. */
 export interface CanonicalOutage {
   provider: string; // ex. "eneo"
+  service: "electricity" | "water"; // type de service (écrit en `serviceType`)
   country: string; // ISO-3166-1 alpha-2, ex. "CM"
   region: string;
   ville: string;

@@ -97,6 +97,7 @@ export function normalizeEneo(items: RawEneoItem[]): CanonicalOutage[] {
 
     byHash.set(rawHash, {
       provider: "eneo",
+      service: "electricity",
       country: "CM",
       region,
       ville,

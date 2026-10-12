@@ -791,6 +791,7 @@ export async function runIngestion(
         ref,
         {
           provider: o.provider,
+          serviceType: o.service,
           country: o.country,
           region: o.region,
           ville: o.ville,

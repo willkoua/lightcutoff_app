@@ -336,6 +336,7 @@ export function normalizeKplc(raw: RawKplcPdf[]): CanonicalOutage[] {
 
       byHash.set(rawHash, {
         provider: "kplc",
+        service: "electricity",
         country: "KE",
         region,
         ville,
