@@ -643,6 +643,7 @@
   "officialOutageMapApproxZone": "Zone approximative d'après les rues citées — pas le contour officiel exact.",
   "officialOutageShareTitle": "Coupure programmée",
   "officialOutageShareTagline": "via NJUKA",
+  "officialOutageShareDownload": "📲 Télécharge NJUKA :",
   "officialOutagesEmpty": "Aucune coupure planifiée",
   "officialOutagesError": "Connexion impossible. Vérifie ta connexion (ou désactive ton VPN) et réessaie.",
   "officialOutagesPlannedBadge": "Travaux planifiés · {operator}",

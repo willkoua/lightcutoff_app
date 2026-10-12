@@ -1,9 +1,12 @@
+import 'dart:io' show Platform;
+
 import 'package:add_2_calendar/add_2_calendar.dart';
 import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
 import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../config/app_config.dart';
 import '../config/utilities.dart';
 import '../models/enums.dart';
 import '../models/official_outage.dart';
@@ -37,17 +40,21 @@ String buildOfficialOutageShareMessage({
   required AppLocalizations l,
   required OfficialOutage outage,
   required String dateLabel,
+  String? downloadUrl,
 }) {
   final window = [
     outage.startTime,
     outage.endTime,
   ].where((s) => s.isNotEmpty).join(' – ');
   final when = window.isEmpty ? dateLabel : '$dateLabel · $window';
-  return '${_emoji(outage)} ${l.officialOutageShareTitle} · '
+  final base =
+      '${_emoji(outage)} ${l.officialOutageShareTitle} · '
       '${outageOperatorLabel(outage)}\n'
       '${_placeLabel(outage)}\n'
       '$when\n'
       '${l.officialOutageShareTagline}';
+  if (downloadUrl == null || downloadUrl.isEmpty) return base;
+  return '$base\n${l.officialOutageShareDownload} $downloadUrl';
 }
 
 /// Date d'affichage localisée (« dim. 11 oct. 2026 »), repli sur la chaîne brute.
@@ -67,10 +74,14 @@ Future<void> shareOfficialOutage(
   final l = AppLocalizations.of(context);
   final locale = Localizations.localeOf(context).toLanguageTag();
   final dateLabel = _formatDate(locale, outage.progDate);
+  // Lien de téléchargement selon la plateforme du partageur.
+  final downloadUrl =
+      Platform.isIOS ? AppConfig.appStoreUrl : AppConfig.playStoreUrl;
   final message = buildOfficialOutageShareMessage(
     l: l,
     outage: outage,
     dateLabel: dateLabel,
+    downloadUrl: downloadUrl,
   );
 
   // Vignette visuelle (best-effort) jointe au partage ; repli texte seul.

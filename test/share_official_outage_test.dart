@@ -51,6 +51,31 @@ void main() {
     expect(msg, contains('via NJUKA'));
   });
 
+  test('ajoute le lien de téléchargement quand fourni', () {
+    const outage = OfficialOutage(
+      id: 'z',
+      provider: 'eneo',
+      quartier: 'BASTOS',
+      startTime: '06:00',
+      endTime: '18:00',
+      progDate: '2026-06-10',
+    );
+    final msg = buildOfficialOutageShareMessage(
+      l: l,
+      outage: outage,
+      dateLabel: '10 juin 2026',
+      downloadUrl: 'https://play.google.com/store/apps/details?id=com.njuka.app',
+    );
+    expect(msg, contains('play.google.com/store/apps/details?id=com.njuka.app'));
+    // Sans lien → pas de ligne de téléchargement.
+    final noLink = buildOfficialOutageShareMessage(
+      l: l,
+      outage: outage,
+      dateLabel: '10 juin 2026',
+    );
+    expect(noLink.contains('play.google.com'), isFalse);
+  });
+
   test('provider inconnu → repli sur l\'id en capitales', () {
     const outage = OfficialOutage(
       id: 'y',

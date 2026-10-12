@@ -81,6 +81,14 @@ class AppConfig {
   /// depuis un build de test restent donc valides ET à la marque.
   static String get shareBaseUrl => 'https://njuka.app';
 
+  /// Liens de téléchargement de l'app (utilisés dans les partages). UTM
+  /// `app_share` pour distinguer les installs venant d'un partage in-app.
+  static const String playStoreUrl =
+      'https://play.google.com/store/apps/details?id=com.njuka.app'
+      '&referrer=utm_source%3Dapp%26utm_medium%3Dshare';
+  static const String appStoreUrl =
+      'https://apps.apple.com/app/njuka/id6794127922?ct=app_share';
+
   /// Affiche le bouton « Continuer avec Google ». **Désactivé** tant que la
   /// config Firebase n'est pas faite (provider Google activé + empreintes SHA-1
   /// debug/release/Play App Signing + `google-services.json` régénéré — voir
