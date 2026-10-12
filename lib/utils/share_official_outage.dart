@@ -144,11 +144,18 @@ Future<bool> addOutageToCalendar(
     outage.region,
   ].where((s) => s.isNotEmpty).join(', ');
 
+  final downloadUrl =
+      Platform.isIOS ? AppConfig.appStoreUrl : AppConfig.playStoreUrl;
+  final description = [
+    if (outage.reason.isNotEmpty) outage.reason,
+    '${l.officialOutageShareDownload} $downloadUrl',
+  ].join('\n\n');
+
   final event = Event(
     title:
         'NJUKA : ${_emoji(outage)} ${l.officialOutageShareTitle} · '
         '${outageOperatorLabel(outage)}',
-    description: outage.reason,
+    description: description,
     location: location,
     startDate: start,
     endDate: end,
