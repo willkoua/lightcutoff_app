@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import '../config/utilities.dart';
 import '../models/official_outage.dart';
 import '../providers/auth_provider.dart';
+import '../screens/outage_location_map_screen.dart';
+import '../services/location_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/share_official_outage.dart';
 import 'confirm_dialog.dart';
@@ -142,6 +145,13 @@ class OfficialOutageCard extends StatelessWidget {
                 const Spacer(),
                 _FollowButton(outageKey: outage.followKey),
                 IconButton(
+                  icon: const Icon(Icons.map_outlined, size: 20),
+                  color: AppColors.planned,
+                  tooltip: l.officialOutageViewOnMap,
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => _openMap(context),
+                ),
+                IconButton(
                   icon: const Icon(Icons.event_available_outlined, size: 20),
                   color: AppColors.planned,
                   tooltip: l.officialOutageAddToCalendar,
@@ -161,6 +171,47 @@ class OfficialOutageCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// Géocode le quartier (géocodeur natif, sans clé) puis ouvre la carte
+  /// centrée dessus avec un marqueur + un cercle approximatif. Snackbar si le
+  /// lieu est introuvable.
+  Future<void> _openMap(BuildContext context) async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final country = countryLabelForIso(outage.country) ?? '';
+    final query = [
+      outage.quartier,
+      outage.ville,
+      country,
+    ].where((s) => s.isNotEmpty).join(', ');
+
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(l.officialOutageLocating),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+    try {
+      final res = await LocationService().locationFromDescription(query);
+      messenger.hideCurrentSnackBar();
+      navigator.push(
+        MaterialPageRoute(
+          builder:
+              (_) => OutageLocationMapScreen(
+                point: LatLng(res.position.lat, res.position.lng),
+                title: outage.quartier,
+                serviceType: outage.serviceType,
+              ),
+        ),
+      );
+    } catch (_) {
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
+        SnackBar(content: Text(l.officialOutageLocationNotFound)),
+      );
+    }
   }
 }
 
