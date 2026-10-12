@@ -109,7 +109,7 @@ Future<bool> addOutageToCalendar(
 
   final event = Event(
     title:
-        '${_emoji(outage)} ${l.officialOutageShareTitle} · '
+        'NJUKA : ${_emoji(outage)} ${l.officialOutageShareTitle} · '
         '${outageOperatorLabel(outage)}',
     description: outage.reason,
     location: location,
