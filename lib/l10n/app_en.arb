@@ -519,6 +519,7 @@
   "officialOutagesAllDates": "All dates",
   "officialOutageAddToCalendar": "Add to calendar",
   "officialOutageViewOnMap": "View on map",
+  "officialOutageMapSearchHint": "Search a place",
   "officialOutageLocating": "Locating the area…",
   "officialOutageLocationNotFound": "Location not found on the map",
   "officialOutageMapApproxZone": "Approximate area from the listed streets — not the official exact boundary.",

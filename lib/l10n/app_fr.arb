@@ -637,6 +637,7 @@
   "officialOutagesAllDates": "Toutes les dates",
   "officialOutageAddToCalendar": "Ajouter au calendrier",
   "officialOutageViewOnMap": "Voir sur la carte",
+  "officialOutageMapSearchHint": "Rechercher un lieu",
   "officialOutageLocating": "Localisation du quartier…",
   "officialOutageLocationNotFound": "Lieu introuvable sur la carte",
   "officialOutageMapApproxZone": "Zone approximative d'après les rues citées — pas le contour officiel exact.",

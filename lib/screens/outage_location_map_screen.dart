@@ -5,13 +5,16 @@ import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 
 import '../config/app_config.dart';
 import '../models/enums.dart';
+import '../services/location_service.dart';
+import '../theme/app_colors.dart';
 import '../utils/outage_geocode.dart';
 import '../widgets/service_visuals.dart';
 
-/// Carte d'une **coupure programmée** : marqueur + cercle **approximatif** au
-/// centre géocodé du quartier (on n'a pas les frontières exactes de la zone).
-/// Écran en lecture seule, ouvert depuis le bouton « Voir sur la carte » d'une
-/// `OfficialOutageCard`.
+/// Carte d'une **coupure programmée** : marqueur + zone **approximative** (petits
+/// buffers autour des rues géocodées) au centre du quartier (on n'a pas les
+/// frontières exactes). Permet de **rechercher un lieu** et d'afficher **sa
+/// position** (si la géoloc est autorisée). Ouvert depuis le bouton « Voir sur
+/// la carte » d'une `OfficialOutageCard`.
 class OutageLocationMapScreen extends StatefulWidget {
   const OutageLocationMapScreen({
     super.key,
@@ -31,11 +34,10 @@ class OutageLocationMapScreen extends StatefulWidget {
   /// Service (couleur du cercle/marqueur : ambre élec, sky eau).
   final ServiceType serviceType;
 
-  /// Rayon approximatif du cercle (mètres) — purement indicatif.
+  /// Rayon approximatif du cercle de repli (mètres).
   final double approxRadiusM;
 
-  /// Rues/repères géocodés de la description (outliers déjà filtrés). Affichés
-  /// en petits points pour matérialiser la zone réelle quand ils existent.
+  /// Rues/repères géocodés de la description (outliers déjà filtrés).
   final List<LatLng> streetPoints;
 
   @override
@@ -45,6 +47,57 @@ class OutageLocationMapScreen extends StatefulWidget {
 
 class _OutageLocationMapScreenState extends State<OutageLocationMapScreen> {
   final _controller = MapController();
+  final _searchCtrl = TextEditingController();
+  final _locationService = LocationService();
+
+  LatLng? _myPos; // position de l'utilisateur (si géoloc autorisée)
+  LatLng? _searchPos; // dernier lieu recherché
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  void _snack(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  /// Centre sur la position de l'utilisateur. `getCurrentLocation` demande la
+  /// permission si besoin et ne renvoie rien tant qu'elle n'est pas accordée.
+  Future<void> _locateMe() async {
+    final l = AppLocalizations.of(context);
+    try {
+      final res = await _locationService.getCurrentLocation();
+      if (!mounted) return;
+      final p = LatLng(res.position.lat, res.position.lng);
+      setState(() => _myPos = p);
+      _controller.move(p, 15);
+    } catch (_) {
+      if (!mounted) return;
+      _snack(l.snackPositionUnavailable);
+    }
+  }
+
+  /// Géocode la saisie et y recentre la carte (marqueur dédié).
+  Future<void> _search() async {
+    final q = _searchCtrl.text.trim();
+    if (q.isEmpty) return;
+    final l = AppLocalizations.of(context);
+    FocusScope.of(context).unfocus();
+    try {
+      final res = await _locationService.locationFromDescription(q);
+      if (!mounted) return;
+      final p = LatLng(res.position.lat, res.position.lng);
+      setState(() => _searchPos = p);
+      _controller.move(p, 15);
+    } catch (_) {
+      if (!mounted) return;
+      _snack(l.officialOutageLocationNotFound);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,6 +107,11 @@ class _OutageLocationMapScreenState extends State<OutageLocationMapScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(widget.title)),
+      floatingActionButton: FloatingActionButton.small(
+        heroTag: 'outage-locate-me',
+        onPressed: _locateMe,
+        child: const Icon(Icons.my_location),
+      ),
       body: Stack(
         children: [
           FlutterMap(
@@ -61,8 +119,6 @@ class _OutageLocationMapScreenState extends State<OutageLocationMapScreen> {
             options: MapOptions(
               initialCenter: widget.point,
               initialZoom: 14,
-              // Garantit le centrage/zoom une fois la carte prête (initialZoom
-              // seul ne suffisait pas sur certains appareils).
               onMapReady: () => _controller.move(widget.point, 14),
             ),
             children: [
@@ -111,8 +167,7 @@ class _OutageLocationMapScreenState extends State<OutageLocationMapScreen> {
                     ),
                   ],
                 ),
-              // Points de rues (taille en pixels, fixe au zoom) au centre de
-              // chaque buffer.
+              // Points de rues au centre de chaque buffer.
               CircleLayer(
                 circles: [
                   for (final p in widget.streetPoints)
@@ -128,6 +183,7 @@ class _OutageLocationMapScreenState extends State<OutageLocationMapScreen> {
               ),
               MarkerLayer(
                 markers: [
+                  // Marqueur central du quartier.
                   Marker(
                     point: widget.point,
                     width: 44,
@@ -145,14 +201,75 @@ class _OutageLocationMapScreenState extends State<OutageLocationMapScreen> {
                       ),
                     ),
                   ),
+                  // Lieu recherché.
+                  if (_searchPos != null)
+                    Marker(
+                      point: _searchPos!,
+                      width: 40,
+                      height: 40,
+                      child: const Icon(
+                        Icons.place,
+                        color: AppColors.dark,
+                        size: 36,
+                      ),
+                    ),
+                  // Ma position.
+                  if (_myPos != null)
+                    Marker(
+                      point: _myPos!,
+                      width: 24,
+                      height: 24,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.blueAccent,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 3),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.3),
+                              blurRadius: 4,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ],
           ),
-          // Bandeau « zone approximative » — honnêteté : ce n'est pas le contour
-          // exact de la coupure, juste le centre du quartier.
+          // Barre de recherche de lieu.
           Positioned(
             top: 8,
+            left: 12,
+            right: 12,
+            child: Material(
+              elevation: 3,
+              borderRadius: BorderRadius.circular(12),
+              child: TextField(
+                controller: _searchCtrl,
+                textInputAction: TextInputAction.search,
+                onSubmitted: (_) => _search(),
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.arrow_forward),
+                    onPressed: _search,
+                  ),
+                  hintText: l.officialOutageMapSearchHint,
+                  filled: true,
+                  fillColor: AppColors.white,
+                  isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Bandeau « zone approximative » sous la barre de recherche.
+          Positioned(
+            top: 64,
             left: 16,
             right: 16,
             child: Container(
