@@ -64,12 +64,22 @@ const UTILITIES = {
     enabled: true,
   },
   // Kenya Power (élec). scheduledOutages:true → onglet « Programmées » actif,
-  // alimenté par le cron ingestKplcOutages (PDF KPLC scrapés). Pas de source
-  // d'eau publique au Kenya à ce jour.
+  // alimenté par le cron ingestKplcOutages (PDF KPLC scrapés).
   kplc: {
     service: "electricity",
     country: "KE",
     label: "Kenya Power",
+    countryLabel: "Kenya",
+    countryAliases: ["kenya"],
+    scheduledOutages: true,
+    enabled: true,
+  },
+  // Nairobi Water (eau, Nairobi). Alimenté par le cron ingestNairobiWaterOutages
+  // (PDF découverts via l'API WordPress du site). Données rares/irrégulières.
+  nairobi_water: {
+    service: "water",
+    country: "KE",
+    label: "Nairobi Water",
     countryLabel: "Kenya",
     countryAliases: ["kenya"],
     scheduledOutages: true,

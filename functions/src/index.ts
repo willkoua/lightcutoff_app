@@ -41,6 +41,7 @@ import {
 } from "./logic";
 import { EneoAdapter } from "./sources/eneo";
 import { KplcAdapter } from "./sources/kplc";
+import { NairobiWaterAdapter } from "./sources/nairobiwater";
 import { OutageSourceAdapter } from "./sources/types";
 
 export { sendVerificationEmail, sendPasswordReset } from "./emails";
@@ -878,6 +879,33 @@ export const ingestKplcOutages = onSchedule(
   },
   async () => {
     await runKplcIngestion();
+  }
+);
+
+/** Ingestion Nairobi Water (Kenya, eau). Partagé par le cron et le script. */
+export async function runNairobiWaterIngestion(): Promise<{
+  upserted: number;
+  pruned: number;
+}> {
+  return runIngestion(new NairobiWaterAdapter(), "Africa/Nairobi");
+}
+
+/**
+ * Cron quotidien : importe les coupures d'eau programmées de Nairobi Water.
+ * Source = PDF découverts via l'API WordPress du site (rares/irréguliers).
+ * L'alerte anti-échec-silencieux de `runIngestion` couvre un changement de
+ * format. Note : les documents sont souvent peu nombreux, parfois zéro.
+ */
+export const ingestNairobiWaterOutages = onSchedule(
+  {
+    schedule: "every 24 hours",
+    timeZone: "Africa/Nairobi",
+    retryCount: 0,
+    memory: "512MiB",
+    timeoutSeconds: 300,
+  },
+  async () => {
+    await runNairobiWaterIngestion();
   }
 );
 
