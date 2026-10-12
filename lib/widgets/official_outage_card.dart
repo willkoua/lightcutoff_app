@@ -13,6 +13,7 @@ import '../theme/app_colors.dart';
 import '../utils/outage_geocode.dart';
 import '../utils/share_official_outage.dart';
 import 'confirm_dialog.dart';
+import 'service_visuals.dart';
 
 /// Cache de géocodage partagé entre les cartes pour la durée de la session
 /// (évite de re-géocoder les mêmes quartiers/rues à chaque ouverture de carte).
@@ -52,6 +53,9 @@ class OfficialOutageCard extends StatelessWidget {
     final operator =
         utilityLabelForProvider(outage.provider) ??
         outage.provider.toUpperCase();
+    // Couleur du badge alignée sur le service de l'app (ambre élec, sky eau),
+    // pour que le tag d'une coupure d'électricité ait la couleur « électricité ».
+    final badgeColor = serviceTypeColor(outage.serviceType);
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -65,22 +69,22 @@ class OfficialOutageCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.planned.withValues(alpha: 0.12),
+                color: badgeColor.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.engineering_outlined,
                     size: 14,
-                    color: AppColors.planned,
+                    color: badgeColor,
                   ),
                   const SizedBox(width: 4),
                   Text(
                     l.officialOutagesPlannedBadge(operator),
-                    style: const TextStyle(
-                      color: AppColors.planned,
+                    style: TextStyle(
+                      color: badgeColor,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
