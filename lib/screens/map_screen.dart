@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -40,10 +42,36 @@ class _MapScreenState extends State<MapScreen> {
   bool _mapReady = false;
   bool _didInitialCenter = false;
 
+  // Message « aucun signalement » : masqué automatiquement après 15 s pour ne
+  // pas rester en permanence sur une carte vide. Ré-affiché si des reports
+  // réapparaissent puis disparaissent de nouveau.
+  Timer? _emptyMsgTimer;
+  bool _emptyMsgHidden = false;
+
   @override
   void initState() {
     super.initState();
     _loadMyPosition();
+  }
+
+  @override
+  void dispose() {
+    _emptyMsgTimer?.cancel();
+    super.dispose();
+  }
+
+  /// Planifie le masquage du message d'état vide après 15 s (quand la liste est
+  /// vide), ou réarme l'affichage dès qu'il y a des reports.
+  void _handleEmptyMessageTimer(bool isEmpty) {
+    if (isEmpty) {
+      _emptyMsgTimer ??= Timer(const Duration(seconds: 15), () {
+        if (mounted) setState(() => _emptyMsgHidden = true);
+      });
+    } else {
+      _emptyMsgTimer?.cancel();
+      _emptyMsgTimer = null;
+      _emptyMsgHidden = false;
+    }
   }
 
   Future<void> _loadMyPosition() async {
@@ -173,6 +201,8 @@ class _MapScreenState extends State<MapScreen> {
     // par défaut, modifiable dans le tiroir de filtres de l'AppBar).
     final reports = provider.filteredReports;
     final now = DateTime.now();
+    // Arme/désarme le masquage auto du message « aucun signalement » (15 s).
+    _handleEmptyMessageTimer(reports.isEmpty);
 
     final l = AppLocalizations.of(context);
     final region = context.watch<RegionProvider>();
@@ -383,7 +413,8 @@ class _MapScreenState extends State<MapScreen> {
           ),
           // État vide explicite : au lieu d'une carte vide trompeuse, on
           // explique pourquoi rien ne s'affiche et on propose de tout réafficher.
-          if (reports.isEmpty)
+          // Masqué automatiquement après 15 s (cf. _handleEmptyMessageTimer).
+          if (reports.isEmpty && !_emptyMsgHidden)
             Center(
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 40),
