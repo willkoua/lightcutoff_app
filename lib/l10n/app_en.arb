@@ -521,7 +521,7 @@
   "officialOutageViewOnMap": "View on map",
   "officialOutageLocating": "Locating the area…",
   "officialOutageLocationNotFound": "Location not found on the map",
-  "officialOutageMapApproxZone": "Approximate area — neighborhood center, not the exact boundary.",
+  "officialOutageMapApproxZone": "Approximate area from the listed streets — not the official exact boundary.",
   "officialOutageShareTitle": "Scheduled outage",
   "officialOutageShareTagline": "via NJUKA",
   "officialOutagesEmpty": "No planned outages",

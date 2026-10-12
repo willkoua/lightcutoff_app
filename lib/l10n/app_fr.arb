@@ -639,7 +639,7 @@
   "officialOutageViewOnMap": "Voir sur la carte",
   "officialOutageLocating": "Localisation du quartier…",
   "officialOutageLocationNotFound": "Lieu introuvable sur la carte",
-  "officialOutageMapApproxZone": "Zone approximative — centre du quartier, pas le contour exact.",
+  "officialOutageMapApproxZone": "Zone approximative d'après les rues citées — pas le contour officiel exact.",
   "officialOutageShareTitle": "Coupure programmée",
   "officialOutageShareTagline": "via NJUKA",
   "officialOutagesEmpty": "Aucune coupure planifiée",

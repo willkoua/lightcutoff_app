@@ -5,6 +5,7 @@ import 'package:lightcutoff_app/l10n/generated/app_localizations.dart';
 
 import '../config/app_config.dart';
 import '../models/enums.dart';
+import '../utils/outage_geocode.dart';
 import '../widgets/service_visuals.dart';
 
 /// Carte d'une **coupure programmée** : marqueur + cercle **approximatif** au
@@ -49,6 +50,8 @@ class _OutageLocationMapScreenState extends State<OutageLocationMapScreen> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final color = serviceTypeColor(widget.serviceType);
+    // Polygone (enveloppe) reliant les rues quand on en a ≥ 3 ; sinon cercle.
+    final hull = convexHull(widget.streetPoints);
 
     return Scaffold(
       appBar: AppBar(title: Text(widget.title)),
@@ -79,19 +82,35 @@ class _OutageLocationMapScreenState extends State<OutageLocationMapScreen> {
                   userAgentPackageName: 'com.njuka.app',
                   maxZoom: 19,
                 ),
+              // Zone : polygone reliant les rues (≥ 3), sinon cercle englobant.
+              if (hull.length >= 3)
+                PolygonLayer(
+                  polygons: [
+                    Polygon(
+                      points: hull,
+                      color: color.withValues(alpha: 0.18),
+                      borderColor: color.withValues(alpha: 0.7),
+                      borderStrokeWidth: 2,
+                    ),
+                  ],
+                )
+              else
+                CircleLayer(
+                  circles: [
+                    CircleMarker(
+                      point: widget.point,
+                      radius: widget.approxRadiusM,
+                      useRadiusInMeter: true,
+                      color: color.withValues(alpha: 0.18),
+                      borderColor: color.withValues(alpha: 0.6),
+                      borderStrokeWidth: 1.5,
+                    ),
+                  ],
+                ),
+              // Points de rues (taille en pixels, fixe au zoom) — matérialise
+              // les rues réellement citées dans la description.
               CircleLayer(
                 circles: [
-                  // Cercle englobant (zone approximative).
-                  CircleMarker(
-                    point: widget.point,
-                    radius: widget.approxRadiusM,
-                    useRadiusInMeter: true,
-                    color: color.withValues(alpha: 0.18),
-                    borderColor: color.withValues(alpha: 0.6),
-                    borderStrokeWidth: 1.5,
-                  ),
-                  // Points de rues (taille en pixels, fixe au zoom) — matérialise
-                  // les rues réellement citées dans la description.
                   for (final p in widget.streetPoints)
                     CircleMarker(
                       point: p,

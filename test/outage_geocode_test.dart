@@ -33,6 +33,33 @@ void main() {
     });
   });
 
+  group('convexHull', () {
+    test('< 3 points → vide', () {
+      expect(convexHull([const LatLng(0, 0), const LatLng(1, 1)]), isEmpty);
+    });
+
+    test('carré → 4 sommets (points internes ignorés)', () {
+      final hull = convexHull([
+        const LatLng(0, 0),
+        const LatLng(0, 2),
+        const LatLng(2, 2),
+        const LatLng(2, 0),
+        const LatLng(1, 1), // intérieur → exclu
+      ]);
+      expect(hull.length, 4);
+      expect(hull.contains(const LatLng(1, 1)), isFalse);
+    });
+
+    test('points colinéaires → vide (pas de surface)', () {
+      final hull = convexHull([
+        const LatLng(0, 0),
+        const LatLng(1, 1),
+        const LatLng(2, 2),
+      ]);
+      expect(hull, isEmpty);
+    });
+  });
+
   group('boundingRadiusM', () {
     final center = const LatLng(-1.28, 36.79);
 
