@@ -3,6 +3,26 @@
 Démarré 2026-10-06. Gate Phase 0 (ancrage acquisition Kenya) : **non franchi** —
 construction sur décision utilisateur explicite malgré l'absence d'ancrage.
 
+## ✅ STATUT 2026-10-12 — FAIT, validé sur STAGING (pas en prod)
+
+Livré et vérifié sur appareil (Samsung S23+, Kenya) :
+- **KPLC** (élec KE) : parser PDF (pdfjs, multi-colonnes) + cron `ingestKplcOutages`,
+  `cleanKplcReason` (boilerplate retiré). **+ Nairobi Water** (eau KE) : parser via
+  API WordPress + cron `ingestNairobiWaterOutages`.
+- **Prérequis** `serviceType` écrit par l'ingestion (générique `runIngestion`) +
+  alerte anti-échec-silencieux. Catalogue `utilities` : `kplc`, `nairobi_water`
+  (+ flag `scheduledOutages` corrigé sur eneo pour ne pas masquer l'onglet CM).
+- **App** : onglet Programmées conditionné au pays ; filtres **région / ville /
+  date / recherche** (quartier **et** description), repliables ; badge coloré par
+  service + libellé opérateur dynamique ; boutons **carte / calendrier / partage**
+  (titre « NJUKA : », lien de téléchargement selon plateforme, vignette PNG
+  générée) ; carte d'impact (buffers par rue géocodés, outliers filtrés) +
+  recherche de lieu + ma position.
+- Détails archi : voir la section « Scheduled outages » de `CLAUDE.md`.
+
+**RESTE** : décision d'ouvrir le Kenya (gate acquisition), puis déploiement **prod**
+(crons + seed `utilities` prod) ; purger les 2 coupures d'eau de **démo** en staging.
+
 ## Schéma cible (official_outages, réutilise l'existant)
 | champ | KPLC |
 |---|---|

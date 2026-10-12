@@ -437,3 +437,26 @@ Onglet « Programmées ». Filtres client sur la donnée chargée.
 3. **Cascade** : choisir une ville, puis changer de région où cette ville
    n'existe pas → la ville se réinitialise (pas de liste vide muette).
 4. **Recherche texte** (quartier) : toujours disponible, se combine aux filtres.
+
+## Coupures programmées — carte, partage, calendrier, badges (2026-10-12)
+
+Onglet « Programmées » (staging ; pays=Kenya pour KPLC/Nairobi Water, ou CM pour SOCADEL).
+
+1. **Badge coloré par service** : coupure élec → badge **ambre** ; eau → badge **bleu**.
+   Libellé opérateur correct (Kenya Power / SOCADEL / Nairobi Water).
+2. **Bouton « Voir sur la carte »** → ouvre la carte centrée/zoomée sur le quartier ;
+   petits cercles (buffers) autour des **rues** de la description (outliers >4km exclus) ;
+   bandeau « Zone approximative ». Rural/introuvable → repli cercle, ou snackbar.
+3. **Recherche de lieu** (barre en haut de cette carte) : taper un lieu → recentre + pin noir.
+4. **Ma position** (FAB) : demande la permission si besoin ; n'affiche la position (point
+   bleu) **que si accordée** ; snackbar « Position indisponible » sinon.
+5. **Bouton Partager** : feuille native avec **une image** (vignette générée : en-tête
+   service, quartier, zone, date, pied NJUKA) + texte finissant par
+   « 📲 Télécharge NJUKA : <Play Store sur Android / App Store sur iOS> ».
+6. **Bouton Calendrier** : ouvre l'Agenda pré-rempli ; **titre « NJUKA : ⚡/💧 Coupure
+   programmée · opérateur »** ; description = liste des rues **sans** boilerplate légal
+   (ni lien de téléchargement — retiré volontairement) ; horaires/lieu corrects.
+7. **Description propre (KPLC)** : aucune mention « Notice is hereby given under Rule 27 /
+   For further information… » dans la description d'une coupure (cf. `cleanKplcReason`).
+8. **Carte principale (onglet Carte)** : quand aucun signalement, le message « Aucune
+   coupure… » **disparaît tout seul après ~15 s**.

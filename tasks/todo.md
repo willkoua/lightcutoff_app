@@ -1,5 +1,14 @@
 # NJUKA — État du programme (plan détaillé fait / non fait)
 
+## 🌍 KENYA + EAU (2026-10-12) — FAIT sur STAGING, pas en prod
+Coupures programmées **KPLC** (élec KE) + **Nairobi Water** (eau KE) + prérequis
+`serviceType`, et refonte de l'onglet Programmées (filtres région/ville/date/recherche,
+carte d'impact géocodée, partage avec image + lien store, calendrier « NJUKA : »,
+badges colorés par service). Détails : `tasks/PLAN-KENYA-KPLC.md` + section
+« Scheduled outages » de `CLAUDE.md`. **RESTE** : décision d'ouverture Kenya → déploiement
+**prod** (crons + seed `utilities`), puis purger les 2 coupures d'eau de démo (staging).
+Branche `dev` (non releasée sur les stores).
+
 ## 🎯 PROCHAINES ACTIONS (mise au propre 2026-08-18)
 
 1. [x] ~~**Release → v1.3.2+69**~~ ✅ **DÉPLOYÉE (live Play + App Store)** — confirmé

@@ -249,3 +249,35 @@ Format : `[date] | ce qui a mal tourné | règle pour l'éviter`
   qui rejette 100 % d'un flux non vide doit LEVER une alerte (ou au moins un log WARN), pas
   échouer en silence. Surveiller le ratio brut→normalisé. Fix : `eneoTime()` + tests de
   régression, déployé staging (297→297) PUIS prod (297→297, 300 docs restaurés).
+
+- **2026-10 | Parsers de PDF scrapés : le dernier bloc avale le boilerplate du
+  document.** KPLC : la description de la dernière zone d'une colonne incluait les
+  mentions légales du pied de page (« For further information… Notice is hereby given
+  under Rule 27… ») faute d'en-tête suivant pour arrêter la capture.
+  → **Règle** : toujours **tronquer à un terminateur canonique** du contenu utile
+  (ici « adjacent customers. ») ET filtrer les marqueurs de boilerplate connus. Ne
+  jamais supposer qu'un en-tête viendra fermer le dernier bloc. (cf. `cleanKplcReason`,
+  et le même filet dans `nairobiwater.ts`.)
+
+- **2026-10 | Un champ discriminant doit être écrit par l'ingestion, pas déduit.**
+  `official_outages` n'écrivait pas `serviceType` → l'app lisait TOUT comme électricité
+  (`ServiceType.fromName(null)`). Tant que toutes les sources étaient élec, invisible ;
+  ajouter l'eau l'a révélé.
+  → **Règle** : quand un champ distingue des sous-types affichés différemment, l'écrire
+  **explicitement** dès l'ingestion (ajouté à `CanonicalOutage.service` + `runIngestion`),
+  même si une seule valeur existe au départ.
+
+- **2026-10 | Un catalogue remote qui surcharge l'embarqué PAR ID doit porter TOUS les
+  champs.** La collection `utilities` fusionne par-dessus le filet embarqué : un doc
+  remote sans `scheduledOutages` écrasait le `true` embarqué d'eneo → l'onglet
+  « Programmées » du Cameroun aurait disparu à la sortie de la feature.
+  → **Règle** : un doc de surcharge (remote) doit inclure **chaque** flag qui pilote
+  l'UI, sinon il remet la valeur par défaut. Mettre à jour le script de seed en même
+  temps que le modèle.
+
+- **2026-10 | Automatisation d'UI (adb) : prendre les coordonnées dans l'arbre
+  d'accessibilité, pas « à l'œil ».** Un FAB semblait non cliquable (taps ignorés) —
+  en réalité mes coordonnées estimées visuellement étaient ~180 px trop hautes ; les
+  taps tombaient sur la carte. `uiautomator dump` → bounds exacts a résolu en un coup.
+  → **Règle** : pour cliquer un petit contrôle via adb, `uiautomator dump` + lire les
+  `bounds` du node avant de taper.
