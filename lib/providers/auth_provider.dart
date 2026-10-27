@@ -111,11 +111,14 @@ class AuthProvider extends ChangeNotifier {
         _status = AuthStatus.unauthenticated;
       }
     } else if (user.isAnonymous) {
-      // Session anonyme : pas de profil, pas de device notifs. L'utilisateur
-      // peut signaler et voter ; les fonctions sociales sont gardées par un
-      // mur d'upgrade dans l'UI.
+      // Session anonyme : pas de profil, mais device FCM enregistré depuis
+      // 2026-10-27 pour RECEVOIR les notifs de proximité (ciblage par position
+      // du device). Les fonctions sociales (profil, pseudo, quartiers suivis)
+      // restent gardées par un mur d'upgrade dans l'UI + les règles Firestore.
       _profile = null;
       _status = AuthStatus.anonymous;
+      // Enregistrement idempotent, best-effort (ne bloque pas le flux auth).
+      unawaited(_notifications.registerForUser(userId: user.uid));
       // Analytics : dénominateur du funnel de conversion. Une seule fois par
       // session de provider (réarmé par logout).
       if (!_anonymousStartedLogged) {

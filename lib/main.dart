@@ -11,6 +11,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'app.dart';
@@ -66,6 +67,19 @@ bool _isTransientNetworkError(Object error) {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Affichage « bord à bord » (Android 15 / targetSdk 36 l'impose) : l'app
+  // dessine derrière les barres système, rendues transparentes. Les `Scaffold`
+  // / `SafeArea` gèrent déjà les marges d'encoche et de barres (2026-10-27,
+  // reco Play « edge-to-edge »).
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarContrastEnforced: false,
+    ),
+  );
 
   // Environnements : dev (émulateurs) et staging partagent le projet Firebase
   // `lightcutoff-dev` (firebase_options.dart) ; la **prod** utilise le projet

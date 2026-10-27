@@ -36,6 +36,8 @@ import {
   stillOutPingContent,
   resolutionThreshold,
   resolvedNotifContent,
+  restorationReportedContent,
+  returnNotifRecipients,
   shouldResolve,
   effectiveMinVotes,
 } from "./logic";
@@ -106,25 +108,90 @@ interface ConfirmationDoc {
 interface ReportNotifState {
   notifiedUserIds?: string[]; // dédup : un user notifié au plus une fois / report
   notificationEpicenters?: GeoPoint[]; // points déjà couverts (garde-fou coût)
+  returnNotifiedUserIds?: string[]; // dédup des notifs « retour signalé » (E)
 }
 
 /**
- * Notifications de proximité **pilotées par les confirmations** (redesign
- * 2026-07-06). La création d'un signalement **ne notifie plus** personne (un
- * signalement isolé est un signal faible). Dès la **1ʳᵉ confirmation** (2ᵉ
- * témoin), on notifie les comptes dans un rayon serré (`NOTIFY_RADIUS_M`) qui
- * **s'étend de proche en proche** : chaque confirmation devient un nouvel
- * épicentre → la zone notifiée épouse l'emprise réelle de la coupure.
+ * Notif « Coupure à proximité » dès la **création** d'un signalement
+ * (2026-10-27). On ne peut pas compter sur une 1ʳᵉ confirmation pour démarrer
+ * la vague → on prévient immédiatement les comptes à ≤ `NOTIFY_RADIUS_M` du
+ * lieu signalé. Amorce aussi `notificationEpicenters` (lieu signalé) et
+ * `notifiedUserIds` pour que les confirmations suivantes ne re-notifient pas
+ * les mêmes personnes (elles ne font qu'ÉTENDRE la zone).
+ *
+ * ⚠️ Les devices sont lus par distance EXACTE autour du lieu signalé ; les
+ * comptes anonymes ne sont joignables que s'ils enregistrent un device FCM.
+ */
+export const onReportCreated = onDocumentCreated(
+  "reports/{reportId}",
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+    const reportId = event.params.reportId as string;
+    const report = snap.data() as ReportDoc & ReportNotifState;
+    if (report.archivedAt) return;
+
+    const p = report.position;
+    if (!p || typeof p.lat !== "number" || typeof p.lng !== "number") {
+      logger.info("Création sans position — pas de notif.", { reportId });
+      return;
+    }
+
+    const db = admin.firestore();
+    const reportRef = db.collection("reports").doc(reportId);
+
+    // Devices à ≤ NOTIFY_RADIUS_M du lieu signalé (distance exacte), hors auteur.
+    const devices = await devicesWithinRadius(p, NOTIFY_RADIUS_M);
+    const tokens: string[] = [];
+    const newUserIds = new Set<string>();
+    for (const d of devices) {
+      const data = d.data() as DeviceDoc;
+      if (!data.userId || data.userId === report.userId) continue;
+      if (data.fcmEnabled === false) continue;
+      tokens.push(d.id);
+      newUserIds.add(data.userId);
+    }
+
+    // Amorcer l'épicentre de base + les notifiés (dédup des confirmations).
+    await reportRef.update({
+      notificationEpicenters: admin.firestore.FieldValue.arrayUnion(p),
+      ...(newUserIds.size > 0
+        ? {
+            notifiedUserIds: admin.firestore.FieldValue.arrayUnion(
+              ...Array.from(newUserIds)
+            ),
+          }
+        : {}),
+    });
+
+    if (tokens.length === 0) {
+      logger.info("Création : aucun destinataire dans le rayon.", { reportId });
+      return;
+    }
+    await sendOutageNotif(tokens, reportId, report);
+    logger.info(`Création : ${tokens.length} device(s) notifié(s).`, { reportId });
+  }
+);
+
+/**
+ * Notifications de proximité (redesign 2026-10-27 : **notif dès la création**).
+ * La **création** d'un signalement notifie désormais les comptes dans un rayon
+ * serré (`NOTIFY_RADIUS_M`) autour du lieu signalé (cf. `onReportCreated`) — on
+ * ne peut pas compter sur une 1ʳᵉ confirmation pour démarrer la vague.
+ * Chaque **confirmation** ensuite **étend** la zone de proche en proche :
+ * chaque confirmeur (quand il a une position) devient un nouvel épicentre.
  *
  * Invariants :
  *  - **Dédup** : un utilisateur reçoit au plus UNE notif par signalement
- *    (`report.notifiedUserIds`).
+ *    (`report.notifiedUserIds`, amorcé dès la création).
  *  - **Distance exacte** : pré-filtre geohash grossier puis coupe à la distance
  *    réelle via `device.position` (les geohash devices sont trop grossiers).
  *  - **Garde-fou coût** : une confirmation trop proche d'un point déjà couvert
  *    ne relance pas de notif (mais reste comptée côté client).
- *  - Exclusions : auteur du signalement, confirmeur, `fcmEnabled=false`,
- *    anonymes (pas de doc `devices`).
+ *  - **Robustesse** : une confirmation SANS position ne fait plus échouer la
+ *    boucle du signaleur ; elle n'étend simplement pas la vague (la zone de
+ *    base est déjà couverte par `onReportCreated`).
+ *  - Exclusions : auteur du signalement, confirmeur, `fcmEnabled=false`.
  */
 export const onConfirmationCreated = onDocumentCreated(
   "reports/{reportId}/confirmations/{confirmerId}",
@@ -137,11 +204,42 @@ export const onConfirmationCreated = onDocumentCreated(
 
     const db = admin.firestore();
 
-    // Position du confirmeur = épicentre de la vague. Si le vote n'en porte
-    // pas (vote depuis le bouton de notification — GPS indisponible dans
-    // l'isolate d'arrière-plan — ou vieille version d'app), on retombe sur la
-    // **position enregistrée de son device** (rafraîchie à chaque ouverture).
-    // On ne renonce à la notif que si on n'a vraiment rien.
+    // Report chargé EN PREMIER : la boucle du signaleur ne dépend pas de la
+    // position du confirmeur et doit se déclencher même sans GPS.
+    const reportRef = db.collection("reports").doc(reportId);
+    const reportSnap = await reportRef.get();
+    if (!reportSnap.exists) return;
+    const report = reportSnap.data() as ReportDoc & ReportNotifState;
+    if (report.archivedAt) return;
+
+    // Boucle du signaleur : « tu n'es pas seul » à la 1re et 5e confirmation.
+    // Le compteur inclut déjà ce vote (transaction client atomique). Placée
+    // AVANT toute logique de position pour fonctionner même sans GPS confirmeur.
+    const confCount = (report as { confirmationCount?: number }).confirmationCount ?? 0;
+    if (shouldNotifyAuthor(confCount) && report.userId) {
+      const authorDevices = await db
+        .collection("devices")
+        .where("userId", "==", report.userId)
+        .get();
+      const authorTokens = authorDevices.docs
+        .filter((d) => (d.data() as DeviceDoc).fcmEnabled !== false)
+        .map((d) => d.id);
+      if (authorTokens.length > 0) {
+        const c = authorConfirmedContent(confCount, report.location);
+        await sendToTokens(authorTokens, {
+          notification: { title: c.title, body: c.body },
+          data: { reportId, type: "author_confirmed" },
+        });
+        logger.info("Boucle signaleur : auteur notifié.", { reportId, confCount });
+      }
+    }
+
+    // Position du confirmeur = épicentre de l'EXTENSION de la vague. Si le vote
+    // n'en porte pas (bouton de notification — GPS indisponible en arrière-plan
+    // — ou vieille version d'app), on retombe sur la **position enregistrée de
+    // son device**. Sans position exploitable, on n'étend pas la vague (la zone
+    // de base est déjà couverte par `onReportCreated`) — mais on NE RENONCE PAS
+    // à la boucle du signaleur (déjà faite ci-dessus).
     let cp = conf.position;
     if (!cp || typeof cp.lat !== "number" || typeof cp.lng !== "number") {
       cp = undefined;
@@ -163,17 +261,12 @@ export const onConfirmationCreated = onDocumentCreated(
       }
     }
     if (!cp) {
-      logger.info("Confirmation sans position — pas de notif (comptée).", {
+      logger.info("Confirmation sans position — pas d'extension de vague (comptée).", {
         reportId,
         confirmerId,
       });
       return;
     }
-    const reportRef = db.collection("reports").doc(reportId);
-    const reportSnap = await reportRef.get();
-    if (!reportSnap.exists) return;
-    const report = reportSnap.data() as ReportDoc & ReportNotifState;
-    if (report.archivedAt) return;
 
     // Rayon d'impact (tache sur la carte) : agrégat anonyme — seule la
     // distance max épicentre↔confirmeur est publiée, jamais une position.
@@ -188,27 +281,6 @@ export const onConfirmationCreated = onDocumentCreated(
       const next = nextImpactRadius(report.impactRadiusM, distM);
       if (next > (report.impactRadiusM ?? 0)) {
         await reportRef.update({ impactRadiusM: next });
-      }
-    }
-
-    // Boucle du signaleur : « tu n'es pas seul » à la 1re et 5e confirmation.
-    // Le compteur inclut déjà ce vote (transaction client atomique).
-    const confCount = (report as { confirmationCount?: number }).confirmationCount ?? 0;
-    if (shouldNotifyAuthor(confCount) && report.userId) {
-      const authorDevices = await db
-        .collection("devices")
-        .where("userId", "==", report.userId)
-        .get();
-      const authorTokens = authorDevices.docs
-        .filter((d) => (d.data() as DeviceDoc).fcmEnabled !== false)
-        .map((d) => d.id);
-      if (authorTokens.length > 0) {
-        const c = authorConfirmedContent(confCount, report.location);
-        await sendToTokens(authorTokens, {
-          notification: { title: c.title, body: c.body },
-          data: { reportId, type: "author_confirmed" },
-        });
-        logger.info("Boucle signaleur : auteur notifié.", { reportId, confCount });
       }
     }
 
@@ -545,15 +617,69 @@ export const onRestorationCreated = onDocumentCreated(
         `confirmations=${confirmations} threshold=${threshold}`
     );
 
-    // Décision (statut/archivage/seuil) centralisée et testée dans ./logic.
-    if (!shouldResolve(report)) return;
+    // Seuil atteint → résolution ; `onReportResolved` enverra « C'est revenu ✓ »
+    // à l'auteur + confirmeurs. On ne double pas avec la notif E ci-dessous.
+    if (shouldResolve(report)) {
+      await reportRef.update({
+        status: "resolved",
+        resolvedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      logger.info(`onRestorationCreated: report ${reportId} → resolved.`);
+      return;
+    }
 
+    // (E) Seuil NON atteint : avec peu d'utilisateurs, un rétablissement ne
+    // résout jamais → aucune notif ne partait. On prévient donc l'auteur + les
+    // confirmeurs qu'« un voisin signale le retour », en excluant ceux qui ont
+    // déclaré le retour (ils savent) et les déjà-notifiés (dédup, une fois max).
+    const restorerId = event.params.uid as string;
+    const [confs, restos] = await Promise.all([
+      reportRef.collection("confirmations").get(),
+      reportRef.collection("restorations").get(),
+    ]);
+    const confirmerIds = confs.docs.map((d) => d.id);
+    const exclude = [
+      ...restos.docs.map((d) => d.id),
+      ...((report as ReportNotifState).returnNotifiedUserIds ?? []),
+      restorerId,
+    ];
+    const recipients = returnNotifRecipients(report.userId, confirmerIds, exclude);
+    if (recipients.length === 0) {
+      logger.info("Retour signalé : aucun destinataire à prévenir.", { reportId });
+      return;
+    }
+
+    const tokens: string[] = [];
+    for (let i = 0; i < recipients.length; i += 10) {
+      const chunk = recipients.slice(i, i + 10);
+      const snap2 = await db
+        .collection("devices")
+        .where("userId", "in", chunk)
+        .get();
+      snap2.docs.forEach((d) => {
+        if ((d.data() as DeviceDoc).fcmEnabled === false) return;
+        tokens.push(d.id);
+      });
+    }
+
+    // Dédup même si 0 token (on a quand même "couvert" ces users).
     await reportRef.update({
-      status: "resolved",
-      resolvedAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      returnNotifiedUserIds:
+        admin.firestore.FieldValue.arrayUnion(...recipients),
     });
-    logger.info(`onRestorationCreated: report ${reportId} → resolved.`);
+    if (tokens.length === 0) {
+      logger.info("Retour signalé : aucun device à notifier.", { reportId });
+      return;
+    }
+    const rc = restorationReportedContent(report.serviceType, report.location);
+    await sendToTokens(tokens, {
+      notification: { title: rc.title, body: rc.body },
+      data: { reportId, type: "return_reported" },
+    });
+    logger.info(`Retour signalé : ${tokens.length} device(s) notifié(s).`, {
+      reportId,
+    });
   }
 );
 

@@ -217,13 +217,16 @@ service cloud.firestore {
     // Un utilisateur ne gère que ses propres appareils. La Cloud Function
     // d'envoi utilise l'Admin SDK (qui contourne ces règles) pour lire tous
     // les devices et purger les tokens périmés.
-    // ⚠️ Les anonymes ne reçoivent pas de notifs (pas de ciblage possible
-    // sans homeLocation/quartiers suivis) → enregistrement device interdit.
+    // Enregistrement device OUVERT aux anonymes (2026-10-27) : nécessaire pour
+    // qu'ils REÇOIVENT les notifs de proximité (ciblage par position exacte du
+    // device, pas par homeLocation). Le doc ne contient qu'un token + userId +
+    // geohash/position ; la lecture reste verrouillée (owner/admin). Profil,
+    // pseudo et quartiers suivis restent, eux, interdits aux anonymes.
     match /devices/{token} {
       allow read: if isAdmin() || isOwner(resource.data.userId);
-      allow create: if isSignedIn() && !isAnonymous()
+      allow create: if isSignedIn()
                     && request.resource.data.userId == request.auth.uid;
-      allow update: if isOwner(resource.data.userId) && !isAnonymous()
+      allow update: if isOwner(resource.data.userId)
                     && request.resource.data.userId == request.auth.uid;
       allow delete: if isOwner(resource.data.userId);
     }

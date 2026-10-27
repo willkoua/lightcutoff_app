@@ -13,6 +13,8 @@ import {
   plannedAlertBody,
   resolutionThreshold,
   shouldResolve,
+  returnNotifRecipients,
+  restorationReportedContent,
 } from "./logic";
 
 test("plannedAlertBody : quartier + créneau", () => {
@@ -146,4 +148,34 @@ test("authorConfirmedContent + impactLine + stillOutPingContent", () => {
   assert.match(impactLine(12), /12 voisins/);
   assert.match(stillOutPingContent("water").title, /eau/);
   assert.match(stillOutPingContent(undefined).title, /courant/);
+});
+
+test("returnNotifRecipients : auteur + confirmeurs, exclusions respectées", () => {
+  const r = returnNotifRecipients("author", ["a", "b", "c"], ["b", "already"]);
+  assert.deepEqual([...r].sort(), ["a", "author", "c"].sort());
+});
+
+test("returnNotifRecipients : restorer et déjà-notifiés exclus", () => {
+  const r = returnNotifRecipients("author", ["a", "restorer"], ["restorer", "author"]);
+  assert.deepEqual(r, ["a"]);
+});
+
+test("returnNotifRecipients : aucun destinataire si tout exclu", () => {
+  assert.deepEqual(returnNotifRecipients("author", ["a"], ["a", "author"]), []);
+});
+
+test("returnNotifRecipients : déduplique auteur présent aussi comme confirmeur", () => {
+  const r = returnNotifRecipients("author", ["author", "a"], []);
+  assert.deepEqual([...r].sort(), ["author", "a"].sort());
+  assert.equal(r.length, 2);
+});
+
+test("restorationReportedContent : eau vs courant", () => {
+  assert.match(restorationReportedContent("water").title, /eau/);
+  assert.match(restorationReportedContent(undefined).title, /courant/);
+});
+
+test("restorationReportedContent : zone incluse quand disponible", () => {
+  const c = restorationReportedContent("electricity", { neighborhood: "Bastos", city: "Yaoundé" });
+  assert.match(c.body, /Bastos, Yaoundé/);
 });

@@ -213,3 +213,50 @@ export function impactLine(notifiedCount: number): string {
     ? " Ta confirmation a aidé à alerter 1 voisin."
     : ` Ta confirmation a aidé à alerter ${notifiedCount} voisins.`;
 }
+
+// ---------------------------------------------------------------------------
+// Rétablissement signalé (E) — notif « quelqu'un signale le retour » envoyée à
+// l'auteur + aux confirmeurs AVANT le seuil de résolution (sinon, avec peu
+// d'utilisateurs, aucune notif de retour ne partait jamais). Quand le seuil est
+// atteint, c'est `onReportResolved` qui prend le relais (« C'est revenu ✓ ») —
+// les deux ne se chevauchent pas (cf. index.ts : on envoie l'un OU l'autre).
+// ---------------------------------------------------------------------------
+
+/**
+ * Destinataires d'une notif liée à un report (auteur + confirmeurs), en
+ * excluant un ensemble d'uid (ex. ceux qui ont déjà déclaré le retour et ceux
+ * déjà notifiés). Pur et testable — dédupliqué, ordre non garanti.
+ */
+export function returnNotifRecipients(
+  authorId: string | undefined,
+  confirmerIds: string[],
+  excludeIds: string[]
+): string[] {
+  const exclude = new Set(excludeIds);
+  const out = new Set<string>();
+  for (const id of confirmerIds) {
+    if (id && !exclude.has(id)) out.add(id);
+  }
+  if (authorId && !exclude.has(authorId)) out.add(authorId);
+  return Array.from(out);
+}
+
+/**
+ * Titre + corps de la notif « quelqu'un signale le retour » (par service).
+ * Invite à confirmer le retour. Pur et testable.
+ */
+export function restorationReportedContent(
+  serviceType: string | undefined,
+  area?: NotifArea
+): { title: string; body: string } {
+  const isWater = serviceType === "water";
+  const title = isWater
+    ? "L'eau est peut-être revenue 💧"
+    : "Le courant est peut-être revenu ⚡";
+  const parts = (area ? [area.neighborhood, area.city] : []).filter(
+    (s): s is string => !!s && s.length > 0
+  );
+  const zone = parts.length > 0 ? ` à ${parts.join(", ")}` : "";
+  const body = `Un voisin signale le retour du service${zone}. C'est bon chez toi ?`;
+  return { title, body };
+}

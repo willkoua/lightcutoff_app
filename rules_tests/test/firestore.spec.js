@@ -654,10 +654,11 @@ describe("Firestore — usernames (index pseudo)", () => {
 });
 
 describe("Firestore — sessions anonymes (Firebase Anonymous Auth)", () => {
-  // Les anonymes peuvent participer au cœur métier (signaler + voter) mais ne
-  // peuvent PAS créer de profil, pseudo, ou enregistrer un device. Ils doivent
-  // upgrader (linkWithCredential) — le sign_in_provider passe alors à
-  // "password"/"google.com" et la création des docs sociaux redevient possible.
+  // Les anonymes peuvent participer au cœur métier (signaler + voter) et, depuis
+  // 2026-10-27, ENREGISTRER un device FCM (pour recevoir les notifs de
+  // proximité). Ils ne peuvent toujours PAS créer de profil ni de pseudo : ces
+  // docs sociaux restent réservés aux comptes upgradés (linkWithCredential →
+  // sign_in_provider "password"/"google.com").
 
   it("un anonyme peut créer un report (avec son uid)", async () => {
     await assertSucceeds(
@@ -731,10 +732,17 @@ describe("Firestore — sessions anonymes (Firebase Anonymous Auth)", () => {
     );
   });
 
-  it("un anonyme ne peut PAS enregistrer un device", async () => {
-    await assertFails(
+  it("un anonyme PEUT enregistrer son propre device (notifs proximité)", async () => {
+    await assertSucceeds(
       setDoc(doc(asAnonymous("anon1"), "devices/tokenA"), {
         userId: "anon1",
+        platform: "android",
+      }),
+    );
+    // Mais toujours pas sous l'uid de quelqu'un d'autre (régression).
+    await assertFails(
+      setDoc(doc(asAnonymous("anon1"), "devices/tokenB"), {
+        userId: "bob",
         platform: "android",
       }),
     );
