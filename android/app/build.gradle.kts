@@ -72,14 +72,19 @@ android {
                 } else {
                     signingConfigs.getByName("debug")
                 }
-            // Minification DÉSACTIVÉE : sans règles `keep`, R8 obfusque/élague
-            // l'enregistrement par réflexion des plugins Firebase et fait planter
-            // l'app au démarrage en release (NPE dans FlutterActivity.onCreate),
-            // alors que le debug fonctionne. On reste sur le défaut Flutter
-            // (pas de minify) ; à réactiver plus tard avec des règles proguard
-            // testées si la taille de l'AAB devient un sujet.
-            isMinifyEnabled = false
-            isShrinkResources = false
+            // Minification R8 ACTIVÉE (recommandation Play « optimisation DEX »).
+            // Les règles `keep` de android/app/proguard-rules.pro préservent
+            // l'enregistrement par réflexion des plugins Firebase/Flutter — sans
+            // elles, R8 l'élaguait et l'app plantait au démarrage release (NPE
+            // dans FlutterActivity.onCreate), alors que le debug fonctionnait.
+            // ⚠️ Toute évolution de ces règles se revalide par un lancement
+            // release sur appareil (cf. tasks/todo.md).
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
             // Demande à AGP d'empaqueter les symboles de débogage natifs.
             // NB : Flutter livre libapp.so / libflutter.so DÉJÀ strippés, donc
             // AGP n'a rien à extraire pour ces libs — l'avertissement Play
