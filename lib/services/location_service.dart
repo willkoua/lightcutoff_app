@@ -36,6 +36,19 @@ class LocationService implements LocationRepository {
   @override
   Future<void> openSettings() => Geolocator.openAppSettings();
 
+  /// Dernière position connue (cache système), sans permission ni fix GPS.
+  /// `null` si indisponible. iOS renvoie généralement `null` (non persisté).
+  @override
+  Future<GeoPosition?> lastKnownPosition() async {
+    try {
+      final last = await Geolocator.getLastKnownPosition();
+      if (last == null) return null;
+      return GeoPosition(lat: last.latitude, lng: last.longitude);
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Récupère la position courante et la zone (reverse-géocodage).
   @override
   Future<LocationResult> getCurrentLocation() async {

@@ -84,7 +84,10 @@ class _LocationPermissionSheet extends StatelessWidget {
           const SizedBox(height: 24),
           _Bullet(icon: Icons.place_outlined, text: l.locationSheetBullet1),
           const SizedBox(height: 14),
-          _Bullet(icon: Icons.lock_outline, text: l.locationSheetBullet2),
+          _Bullet(
+            icon: Icons.notifications_active_outlined,
+            text: l.locationSheetBullet2,
+          ),
           const SizedBox(height: 14),
           _Bullet(
             icon: Icons.visibility_off_outlined,

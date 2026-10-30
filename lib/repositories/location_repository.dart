@@ -29,6 +29,14 @@ abstract class LocationRepository {
   Future<void> openSettings();
   Future<LocationResult> getCurrentLocation();
 
+  /// Dernière position connue de l'appareil (lecture du cache système) :
+  /// **instantanée**, sans demande de permission ni fix GPS ni reverse-géocodage.
+  /// Renvoie `null` si aucune position n'est en cache (ou plateforme non
+  /// supportée — iOS ne persiste pas de dernière position). Sert à ouvrir la
+  /// carte directement sur l'utilisateur, sans afficher d'abord une position par
+  /// défaut (Cameroun) puis « sauter ».
+  Future<GeoPosition?> lastKnownPosition();
+
   /// Résout une **position décrite manuellement** ([query] : quartier, ville,
   /// adresse…) en coordonnées + zone, via géocodage direct. Permet de signaler
   /// sans GPS. Mondial (pas spécifique à un pays). Lève

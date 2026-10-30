@@ -12,6 +12,7 @@ import '../services/analytics_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/l10n_helpers.dart';
 import '../widgets/active_filters_banner.dart';
+import '../widgets/location_alerts_banner.dart';
 import '../widgets/service_filter_bar.dart';
 import '../widgets/confirm_dialog.dart';
 import '../widgets/njuka_app_bar.dart';
@@ -121,6 +122,8 @@ class _HomeScreenState extends State<HomeScreen> {
           // lecture globale — il s'applique aussi bien aux signalements
           // citoyens (en dessous) qu'aux coupures programmées de l'opérateur.
           const ServiceFilterBar(),
+          // Alertes de proximité KO sans localisation → bandeau + bouton activer.
+          const LocationAlertsBanner(),
           // Segmented control « Signalements / Programmées » sous le filtre
           // service. Masqué quand le pays actif n'a pas de coupures programmées
           // (il ne resterait qu'un seul choix) : on n'affiche alors que la liste

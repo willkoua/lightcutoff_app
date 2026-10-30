@@ -449,6 +449,10 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
     try {
       final loc = await _location.getCurrentLocation();
       _nearCenter = loc.position;
+      // Backfill de la position du device : activer « À proximité » donne un fix
+      // GPS → on en profite pour rendre ce device joignable par les notifs de
+      // proximité (sinon un anonyme enregistré sans position reste invisible).
+      _refreshDeviceGeohashFrom(loc.position);
       _nearOnly = true;
       _onlyMine = false; // exclusif avec « mes signalements »
       _nearLoading = true;
@@ -680,11 +684,22 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<GeoPosition?> myPosition() async {
     try {
       final loc = await _location.getCurrentLocation();
+      // Profite de ce fix GPS pour backfiller la position du device : un
+      // destinataire passif (il ouvre la carte mais ne signale rien) n'était
+      // enregistré SANS position si la localisation n'était pas encore accordée
+      // à l'ouverture de l'app (`registerForUser` au démarrage) → invisible pour
+      // le ciblage 500 m des notifs de proximité. Idempotent (skip même cellule).
+      _refreshDeviceGeohashFrom(loc.position);
       return loc.position;
     } catch (_) {
       return null;
     }
   }
+
+  /// Dernière position connue (cache système) — instantanée, sans permission ni
+  /// fix GPS. `null` si indisponible. Permet de centrer la carte sur
+  /// l'utilisateur dès l'ouverture, sans flash sur la position par défaut.
+  Future<GeoPosition?> lastKnownPosition() => _location.lastKnownPosition();
 
   /// Geohash grossier du votant attaché à un vote (confirm / restore).
   /// **Best-effort STRICT** : ne déclenche AUCUNE demande de permission (n'utilise
@@ -716,6 +731,29 @@ class ReportProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   /// État d'accès à la localisation (sans déclencher la demande système).
   Future<LocationAccess> checkLocationAccess() => _location.checkAccess();
+
+  /// Pour le bandeau « localisation désactivée » (alertes de proximité) :
+  /// tente d'obtenir l'accès. Si c'est encore demandable, déclenche le pop-up
+  /// système ; sinon (refus définitif / service coupé) ouvre les réglages. Si
+  /// l'accès est accordé, backfille aussitôt la position du device pour être
+  /// joignable sans attendre. Renvoie l'état d'accès APRÈS la tentative.
+  Future<LocationAccess> requestLocationForAlerts() async {
+    final before = await _location.checkAccess();
+    if (before == LocationAccess.granted) return before;
+    if (before == LocationAccess.deniedForever ||
+        before == LocationAccess.serviceDisabled) {
+      await _location.openSettings();
+      return _location.checkAccess();
+    }
+    // Refus simple (re-demandable) : getCurrentLocation déclenche le pop-up.
+    try {
+      final loc = await _location.getCurrentLocation();
+      _refreshDeviceGeohashFrom(loc.position);
+    } catch (_) {
+      /* refusé par l'utilisateur */
+    }
+    return _location.checkAccess();
+  }
 
   /// Position courante pour AFFICHAGE (formulaire) — best-effort, sans état
   /// `submitting` ni demande système. `null` si refusée/indisponible.

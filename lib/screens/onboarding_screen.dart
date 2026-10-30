@@ -41,6 +41,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       l.onboardingSlide4Title,
       l.onboardingSlide4Body,
     ),
+    // Localisation : les alertes de proximité en dépendent (ciblage 500 m côté
+    // Cloud Function). On l'explique ici pour éviter l'échec silencieux « j'ai
+    // refusé la localisation et je ne reçois rien sans comprendre pourquoi ».
+    _Slide(
+      Icons.location_on_outlined,
+      l.onboardingSlideLocationTitle,
+      l.onboardingSlideLocationBody,
+    ),
+    // Compte : anonyme-first assumé (on rappelle que tout marche sans compte),
+    // puis les 4 avantages réels d'un compte (suivi quartier programmé,
+    // historique portable, stats, pseudo sur les signalements).
+    _Slide(
+      Icons.account_circle_outlined,
+      l.onboardingSlideAccountTitle,
+      l.onboardingSlideAccountBody,
+    ),
   ];
 
   @override

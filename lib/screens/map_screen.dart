@@ -15,6 +15,7 @@ import '../providers/report_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/active_filters_banner.dart';
 import '../widgets/confirm_dialog.dart';
+import '../widgets/location_alerts_banner.dart';
 import '../widgets/njuka_app_bar.dart';
 import '../utils/impact_zone.dart';
 import '../utils/l10n_helpers.dart';
@@ -41,6 +42,11 @@ class _MapScreenState extends State<MapScreen> {
   LatLng? _myPos;
   bool _mapReady = false;
   bool _didInitialCenter = false;
+  // Voile de chargement : couvre la carte le temps de résoudre la position, pour
+  // qu'on ne voie JAMAIS la position par défaut (Cameroun) avant le centrage sur
+  // l'utilisateur. Levé dès que la dernière position connue est lue (instantané)
+  // ou, à défaut, dès que le fix GPS précis répond.
+  bool _locating = true;
 
   // Message « aucun signalement » : masqué automatiquement après 15 s pour ne
   // pas rester en permanence sur une carte vide. Ré-affiché si des reports
@@ -51,7 +57,32 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void initState() {
     super.initState();
-    _loadMyPosition();
+    _initLocate();
+  }
+
+  /// Centrage initial sans « flash Cameroun » :
+  /// 1. lecture **instantanée** de la dernière position connue (cache système,
+  ///    sans permission ni GPS) → centre la carte et lève le voile ;
+  /// 2. puis fix GPS précis en arrière-plan (affine le marqueur, et centre si
+  ///    aucune position n'était en cache — ex. 1er lancement / iOS).
+  /// Le voile est levé dans tous les cas (y compris position indisponible).
+  Future<void> _initLocate() async {
+    try {
+      final last = await context.read<ReportProvider>().lastKnownPosition();
+      if (!mounted) return;
+      if (last != null) {
+        setState(() => _myPos = LatLng(last.lat, last.lng));
+        // Centre dès que la carte est prête (le voile est levé par _centerOnMe,
+        // une fois le cadrage effectué — jamais avant).
+        _centerOnMe();
+      }
+    } catch (_) {
+      /* best-effort : on retombe sur le fix précis ci-dessous */
+    }
+    // Fix précis (peut demander la permission / prendre quelques secondes) :
+    // affine `_myPos` et lève le voile si la position n'était pas en cache.
+    await _loadMyPosition();
+    if (mounted && _locating) setState(() => _locating = false);
   }
 
   @override
@@ -105,6 +136,9 @@ class _MapScreenState extends State<MapScreen> {
     if (_didInitialCenter || !_mapReady || _myPos == null) return;
     _didInitialCenter = true;
     _controller.move(_myPos!, _arrivalZoom);
+    // La carte est désormais cadrée sur l'utilisateur : on peut lever le voile
+    // (jamais avant, pour ne pas laisser voir la position par défaut).
+    if (_locating && mounted) setState(() => _locating = false);
   }
 
   /// Force le chargement des tuiles de la vue initiale. Sans un premier
@@ -407,6 +441,9 @@ class _MapScreenState extends State<MapScreen> {
                     color: AppColors.white,
                     child: const ServiceFilterBar(),
                   ),
+                  // Alertes de proximité KO sans localisation → on le dit, avec
+                  // un bouton pour activer (sinon attente silencieuse de notifs).
+                  const LocationAlertsBanner(),
                 ],
               ),
             ),
@@ -454,6 +491,19 @@ class _MapScreenState extends State<MapScreen> {
                       ),
                     ],
                   ],
+                ),
+              ),
+            ),
+          // Voile de chargement : masque le cadrage initial (position par défaut
+          // → centrage sur l'utilisateur) pour éviter le « flash Cameroun ».
+          // En pratique quasi imperceptible (dernière position connue lue en
+          // quelques ms) ; ne subsiste que si aucune position n'est disponible.
+          if (_locating)
+            Positioned.fill(
+              child: ColoredBox(
+                color: AppColors.white,
+                child: Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
                 ),
               ),
             ),
