@@ -3,7 +3,7 @@
 Toutes les évolutions notables de NJUKA. Format inspiré de
 [Keep a Changelog](https://keepachangelog.com/fr/). Versionnage : `X.Y.Z+build`.
 
-## [Non publié]
+## [1.4.2+73] — 2026-10-30
 
 ### Ajouté
 - **Onboarding : slide « Active ta localisation »** : explique que les alertes de
